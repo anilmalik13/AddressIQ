@@ -1,0 +1,270 @@
+.address-processing-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.navigation {
+    margin-bottom: 20px;
+}
+
+.nav-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.address-processing-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    border: 1px solid #e9ecef;
+}
+
+.address-processing-card h1 {
+    color: #666 !important;
+    margin-bottom: 8px;
+    font-size: 28px;
+}
+
+.address-processing-card p {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+.processing-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-section label {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+}
+
+.address-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 16px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 100px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+
+.address-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.address-input:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.button-group {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.process-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    flex: 1;
+    min-width: 150px;
+}
+
+.process-button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.process-button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.reset-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    flex: 1;
+    min-width: 120px;
+}
+
+.reset-button:hover:not(:disabled) {
+    background-color: #5a6268;
+}
+
+.reset-button:disabled {
+    background-color: #adb5bd;
+    cursor: not-allowed;
+}
+
+.loading-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e9ecef;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-section p {
+    margin: 0;
+    color: #495057;
+    font-weight: 500;
+}
+
+.result-section {
+    margin-top: 20px;
+}
+
+.result {
+    padding: 20px;
+    border-radius: 6px;
+}
+
+.result.success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.result.error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.result h3 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+}
+
+.address-comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.original-address,
+.processed-address {
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 4px solid #155724;
+}
+
+.original-address h4,
+.processed-address h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.original-address p,
+.processed-address p {
+    margin: 0;
+    color: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.processed-address {
+    position: relative;
+}
+
+.copy-button {
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.copy-button:hover {
+    background-color: #138496;
+}
+
+@media (max-width: 600px) {
+    .address-processing-container {
+        padding: 15px;
+    }
+    
+    .address-processing-card {
+        padding: 20px;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    .process-button,
+    .reset-button {
+        width: 100%;
+    }
+    
+    .address-comparison {
+        gap: 15px;
+    }
+}
