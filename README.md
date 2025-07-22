@@ -42,8 +42,8 @@ AddressIQ/
 │   ├── public/
 │   │   └── index.html
 │   └── src/
-│       ├── App.tsx                 # Main app component with routing
-│       ├── App.css                 # Global styles
+│       ├── App.tsx                # Main app component with routing
+│       ├── App.css                # Global styles
 │       ├── index.tsx              # Application entry point
 │       ├── components/            # React components
 │       │   ├── FileUpload/        # File upload feature
