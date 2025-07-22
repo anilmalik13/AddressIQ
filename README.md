@@ -42,11 +42,22 @@ AddressIQ/
 │   ├── public/
 │   │   └── index.html
 │   └── src/
-│       ├── App.tsx
-│       ├── index.tsx
-│       ├── components/
-│       ├── services/
-│       └── types/
+│       ├── App.tsx                 # Main app component with routing
+│       ├── App.css                 # Global styles
+│       ├── index.tsx              # Application entry point
+│       ├── components/            # React components
+│       │   ├── FileUpload/        # File upload feature
+│       │   ├── AddressProcessing/ # Address processing feature
+│       │   ├── Chat.tsx           # Legacy chat component
+│       │   ├── ChatInput.tsx
+│       │   └── ChatMessage.tsx
+│       ├── store/                 # Redux store setup
+│       │   ├── index.ts
+│       │   ├── slices/
+│       │   └── epics/
+│       ├── services/              # Axios API configuration
+│       ├── hooks/                 # Typed Redux hooks
+│       └── types/                 # TypeScript type definitions
 └── backend/
     ├── requirements.txt
     ├── run.py
