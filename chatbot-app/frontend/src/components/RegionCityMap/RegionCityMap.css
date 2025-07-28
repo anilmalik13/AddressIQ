@@ -1,0 +1,120 @@
+.region-city-map-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+  
+.dropdown-container {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dropdown-container select,
+.dropdown-container button {
+    padding: 10px 16px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: white;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.dropdown-container select:focus,
+.dropdown-container button:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.dropdown-container select:disabled {
+    background-color: #e9ecef;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.dropdown-container button {
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.dropdown-container button:hover:not(:disabled) {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.dropdown-container button:disabled {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.dropdown-container .back-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+}
+
+.dropdown-container .back-button:hover {
+    background-color: #5a6268;
+}
+
+.coordinate-info {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #c3e6cb;
+}
+
+.map-container {
+    flex-grow: 1;
+    position: relative;
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content {
+    margin: 8px 12px;
+    font-size: 14px;
+}
+
+.leaflet-popup-content strong {
+    color: #007bff;
+    font-size: 16px;
+}
+
+.leaflet-popup-content small {
+    color: #6c757d;
+    font-size: 12px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .dropdown-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    
+    .dropdown-container select,
+    .dropdown-container button {
+        width: 100%;
+    }
+    
+    .coordinate-info {
+        font-size: 12px;
+        text-align: center;
+    }
+}
+  

@@ -21,15 +21,100 @@
 }
 
 .app-header p {
-    margin: 0;
+    margin: 0 0 20px 0;
     font-size: 16px;
     opacity: 0.9;
     font-weight: 300;
 }
 
+/* View Tabs */
+.view-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.tab {
+    padding: 10px 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 500;
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.tab:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.tab.active {
+    background-color: #ffffff;
+    color: #003f2d;
+    border-color: #ffffff;
+}
+
 .app-main {
     flex: 1;
-    padding: 20px 0;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.current-view {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.current-view h2 {
+    margin: 0 0 20px 0;
+    color: #003f2d;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+/* Navigation Buttons */
+.navigation-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    gap: 10px;
+}
+
+.back-button,
+.next-button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-button {
+    background-color: #6c757d;
+    color: white;
+}
+
+.back-button:hover {
+    background-color: #5a6268;
+}
+
+.next-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.next-button:hover {
+    background-color: #0056b3;
 }
 
 .app-footer {

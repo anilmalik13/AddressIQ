@@ -9,8 +9,11 @@
     "@types/react-dom": "^18.2.17",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.6.2",
+    "country-state-city": "^3.2.1",
+    "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.7.0",
     "react-scripts": "5.0.1",
@@ -44,6 +47,7 @@
     ]
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.20",
     "http-proxy-middleware": "^3.0.5"
   }
 }
