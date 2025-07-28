@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { processAddressRequest, resetAddressState } from '../../store/slices/addressProcessingSlice';
 import './AddressProcessing.css';
@@ -35,12 +34,6 @@ const AddressProcessing: React.FC = () => {
 
     return (
         <div className="address-processing-container">
-            <div className="navigation">
-                <Link to="/file-upload" className="nav-link">
-                    ← Go to File Upload
-                </Link>
-            </div>
-            
             <div className="address-processing-card">
                 <h1>Address Processing</h1>
                 <p>Enter an address in free text format to get it processed and standardized</p>

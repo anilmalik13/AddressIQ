@@ -54,4 +54,12 @@ export const processAddress = async (address: string): Promise<string> => {
     return response.data.processedAddress || response.data.message;
 };
 
+// Region-Country Coordinates API
+export const getCoordinatesByRegionCountry = async (region: string, country: string) => {
+    const response = await api.get('/coordinates', {
+        params: { region, country }
+    });
+    return response.data;
+};
+
 export default api;

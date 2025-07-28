@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { uploadFileRequest, resetUploadState } from '../../store/slices/fileUploadSlice';
 import './FileUpload.css';
@@ -43,12 +42,6 @@ const FileUpload: React.FC = () => {
 
     return (
         <div className="file-upload-container">
-            <div className="navigation">
-                <Link to="/address-processing" className="nav-link">
-                    Go to Address Processing →
-                </Link>
-            </div>
-            
             <div className="file-upload-card">
                 <h1>Excel File Upload</h1>
                 <p>Upload your Excel file to process address data</p>
