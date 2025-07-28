@@ -3,6 +3,19 @@ import json
 import os
 from dotenv import load_dotenv
 
+# Import address configuration
+try:
+    from app.config.address_config import (
+        ADDRESS_STANDARDIZATION_PROMPT, 
+        ORGANIZATION_SPECIFIC_PROMPT, 
+        PROMPT_CONFIG
+    )
+    CONFIG_AVAILABLE = True
+    print("✅ Address configuration loaded successfully")
+except ImportError:
+    CONFIG_AVAILABLE = False
+    print("⚠️  Warning: address_config.py not found, using fallback prompts")
+
 # Load environment variables
 load_dotenv()
 
@@ -41,6 +54,9 @@ def connect_wso2(access_token, user_content: str, system_prompt: str = None, pro
     if not system_prompt:
         system_prompt = get_custom_system_prompt(prompt_type)
 
+    # Get prompt configuration from config file
+    config = get_prompt_config()
+
     request_body = {
         "messages": [
             {
@@ -52,10 +68,10 @@ def connect_wso2(access_token, user_content: str, system_prompt: str = None, pro
                 "content": user_content
             }
         ],
-        "temperature": 0.7,
-        "max_tokens": 800,
-        "frequency_penalty": 0,
-        "presence_penalty": 0
+        "temperature": config.get("temperature", 0.7),
+        "max_tokens": config.get("max_tokens", 800),
+        "frequency_penalty": config.get("frequency_penalty", 0),
+        "presence_penalty": config.get("presence_penalty", 0)
     }
 
     print(f"Request body: {json.dumps(request_body)}")
@@ -73,9 +89,14 @@ def connect_wso2(access_token, user_content: str, system_prompt: str = None, pro
 
 def get_address_standardization_prompt():
     """
-    Returns a comprehensive system prompt for address standardization
+    Returns the address standardization prompt from configuration file
+    Falls back to hardcoded prompt if config is not available
     """
-    return """You are an expert address standardization system. Your task is to take raw, unstructured address data and convert it into a standardized format following these guidelines:
+    if CONFIG_AVAILABLE and PROMPT_CONFIG.get("use_address_standardization_prompt", True):
+        return ADDRESS_STANDARDIZATION_PROMPT
+    else:
+        # Fallback hardcoded prompt (only used if config file is missing)
+        return """You are an expert address standardization system. Your task is to take raw, unstructured address data and convert it into a standardized format following these guidelines:
 
 **STANDARDIZATION RULES:**
 
@@ -142,14 +163,31 @@ Process the following address data and return the standardized result:"""
 def get_custom_system_prompt(prompt_type="general"):
     """
     Returns different system prompts based on the use case
+    Uses configuration file when available
     """
     if prompt_type == "address_standardization":
         return get_address_standardization_prompt()
+    elif prompt_type == "organization_specific" and CONFIG_AVAILABLE:
+        return ORGANIZATION_SPECIFIC_PROMPT
     else:
         return (
             "You are a helpful AI assistant. Please provide clear, informative, and helpful responses to user questions. "
             "Be conversational and engaging while providing accurate information."
         )
+
+def get_prompt_config():
+    """
+    Get prompt configuration from config file
+    """
+    if CONFIG_AVAILABLE:
+        return PROMPT_CONFIG
+    else:
+        return {
+            "temperature": 0.7,
+            "max_tokens": 800,
+            "frequency_penalty": 0,
+            "presence_penalty": 0
+        }
 
 def standardize_address(raw_address: str):
     """
