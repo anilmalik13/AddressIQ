@@ -36,18 +36,46 @@ AddressIQ/
 ├── README.md
 ├── QUICKSTART.md
 ├── start-dev.sh
-├── frontend/
+├── frontend/                    # React TypeScript frontend
 │   ├── package.json
 │   ├── tsconfig.json
+│   ├── README.md               # Frontend documentation
 │   ├── public/
 │   │   └── index.html
 │   └── src/
-│       ├── App.tsx
-│       ├── index.tsx
-│       ├── components/
-│       ├── services/
-│       └── types/
-└── backend/
+│       ├── App.tsx             # Main app component with routing
+│       ├── App.css             # Global styles
+│       ├── index.tsx           # Application entry point
+│       ├── index.css           # Global CSS styles
+│       ├── setupProxy.js       # Proxy configuration for API calls
+│       ├── components/         # React components
+│       │   ├── FileUpload/     # File upload feature
+│       │   │   ├── FileUpload.tsx
+│       │   │   ├── FileUpload.css
+│       │   │   └── index.ts
+│       │   ├── AddressProcessing/ # Address processing feature
+│       │   │   ├── AddressProcessing.tsx
+│       │   │   ├── AddressProcessing.css
+│       │   │   └── index.ts
+│       │   ├── Chat.tsx        # Legacy chat component
+│       │   ├── ChatInput.tsx   # Legacy chat input component
+│       │   └── ChatMessage.tsx # Legacy chat message component
+│       ├── store/              # Redux store setup
+│       │   ├── index.ts        # Store configuration
+│       │   ├── slices/         # Redux slices
+│       │   │   ├── fileUploadSlice.ts
+│       │   │   └── addressProcessingSlice.ts
+│       │   └── epics/          # Redux Observable epics
+│       │       ├── index.ts
+│       │       ├── fileUploadEpic.ts
+│       │       └── addressProcessingEpic.ts
+│       ├── services/           # Axios API configuration
+│       │   └── api.ts
+│       ├── hooks/              # Typed Redux hooks
+│       │   └── redux.ts
+│       └── types/              # TypeScript type definitions
+│           └── index.ts
+└── backend/                    # Python backend
     ├── requirements.txt
     ├── run.py
     ├── example_address_standardization.py
