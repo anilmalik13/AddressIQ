@@ -1,10 +1,3 @@
-export interface ChatMessage {
-    id?: string;
-    content: string;
-    sender: 'user' | 'bot';
-    timestamp?: Date;
-}
-
 export interface User {
     id: string;
     name: string;
@@ -28,7 +21,6 @@ export interface RootState {
     fileUpload: FileUploadState;
     addressProcessing: AddressProcessingState;
 }
-
 
 export interface ApiResponse {
     choices: {
