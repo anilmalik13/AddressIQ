@@ -1,8 +1,96 @@
-# Chatbot Application
+﻿# AddressIQ
 
-This project is a chatbot application built with a React frontend and a Python Flask backend. The application connects to Azure OpenAI through WSO2 to provide intelligent responses to user queries, specifically designed for generating SQL queries.
+A modern intelligent address processing application with advanced file upload, address standardization, and geographical visualization capabilities.
 
-## 🚀 Quick Start
+## Overview
+
+AddressIQ is a full-stack web application that combines a React TypeScript frontend with a Python Flask backend to deliver comprehensive address intelligence solutions. The application provides file upload functionality, address processing capabilities, and interactive map visualization.
+
+## Features
+
+- **File Upload Interface**: Excel file upload with progress tracking and validation
+- **Address Processing**: Advanced address standardization and processing capabilities
+- **Interactive Map Visualization**: Geographic data visualization with Leaflet integration
+- **Redux State Management**: Comprehensive state management with Redux Toolkit
+- **Real-time Communication**: Seamless frontend-backend integration
+- **Modern Tech Stack**: Built with the latest web technologies
+
+## Architecture
+
+### Frontend (`/frontend`)
+- **React 18** with TypeScript
+- **Tabbed Navigation**: Clean interface with File Upload, Address Processing, and Map View tabs
+- **Redux Toolkit**: State management with Redux Observable epics
+- **Responsive Design**: Works across desktop and mobile devices
+- **API Integration**: Clean service layer for backend communication
+
+### Backend (`/backend`)
+- **Python Flask** application
+- **Address Processing Engine**: Standardization and validation
+- **RESTful API**: Clean endpoints for frontend communication
+- **Modular Architecture**: Organized services and models
+
+## Project Structure
+
+```
+AddressIQ/
+ README.md
+ QUICKSTART.md
+ start-dev.sh
+ frontend/                    # React TypeScript frontend
+    package.json
+    tsconfig.json
+    README.md               # Frontend documentation
+    build/                  # Production build output
+    public/
+       index.html
+    src/
+        App.tsx             # Main app component with tabbed navigation
+        App.css             # Global styles
+        index.tsx           # Application entry point
+        index.css           # Global CSS styles
+        setupProxy.js       # Proxy configuration for API calls
+        components/         # React components
+           FileUpload/     # File upload feature
+              FileUpload.tsx
+              FileUpload.css
+              index.ts
+           AddressProcessing/ # Address processing feature
+              AddressProcessing.tsx
+              AddressProcessing.css
+              index.ts
+           RegionCityMap/  # Interactive map visualization
+               RegionCityMap.tsx
+               RegionCityMap.css
+               index.ts
+        store/              # Redux store setup
+           index.ts        # Store configuration
+           slices/         # Redux slices
+              fileUploadSlice.ts
+              addressProcessingSlice.ts
+           epics/          # Redux Observable epics
+               index.ts
+               fileUploadEpic.ts
+               addressProcessingEpic.ts
+        services/           # Axios API configuration
+           api.ts
+        hooks/              # Typed Redux hooks
+           redux.ts
+        types/              # TypeScript type definitions
+            index.ts
+ backend/                    # Python backend
+     requirements.txt
+     run.py
+     example_address_standardization.py
+     ADDRESS_STANDARDIZATION_README.md
+     app/
+         main.py
+         config/
+         models/
+         services/
+```
+
+##  Quick Start
 
 **Option 1: Use the automated setup script**
 ```bash
@@ -12,168 +100,142 @@ chmod +x start-dev.sh
 
 **Option 2: Manual setup (see detailed instructions below)**
 
-## Project Structure
-
-```
-chatbot-app/
-├── frontend/             # Frontend React application
-│   ├── src/
-│   │   ├── components/   # React components for chat interface
-│   │   │   ├── Chat.tsx          # Main chat container
-│   │   │   ├── ChatInput.tsx     # User input component
-│   │   │   └── ChatMessage.tsx   # Message display component
-│   │   ├── services/     # API service for backend communication
-│   │   │   └── api.ts            # Backend API integration
-│   │   ├── types/        # TypeScript types and interfaces
-│   │   │   └── index.ts          # Type definitions
-│   │   ├── App.tsx       # Main application component
-│   │   ├── index.tsx     # Entry point of the React application
-│   │   └── index.css     # Application styling
-│   ├── public/           # Public assets
-│   ├── package.json      # NPM configuration with dependencies
-│   └── tsconfig.json     # TypeScript configuration
-├── backend/              # Backend Python Flask application
-│   ├── app/
-│   │   ├── __init__.py   # Flask app initialization
-│   │   ├── main.py       # Main Flask application with CORS
-│   │   ├── services/     # Backend services
-│   │   │   └── azure_openai.py   # Azure OpenAI integration
-│   │   └── models/       # Data models for chat interactions
-│   │       └── chat.py           # Chat message models
-│   ├── requirements.txt  # Python dependencies (includes Flask-CORS)
-│   └── .env             # Environment variables (secure)
-├── start-dev.sh         # Development startup script
-└── README.md            # Project documentation
-```
-
-## 🔧 Prerequisites
+##  Prerequisites
 
 - **Node.js** (v14 or higher) and npm
 - **Python 3.7+**
-- **Azure OpenAI** account with access through WSO2
-- **Valid WSO2 credentials**
+- **Azure OpenAI** account (if using AI features)
 
-## 📋 Environment Setup
+##  Environment Setup
 
-### 1. Backend Configuration
-
-Navigate to the backend directory and update the `.env` file:
-
+### 1. Clone the repository
 ```bash
-cd backend
-```
-
-Edit `.env` with your actual credentials:
-```env
-# WSO2 Configuration
-WSO2_AUTH_URL=https://api-test.cbre.com:443/token
-
-# Azure OpenAI Configuration  
-AZURE_OPENAI_DEPLOYMENT_ID=your_deployment_id
-
-# Client Credentials (Replace with actual values)
-CLIENT_ID=your_actual_client_id
-CLIENT_SECRET=your_actual_client_secret
-
-# Flask Configuration
-FLASK_ENV=development
-FLASK_DEBUG=True
+git clone <repository-url>
+cd AddressIQ
 ```
 
 ### 2. Backend Setup (Manual)
-
 ```bash
 cd backend
-
 # Create virtual environment
 python3 -m venv venv
-
 # Activate virtual environment
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-
 # Install dependencies
 pip install -r requirements.txt
-
 # Start the Flask server
-python app/main.py
+python run.py
 ```
-
 The backend will run on `http://localhost:5001`
 
 ### 3. Frontend Setup (Manual)
-
 ```bash
 cd frontend
-
 # Install dependencies
 npm install
-
 # Start the development server (runs on port 3003)
 npm start
 ```
-
 The frontend will run on `http://localhost:3003`
 
-## 🌟 Features
+##  Features
 
-- **Real-time Chat Interface**: Modern React-based chat UI with message history
-- **Azure OpenAI Integration**: Connects to Azure OpenAI through WSO2 proxy
-- **SQL Query Generation**: Specialized for creating safe SQL SELECT statements
-- **OAuth2 Authentication**: Secure client credentials flow with WSO2
-- **CORS Support**: Proper frontend-backend communication
+### File Upload Component
+- Excel file upload (.xlsx, .xls) with drag-and-drop support
+- Real-time upload progress tracking
+- File type validation and error handling
+- Success/error feedback with user-friendly messages
+
+### Address Processing Component
+- Free text address input and processing
+- Address standardization and validation
+- Before/after address comparison
+- Copy to clipboard functionality
+- Real-time processing feedback
+
+### Interactive Map Visualization
+- Interactive maps using Leaflet and React-Leaflet
+- Region and country selection interface
+- Coordinate plotting and visualization
+- Geographic data integration with Country-State-City library
+- Custom map markers and popups
+
+### Technical Features
+- **Redux State Management**: Comprehensive state management with Redux Toolkit
+- **Redux Observable**: Reactive programming for async operations
+- **TypeScript**: Full type safety throughout the application
+- **Responsive Design**: Modern UI that works on all devices
+- **Tabbed Navigation**: Clean interface for switching between features
 - **Error Handling**: Comprehensive error management and user feedback
-- **TypeScript Support**: Full type safety in frontend components
-- **Responsive Design**: Mobile-friendly chat interface
-- **Environment Security**: All credentials stored in environment variables
 
-## 🔒 Security Features
-
-- Client credentials stored in environment variables
-- No hardcoded API keys in source code
-- CORS protection configured
-- Bearer token authentication
-- Request/response logging for debugging
-
-## 🛠 API Endpoints
+##  API Endpoints
 
 ### Backend API
 
-- **POST** `/api/chat`
-  - **Body**: `{ "message": "user query", "system_prompt": "optional custom prompt" }`
-  - **Response**: Azure OpenAI completion response
-  - **Headers**: `Content-Type: application/json`
+#### File Upload
+- **POST** `/api/upload-excel`
+  - **Content-Type**: `multipart/form-data`
+  - **Body**: FormData with file field
+  - **Response**: `{ message: string }`
 
-## 🎯 Usage
+#### Address Processing
+- **POST** `/api/process-address`
+  - **Content-Type**: `application/json`
+  - **Body**: `{ address: string }`
+  - **Response**: `{ processedAddress: string }` or `{ message: string }`
+
+#### Geographic Data
+- **GET** `/api/coordinates`
+  - **Query Parameters**: `region`, `country`
+  - **Response**: Coordinate data for the specified region and country
+
+##  Usage
 
 1. Start both frontend and backend servers
 2. Navigate to `http://localhost:3003`
-3. Type your SQL query request in the chat interface
-4. The AI will respond with a SQL SELECT statement
-5. Chat history is maintained during the session
+3. Use the tabbed interface to access different features:
+   - **File Upload**: Upload Excel files for processing
+   - **Address Processing**: Enter addresses for standardization
+   - **Map View**: Visualize geographic data and coordinates
 
-### Example Queries
+### Example Use Cases
+- Upload customer address lists for standardization
+- Process individual addresses for validation
+- Visualize address data on interactive maps
+- Export processed address data
 
-- "Show me all customers from New York"
-- "Get the top 10 products by sales"
-- "Find employees hired in the last 6 months"
-
-## 🚨 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
-
 1. **CORS Errors**: Ensure Flask-CORS is installed and configured
-2. **Authentication Failures**: Verify CLIENT_ID and CLIENT_SECRET in .env
+2. **File Upload Failures**: Check file format (.xlsx, .xls) and size limits
 3. **Module Not Found**: Run `npm install` in frontend and `pip install -r requirements.txt` in backend
-4. **Port Conflicts**: Ensure ports 3000 and 5000 are available
+4. **Port Conflicts**: Ensure ports 3003 and 5001 are available
 
 ### Debug Mode
-
 The application includes extensive logging. Check the console output for:
-- Token acquisition status
+- File upload progress and status
+- Address processing results
 - API request/response details
 - Error messages with stack traces
 
-## 🤝 Contributing
+## Technologies Used
+
+### Frontend
+- **React 18** with TypeScript
+- **Redux Toolkit** for state management
+- **Redux Observable** for handling async operations
+- **Leaflet & React-Leaflet** for interactive maps
+- **Axios** for API calls
+- **Country-State-City** library for geographical data
+
+### Backend
+- **Python 3.11+**
+- **Flask** web framework
+- **Address processing libraries**
+- **RESTful API design**
+
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -181,16 +243,21 @@ The application includes extensive logging. Check the console output for:
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
 
-## 🔄 Recent Updates
+##  Recent Updates
 
-- ✅ Fixed frontend-backend communication
-- ✅ Added proper TypeScript interfaces
-- ✅ Implemented secure environment variable usage
-- ✅ Added comprehensive styling
-- ✅ Created automated development setup
-- ✅ Added CORS support for cross-origin requests
-- ✅ Enhanced error handling and user feedback
+-  Implemented tabbed navigation interface
+-  Added file upload functionality with progress tracking
+-  Created address processing and standardization features
+-  Integrated interactive map visualization
+-  Enhanced Redux state management architecture
+-  Improved responsive design and user experience
+-  Added comprehensive error handling and user feedback
+-  Removed legacy chat components for focused functionality
+
+---
+
+**AddressIQ** - Intelligent address processing with comprehensive file handling and geographic visualization capabilities.
