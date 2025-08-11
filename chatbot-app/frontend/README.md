@@ -1,15 +1,17 @@
 # AddressIQ Frontend
 
-A React TypeScript application with Redux state management for intelligent address processing. This frontend provides a comprehensive solution for file uploads, address processing, and geographical visualization through an interactive map interface.
+A React TypeScript application with Redux state management for intelligent address processing. This frontend provides a comprehensive solution for Excel/CSV file uploads, AI-powered address processing, and geographical visualization through an interactive map interface.
 
 ## Features
 
-- **File Upload Component**: Upload Excel files with progress tracking and validation
-- **Address Processing Component**: Process addresses in free text format with standardization
+- **File Upload Component**: Upload Excel/CSV files with progress tracking and validation
+- **Address Processing Component**: AI-powered address standardization with free text input
 - **Region & City Map View**: Interactive map visualization with geographical data
 - **Redux State Management**: Using Redux Toolkit with Redux Observable epics for async operations
 - **Tabbed Navigation**: Seamless navigation between different application views
 - **TypeScript**: Full type safety throughout the application
+- **Error Handling**: Comprehensive error management with user-friendly feedback
+- **Progress Tracking**: Real-time upload progress and processing status
 
 ## Project Structure
 
@@ -77,23 +79,26 @@ AddressIQ/
 ### FileUpload Component
 - **Tab**: `File Upload`
 - **Files**: `src/components/FileUpload/`
-- **Purpose**: Handles Excel file uploads (.xlsx, .xls)
+- **Purpose**: Handles Excel/CSV file uploads (.xlsx, .xls, .csv)
 - **Features**:
-  - File type validation
-  - Upload progress tracking
-  - Success/error feedback
-  - Integration with Redux store
+  - File type validation for Excel and CSV formats
+  - Upload progress tracking with real-time updates
+  - Success/error feedback with detailed messages
+  - Integration with Redux store for state management
+  - Secure file storage with timestamp naming
 
 ### AddressProcessing Component
 - **Tab**: `Address Processing`
 - **Files**: `src/components/AddressProcessing/`
-- **Purpose**: Processes addresses in free text format
+- **Purpose**: AI-powered address standardization and processing
 - **Features**:
-  - Free text address input
-  - Address standardization and processing
-  - Before/after address comparison
+  - Free text address input with validation
+  - Azure OpenAI integration for intelligent processing
+  - Fallback to free geocoding APIs when needed
+  - Before/after address comparison with confidence scoring
+  - Detailed component breakdown (street, city, state, etc.)
   - Copy to clipboard functionality
-  - Real-time processing feedback
+  - Real-time processing feedback with status indicators
 
 ### RegionCityMap Component
 - **Tab**: `Map View`
@@ -144,13 +149,22 @@ The application expects the following backend API endpoints:
 - **Endpoint**: `POST /api/upload-excel`
 - **Content-Type**: `multipart/form-data`
 - **Body**: FormData with file field
-- **Response**: `{ message: string }`
+- **Response**: `{ message: string, file_path: string, filename: string, file_info: object }`
+
+### List Uploaded Files
+- **Endpoint**: `GET /api/uploaded-files`
+- **Response**: `{ files: array }` with file metadata
 
 ### Address Processing
 - **Endpoint**: `POST /api/process-address`
 - **Content-Type**: `application/json`
 - **Body**: `{ address: string }`
-- **Response**: `{ processedAddress: string }` or `{ message: string }`
+- **Response**: `{ processedAddress: string, confidence: string, components: object, status: string, source: string }`
+
+### Coordinates
+- **Endpoint**: `GET /api/coordinates`
+- **Query Parameters**: `region`, `country`
+- **Response**: Coordinate data for geographical visualization
 
 ## Getting Started
 
@@ -189,9 +203,9 @@ The application expects the following backend API endpoints:
 ## Navigation
 
 The application uses a tabbed interface for navigation between three main views:
-- **File Upload**: Upload and process Excel files
-- **Address Processing**: Standardize and process individual addresses
-- **Map View**: Visualize geographical data and coordinates
+- **File Upload**: Upload and process Excel/CSV files with real-time progress tracking
+- **Address Processing**: AI-powered standardization of individual addresses with component breakdown
+- **Map View**: Interactive geographical visualization with regional filtering and coordinate plotting
 
 Each component is accessible through the navigation tabs in the header, providing a seamless user experience.
 
@@ -207,8 +221,11 @@ Each component is accessible through the navigation tabs in the header, providin
 
 ## Error Handling
 
-- File type validation for uploads
-- Network error handling
-- User-friendly error messages
-- Loading states during API calls
-- Progress tracking for file uploads
+- File type validation for Excel/CSV uploads with clear feedback
+- Network error handling with retry mechanisms
+- User-friendly error messages with actionable guidance
+- Loading states during API calls with progress indicators
+- Progress tracking for file uploads with percentage display
+- Graceful handling of Azure OpenAI service unavailability
+- Validation for address input with instant feedback
+- Connection error recovery with automatic fallback options

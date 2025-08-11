@@ -1,7 +1,7 @@
 # File Upload API Documentation
 
 ## Overview
-The AddressIQ backend now includes file upload functionality to handle Excel (.xlsx, .xls) and CSV files containing address data. Files are uploaded to the `C:\uploaded_files` directory with timestamp-based naming to prevent conflicts.
+The AddressIQ backend provides comprehensive file upload functionality to handle Excel (.xlsx, .xls) and CSV files containing address data. Files are uploaded to the `C:\uploaded_files` directory with timestamp-based naming to prevent conflicts. The system includes AI-powered address processing with graceful fallback to free geocoding APIs.
 
 ## New API Endpoints
 
@@ -47,7 +47,9 @@ The AddressIQ backend now includes file upload functionality to handle Excel (.x
       "country": "United States",
       "latitude": "40.7128",
       "longitude": "-74.0060"
-    }
+    },
+    "status": "success",
+    "source": "azure_openai"
   }
   ```
 

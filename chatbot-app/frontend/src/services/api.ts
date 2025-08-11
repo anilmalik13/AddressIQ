@@ -12,7 +12,7 @@ export const uploadExcelFile = async (file: File, onProgress?: (progress: number
     const formData = new FormData();
     formData.append('file', file);
     try {
-        const response = await api.post('/api/upload-excel', formData, {
+        const response = await api.post('/upload-excel', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -36,7 +36,7 @@ export const uploadExcelFile = async (file: File, onProgress?: (progress: number
 // Get list of uploaded files
 export const getUploadedFiles = async () => {
     try {
-        const response = await api.get('/api/uploaded-files');
+        const response = await api.get('/uploaded-files');
         return response.data.files || [];
     } catch (error: any) {
         console.error('Error fetching uploaded files:', error);
@@ -50,7 +50,7 @@ export const getUploadedFiles = async () => {
 // Address Processing API
 export const processAddress = async (address: string): Promise<any> => {
     try {
-        const response = await api.post('/api/process-address', {
+        const response = await api.post('/process-address', {
             address: address,
         });
 
@@ -71,7 +71,7 @@ export const processAddress = async (address: string): Promise<any> => {
 
 // Region-Country Coordinates API
 export const getCoordinatesByRegionCountry = async (region: string, country: string) => {
-    const response = await api.get('/api/coordinates', {
+    const response = await api.get('/coordinates', {
         params: { region, country }
     });
     return response.data;

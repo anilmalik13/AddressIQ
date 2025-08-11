@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Entry point for the chatbot backend application.
-Run this file to start the Flask server.
+Entry point for the AddressIQ backend application.
+Run this file to start the Flask server for file upload and address processing.
 """
 
 import sys
