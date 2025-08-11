@@ -9,7 +9,7 @@ const api = axios.create({
 
 export const sendMessage = async (userContent: string, systemPrompt?: string) => {
     try {
-        const response = await axios.post(`${API_BASE_URL}/chat`, {
+        const response = await api.post('/chat', {
             message: userContent,
             system_prompt: systemPrompt
         }, {
@@ -29,34 +29,67 @@ export const sendMessage = async (userContent: string, systemPrompt?: string) =>
 export const uploadExcelFile = async (file: File, onProgress?: (progress: number) => void): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
+    try {
+        const response = await api.post('/api/upload-excel', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            onUploadProgress: (progressEvent) => {
+                if (onProgress && progressEvent.total) {
+                    const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(progress);
+                }
+            },
+        });
 
-    const response = await api.post('/upload-excel', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-            if (onProgress && progressEvent.total) {
-                const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                onProgress(progress);
-            }
-        },
-    });
+        return response.data.message || 'File uploaded successfully';
+    } catch (error: any) {
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('File upload failed. Please try again.');
+    }
+};
 
-    return response.data.message || 'File uploaded successfully';
+// Get list of uploaded files
+export const getUploadedFiles = async () => {
+    try {
+        const response = await api.get('/api/uploaded-files');
+        return response.data.files || [];
+    } catch (error: any) {
+        console.error('Error fetching uploaded files:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Failed to fetch uploaded files');
+    }
 };
 
 // Address Processing API
-export const processAddress = async (address: string): Promise<string> => {
-    const response = await api.post('/process-address', {
-        address: address,
-    });
+export const processAddress = async (address: string): Promise<any> => {
+    try {
+        const response = await api.post('/api/process-address', {
+            address: address,
+        });
 
-    return response.data.processedAddress || response.data.message;
+        return {
+            processedAddress: response.data.processedAddress || response.data.message,
+            confidence: response.data.confidence || 'unknown',
+            components: response.data.components || {},
+            error: response.data.error || null
+        };
+    } catch (error: any) {
+        console.error('Error processing address:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Address processing failed. Please try again.');
+    }
 };
 
 // Region-Country Coordinates API
 export const getCoordinatesByRegionCountry = async (region: string, country: string) => {
-    const response = await api.get('/coordinates', {
+    const response = await api.get('/api/coordinates', {
         params: { region, country }
     });
     return response.data;
