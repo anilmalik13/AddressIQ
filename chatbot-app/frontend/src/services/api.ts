@@ -7,24 +7,6 @@ const api = axios.create({
     timeout: 30000,
 });
 
-export const sendMessage = async (userContent: string, systemPrompt?: string) => {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/chat`, {
-            message: userContent,
-            system_prompt: systemPrompt
-        }, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        return response.data;
-    } catch (error) {
-        console.error('Error sending message:', error);
-        throw error;
-    }
-};
-
 // File Upload API
 export const uploadExcelFile = async (file: File, onProgress?: (progress: number) => void): Promise<string> => {
     const formData = new FormData();
