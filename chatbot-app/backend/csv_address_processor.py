@@ -31,13 +31,15 @@ except ImportError as e:
 
 class CSVAddressProcessor:
     """
-    A comprehensive CSV address processor that can:
+    A comprehensive address processor that can:
     1. Read CSV files with address data
-    2. Detect address columns automatically
-    3. Standardize addresses using Azure OpenAI
-    4. Add detailed standardization results
-    5. Fill missing address components using free APIs
-    6. Save enhanced CSV with original and standardized data
+    2. Process single addresses directly
+    3. Process multiple addresses from input
+    4. Detect address columns automatically
+    5. Standardize addresses using Azure OpenAI
+    6. Add detailed standardization results
+    7. Fill missing address components using free APIs
+    8. Save enhanced CSV with original and standardized data
     """
     
     def __init__(self):
@@ -89,6 +91,264 @@ class CSVAddressProcessor:
         else:
             self.db_service = None
             print("⚠️  Running without database caching")
+    
+    def process_single_address_input(self, address: str, country: str = None, output_format: str = 'json') -> Dict[str, Any]:
+        """
+        Process a single address input
+        
+        Args:
+            address: The address string to process
+            country: Optional country for country-specific formatting
+            output_format: 'json', 'formatted', or 'detailed'
+        
+        Returns:
+            Dictionary containing the standardized address data
+        """
+        print(f"\n🏠 Processing address: {address}")
+        if country:
+            print(f"🌍 Target country: {country}")
+        print("=" * 50)
+        
+        # Check database cache first
+        if self.db_service:
+            existing_address = self.db_service.find_existing_address(address)
+            if existing_address:
+                print("💾 Found in database cache!")
+                # Ensure cached result has proper status and required fields
+                cached_result = {
+                    'status': 'success',
+                    'original_address': address,
+                    'formatted_address': existing_address.get('formatted_address', ''),
+                    'street_number': existing_address.get('street_number', '') or '',
+                    'street_name': existing_address.get('street_name', '') or '',
+                    'street_type': existing_address.get('street_type', '') or '',
+                    'unit_type': existing_address.get('unit_type', '') or '',
+                    'unit_number': existing_address.get('unit_number', '') or '',
+                    'city': existing_address.get('city', '') or '',
+                    'state': existing_address.get('state', '') or '',
+                    'postal_code': existing_address.get('postal_code', '') or '',
+                    'country': existing_address.get('country', '') or '',
+                    'confidence': existing_address.get('confidence', 'medium') or 'medium',
+                    'issues': existing_address.get('issues', '') or '',
+                    'api_source': f"{existing_address.get('api_source', 'cached')}_cached",
+                    'latitude': str(existing_address.get('latitude', '')) if existing_address.get('latitude') else '',
+                    'longitude': str(existing_address.get('longitude', '')) if existing_address.get('longitude') else '',
+                    'address_id': existing_address.get('id'),
+                    'from_cache': True
+                }
+                return self._format_output(cached_result, output_format)
+        
+        # Process with AI
+        try:
+            print("🤖 Processing with AI...")
+            result = standardize_address(address)
+            
+            # Check if we got a valid result (not an error)
+            if result and not result.get('error') and result.get('formatted_address'):
+                print("✅ AI processing successful")
+                
+                # Add required fields for our system
+                enhanced_result = {
+                    'status': 'success',
+                    'original_address': address,
+                    'formatted_address': result.get('formatted_address', ''),
+                    'street_number': result.get('street_number', '') or '',
+                    'street_name': result.get('street_name', '') or '',
+                    'street_type': result.get('street_type', '') or '',
+                    'unit_type': result.get('unit_type', '') or '',
+                    'unit_number': result.get('unit_number', '') or '',
+                    'city': result.get('city', '') or '',
+                    'state': result.get('state', '') or '',
+                    'postal_code': result.get('postal_code', '') or '',
+                    'country': result.get('country', '') or '',
+                    'confidence': result.get('confidence', 'medium') or 'medium',
+                    'issues': ', '.join(result.get('issues', [])) if result.get('issues') else '',
+                    'api_source': 'azure_openai',
+                    'latitude': '',
+                    'longitude': '',
+                    'from_cache': False
+                }
+                
+                # Save to database
+                if self.db_service:
+                    try:
+                        address_id = self.db_service.save_address(address, enhanced_result)
+                        enhanced_result['address_id'] = address_id
+                        print(f"💾 Saved to database with ID: {address_id}")
+                    except Exception as e:
+                        print(f"⚠️ Could not save to database: {e}")
+                        enhanced_result['address_id'] = None
+                
+                return self._format_output(enhanced_result, output_format)
+            else:
+                print("❌ AI processing failed")
+                error_msg = result.get('error', 'AI processing failed') if result else 'No response received'
+                return {
+                    'status': 'failed',
+                    'error': error_msg,
+                    'original_address': address,
+                    'from_cache': False
+                }
+                
+        except Exception as e:
+            print(f"❌ Error processing address: {e}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'original_address': address,
+                'from_cache': False
+            }
+
+    def process_multiple_addresses_input(self, addresses: List[str], country: str = None, output_format: str = 'json') -> List[Dict[str, Any]]:
+        """
+        Process multiple addresses from direct input
+        
+        Args:
+            addresses: List of address strings
+            country: Optional country for country-specific formatting
+            output_format: 'json', 'formatted', or 'detailed'
+        
+        Returns:
+            List of dictionaries containing standardized address data
+        """
+        print(f"\n🏠 Processing {len(addresses)} addresses")
+        if country:
+            print(f"🌍 Target country: {country}")
+        print("=" * 50)
+        
+        results = []
+        
+        # Check which addresses are already in cache
+        cached_addresses = []
+        new_addresses = []
+        
+        for i, address in enumerate(addresses):
+            if self.db_service:
+                existing = self.db_service.find_existing_address(address)
+                if existing:
+                    # Ensure cached result has proper status and required fields
+                    cached_result = {
+                        'status': 'success',
+                        'original_address': address,
+                        'formatted_address': existing.get('formatted_address', ''),
+                        'street_number': existing.get('street_number', '') or '',
+                        'street_name': existing.get('street_name', '') or '',
+                        'street_type': existing.get('street_type', '') or '',
+                        'unit_type': existing.get('unit_type', '') or '',
+                        'unit_number': existing.get('unit_number', '') or '',
+                        'city': existing.get('city', '') or '',
+                        'state': existing.get('state', '') or '',
+                        'postal_code': existing.get('postal_code', '') or '',
+                        'country': existing.get('country', '') or '',
+                        'confidence': existing.get('confidence', 'medium') or 'medium',
+                        'issues': existing.get('issues', '') or '',
+                        'api_source': f"{existing.get('api_source', 'cached')}_cached",
+                        'latitude': str(existing.get('latitude', '')) if existing.get('latitude') else '',
+                        'longitude': str(existing.get('longitude', '')) if existing.get('longitude') else '',
+                        'address_id': existing.get('id'),
+                        'from_cache': True
+                    }
+                    cached_addresses.append((i, cached_result))
+                else:
+                    new_addresses.append((i, address))
+            else:
+                new_addresses.append((i, address))
+        
+        print(f"💾 Found {len(cached_addresses)} addresses in cache")
+        print(f"🤖 Processing {len(new_addresses)} new addresses")
+        
+        # Initialize results array
+        results = [None] * len(addresses)
+        
+        # Add cached results
+        for original_index, cached_result in cached_addresses:
+            results[original_index] = self._format_output(cached_result, output_format)
+        
+        # Process new addresses in batches
+        if new_addresses:
+            new_address_strings = [addr for _, addr in new_addresses]
+            
+            try:
+                ai_results = standardize_multiple_addresses(new_address_strings, use_batch=True)
+                
+                for i, (original_index, address) in enumerate(new_addresses):
+                    if i < len(ai_results):
+                        ai_result = ai_results[i]
+                        
+                        # Convert AI result to our expected format
+                        if ai_result and not ai_result.get('error') and ai_result.get('formatted_address'):
+                            result = {
+                                'status': 'success',
+                                'original_address': address,
+                                'formatted_address': ai_result.get('formatted_address', ''),
+                                'street_number': ai_result.get('street_number', '') or '',
+                                'street_name': ai_result.get('street_name', '') or '',
+                                'street_type': ai_result.get('street_type', '') or '',
+                                'unit_type': ai_result.get('unit_type', '') or '',
+                                'unit_number': ai_result.get('unit_number', '') or '',
+                                'city': ai_result.get('city', '') or '',
+                                'state': ai_result.get('state', '') or '',
+                                'postal_code': ai_result.get('postal_code', '') or '',
+                                'country': ai_result.get('country', '') or '',
+                                'confidence': ai_result.get('confidence', 'medium') or 'medium',
+                                'issues': ', '.join(ai_result.get('issues', [])) if ai_result.get('issues') else '',
+                                'api_source': 'azure_openai_batch',
+                                'latitude': '',
+                                'longitude': '',
+                                'from_cache': False
+                            }
+                        else:
+                            # Failed processing
+                            error_msg = ai_result.get('error', 'AI processing failed') if ai_result else 'No response received'
+                            result = {
+                                'status': 'failed',
+                                'error': error_msg,
+                                'original_address': address,
+                                'from_cache': False
+                            }
+                        
+                        # Save successful results to database
+                        if result.get('status') == 'success' and self.db_service:
+                            try:
+                                address_id = self.db_service.save_address(address, result)
+                                result['address_id'] = address_id
+                                print(f"💾 Saved address {i+1} to database with ID: {address_id}")
+                            except Exception as e:
+                                print(f"⚠️ Could not save address {i+1}: {e}")
+                                result['address_id'] = None
+                        
+                        results[original_index] = self._format_output(result, output_format)
+                    else:
+                        # Fallback for missing results
+                        results[original_index] = self._format_output({
+                            'status': 'failed',
+                            'error': 'No result from AI',
+                            'original_address': address,
+                            'from_cache': False
+                        }, output_format)
+                        
+            except Exception as e:
+                print(f"❌ Error in batch processing: {e}")
+                # Fallback to individual processing
+                for original_index, address in new_addresses:
+                    results[original_index] = self.process_single_address_input(address, country, output_format)
+        
+        return results
+
+    def _format_output(self, result: Dict[str, Any], output_format: str) -> Dict[str, Any]:
+        """Format the output based on the requested format"""
+        if output_format == 'formatted':
+            return {
+                'original_address': result.get('original_address', ''),
+                'formatted_address': result.get('formatted_address', ''),
+                'confidence': result.get('confidence', ''),
+                'from_cache': result.get('from_cache', False),
+                'status': result.get('status', 'unknown')
+            }
+        elif output_format == 'detailed':
+            return result  # Return full result
+        else:  # json format (default)
+            return result
         
     def detect_address_columns(self, df: pd.DataFrame) -> List[str]:
         """Automatically detect which columns contain addresses"""
@@ -1115,13 +1375,65 @@ class CSVAddressProcessor:
         return components
     
 def main():
-    """Command line interface for the CSV Address Processor"""
-    parser = argparse.ArgumentParser(description='Process CSV files to standardize addresses')
-    parser.add_argument('input_file', nargs='?', help='Path to input CSV file')
-    parser.add_argument('-o', '--output', help='Path to output CSV file (optional)')
-    parser.add_argument('-c', '--column', help='Specific address column name (optional)')
+    """Enhanced command line interface supporting both CSV files and direct address input"""
+    parser = argparse.ArgumentParser(
+        description='AddressIQ: Standardize addresses from CSV files or direct input',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Process CSV file
+  python csv_address_processor.py addresses.csv
+  
+  # Process single address
+  python csv_address_processor.py --address "123 Main St, NYC, NY"
+  
+  # Process multiple addresses
+  python csv_address_processor.py --addresses "123 Main St, NYC" "456 Oak Ave, LA"
+  
+  # With country specification
+  python csv_address_processor.py --address "123 High St, London" --country "UK"
+  
+  # Different output formats
+  python csv_address_processor.py --address "123 Main St" --format formatted
+        """
+    )
+    
+    # Input options (mutually exclusive)
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument(
+        'input_file', 
+        nargs='?', 
+        help='CSV file containing addresses to process'
+    )
+    input_group.add_argument(
+        '--address', '-a',
+        help='Single address to process'
+    )
+    input_group.add_argument(
+        '--addresses', '-A',
+        nargs='+',
+        help='Multiple addresses to process'
+    )
+    
+    # Options for CSV processing
+    parser.add_argument('-o', '--output', help='Output file path')
+    parser.add_argument('-c', '--column', help='Specific address column name (for CSV)')
     parser.add_argument('-b', '--batch-size', type=int, default=5, help='Batch size for processing (default: 5)')
     parser.add_argument('--no-free-apis', action='store_true', help='Disable free API enhancement')
+    
+    # Options for direct address processing
+    parser.add_argument(
+        '--country',
+        help='Target country for formatting (e.g., USA, UK, India)'
+    )
+    parser.add_argument(
+        '--format', '-f',
+        choices=['json', 'formatted', 'detailed'],
+        default='json',
+        help='Output format for direct address processing (default: json)'
+    )
+    
+    # Utility options
     parser.add_argument('--test-apis', action='store_true', help='Test free APIs and exit')
     parser.add_argument('--db-stats', action='store_true', help='Show database statistics and exit')
     
@@ -1151,38 +1463,89 @@ def main():
         processor.test_free_apis()
         return
     
-    # Validate input file is provided for processing
-    if not args.input_file:
-        print("❌ Error: input_file is required for processing")
-        parser.print_help()
-        sys.exit(1)
-    
-    try:
-        print("🏠 AddressIQ CSV Processor with Azure SQL Database")
-        print("=" * 60)
-        print(f"Input file: {args.input_file}")
-        
-        # Process the CSV file
-        output_file = processor.process_csv_file(
-            input_file=args.input_file,
-            output_file=args.output,
-            address_column=args.column,
-            batch_size=args.batch_size,
-            use_free_apis=not args.no_free_apis
+    # Process based on input type
+    if args.input_file:
+        # CSV file processing (existing functionality)
+        print(f"📁 Processing CSV file: {args.input_file}")
+        try:
+            output_file = processor.process_csv_file(
+                input_file=args.input_file,
+                output_file=args.output,
+                address_column=args.column,
+                batch_size=args.batch_size,
+                use_free_apis=not args.no_free_apis
+            )
+            print(f"\n✅ Processing completed successfully!")
+            print(f"📁 Output saved to: {output_file}")
+            
+            # Show final database stats
+            if processor.db_service:
+                final_stats = processor.db_service.get_database_stats()
+                print(f"\n📊 Final Azure SQL Database Stats:")
+                print(f"   Total unique addresses: {final_stats['total_unique_addresses']:,}")
+                print(f"   Cache hit rate: {final_stats['cache_hit_rate']:.1f}%")
+                
+        except Exception as e:
+            print(f"❌ Error processing CSV: {e}")
+            sys.exit(1)
+            
+    elif args.address:
+        # Single address processing
+        print(f"🏠 Processing single address")
+        result = processor.process_single_address_input(
+            args.address, 
+            args.country, 
+            args.format
         )
         
-        print(f"\n✅ Processing completed successfully!")
-        print(f"📁 Output saved to: {output_file}")
+        if args.output:
+            # Save to JSON file
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+            print(f"\n📄 Result saved to: {args.output}")
+        else:
+            # Print to console
+            print(f"\n📋 Result:")
+            if args.format == 'formatted':
+                print(f"   Original: {result.get('original_address', 'N/A')}")
+                print(f"   Formatted: {result.get('formatted_address', 'N/A')}")
+                print(f"   Confidence: {result.get('confidence', 'N/A')}")
+                print(f"   From cache: {result.get('from_cache', False)}")
+                print(f"   Status: {result.get('status', 'N/A')}")
+            else:
+                print(json.dumps(result, indent=2, ensure_ascii=False))
+            
+    elif args.addresses:
+        # Multiple addresses processing
+        print(f"🏠 Processing {len(args.addresses)} addresses")
+        results = processor.process_multiple_addresses_input(
+            args.addresses,
+            args.country,
+            args.format
+        )
         
-        # Show final database stats
-        if processor.db_service:
-            final_stats = processor.db_service.get_database_stats()
-            print(f"\n📊 Final Azure SQL Database Stats:")
-            print(f"   Total unique addresses: {final_stats['total_unique_addresses']:,}")
-            print(f"   Cache hit rate: {final_stats['cache_hit_rate']:.1f}%")
-        
-    except Exception as e:
-        print(f"\n❌ Error: {str(e)}")
+        if args.output:
+            # Save to JSON file
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(results, f, indent=2, ensure_ascii=False)
+            print(f"\n📄 Results saved to: {args.output}")
+        else:
+            # Print to console
+            print(f"\n📋 Results:")
+            for i, result in enumerate(results, 1):
+                print(f"\n--- Address {i} ---")
+                if args.format == 'formatted':
+                    print(f"   Original: {result.get('original_address', 'N/A')}")
+                    print(f"   Formatted: {result.get('formatted_address', 'N/A')}")
+                    print(f"   Confidence: {result.get('confidence', 'N/A')}")
+                    print(f"   From cache: {result.get('from_cache', False)}")
+                    print(f"   Status: {result.get('status', 'N/A')}")
+                else:
+                    print(json.dumps(result, indent=2, ensure_ascii=False))
+    
+    else:
+        # No input provided, show help
+        parser.print_help()
         sys.exit(1)
 
 if __name__ == "__main__":
