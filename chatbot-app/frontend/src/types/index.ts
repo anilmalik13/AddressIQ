@@ -14,6 +14,9 @@ export interface AddressProcessingState {
     processing: boolean;
     originalAddress: string;
     processedAddress: string | null;
+    addressComponents: Record<string, string> | null;
+    confidence: string | null;
+    source: string | null;
     error: string | null;
 }
 

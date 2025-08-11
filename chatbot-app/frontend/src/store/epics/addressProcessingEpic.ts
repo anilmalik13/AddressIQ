@@ -17,7 +17,12 @@ export const processAddressEpic: Epic<AnyAction, AnyAction, RootState> = (action
                 const address = action.payload;
                 
                 return from(processAddress(address)).pipe(
-                    map((result) => processAddressSuccess(result)),
+                    map((result) => processAddressSuccess({
+                        processedAddress: result.processedAddress || address,
+                        components: result.components || {},
+                        confidence: result.confidence || 'unknown',
+                        source: result.source || 'unknown'
+                    })),
                     catchError((error) =>
                         of(processAddressFailure(error.message || 'Address processing failed'))
                     ),
