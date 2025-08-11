@@ -21,6 +21,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.services.azure_openai import standardize_address, standardize_multiple_addresses
 
+# Import Azure SQL Database service
+try:
+    from app.services.azure_sql_database import AzureSQLDatabaseService
+    DATABASE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  Warning: Azure SQL Database service not available: {str(e)}")
+    DATABASE_AVAILABLE = False
+
 class CSVAddressProcessor:
     """
     A comprehensive CSV address processor that can:
@@ -65,6 +73,23 @@ class CSVAddressProcessor:
             }
         }
         
+        # Initialize database service
+        if DATABASE_AVAILABLE:
+            try:
+                self.db_service = AzureSQLDatabaseService()
+                
+                # Print database stats on initialization
+                stats = self.db_service.get_database_stats()
+                print(f"💾 Azure SQL Database Stats: {stats['total_unique_addresses']} unique addresses, "
+                      f"{stats['total_address_lookups']} total lookups, "
+                      f"{stats['cache_hit_rate']:.1f}% cache hit rate")
+            except Exception as e:
+                print(f"❌ Failed to initialize Azure SQL Database: {str(e)}")
+                self.db_service = None
+        else:
+            self.db_service = None
+            print("⚠️  Running without database caching")
+        
     def detect_address_columns(self, df: pd.DataFrame) -> List[str]:
         """Automatically detect which columns contain addresses"""
         address_columns = []
@@ -99,6 +124,22 @@ class CSVAddressProcessor:
             print(f"❌ Missing site address columns: {', '.join(missing_columns)}")
             return False
     
+    def detect_country_column(self, df: pd.DataFrame) -> str:
+        """Detect if CSV has a country column"""
+        country_columns = [
+            'country', 'Country', 'COUNTRY', 'nation', 'Nation', 'NATION',
+            'country_code', 'Country_Code', 'COUNTRY_CODE', 'country_name',
+            'Country_Name', 'COUNTRY_NAME', 'iso_country', 'ISO_Country'
+        ]
+        
+        for col in country_columns:
+            if col in df.columns:
+                print(f"✅ Detected country column: '{col}'")
+                return col
+        
+        print("ℹ️  No country column detected - will use address-based detection")
+        return None
+    
     def combine_site_address_fields(self, row: pd.Series) -> str:
         """Combine separate site address fields into a single address string"""
         address_parts = []
@@ -124,46 +165,98 @@ class CSVAddressProcessor:
         combined_address = ', '.join(address_parts)
         return combined_address if combined_address.strip() else ""
     
-    def standardize_single_address(self, address: str, row_index: int, use_free_apis: bool = True) -> Dict[str, Any]:
-        """Standardize a single address with error handling and optional free API enhancement"""
+    def standardize_single_address(self, address: str, row_index: int, target_country: str = None, use_free_apis: bool = True) -> Dict[str, Any]:
+        """Standardize a single address with database caching and error handling"""
         try:
             if pd.isna(address) or not str(address).strip():
                 return {
                     'status': 'skipped',
                     'reason': 'empty_address',
                     'formatted_address': '',
-                    'confidence': 'n/a'
+                    'confidence': 'n/a',
+                    'address_id': None,
+                    'from_cache': False
                 }
             
-            print(f"Processing row {row_index + 1}: {str(address)[:50]}...")
+            address_str = str(address).strip()
+            print(f"Processing row {row_index + 1}: {address_str[:50]}...")
             
-            # First, try Azure OpenAI standardization
-            result = standardize_address(str(address).strip())
+            # Check if address exists in database first (only use successfully processed addresses)
+            if self.db_service:
+                existing_address = self.db_service.find_existing_address(address_str)
+                
+                if existing_address:
+                    # Only use cached result if it was successfully processed (not fallback data)
+                    if (existing_address.get('api_source') != 'fallback' and 
+                        existing_address.get('issues') != 'azure_openai_failed' and
+                        existing_address.get('confidence') != 'low'):
+                        
+                        print(f"   ✅ Found cached address (ID: {existing_address['id']}, used {existing_address['usage_count']} times)")
+                        result = {
+                            'status': 'success',
+                            'original_address': address_str,
+                            'formatted_address': existing_address['formatted_address'],
+                            'street_number': existing_address['street_number'] or '',
+                            'street_name': existing_address['street_name'] or '',
+                            'street_type': existing_address['street_type'] or '',
+                            'unit_type': existing_address['unit_type'] or '',
+                            'unit_number': existing_address['unit_number'] or '',
+                            'city': existing_address['city'] or '',
+                            'state': existing_address['state'] or '',
+                            'postal_code': existing_address['postal_code'] or '',
+                            'country': existing_address['country'] or '',
+                            'confidence': existing_address['confidence'] or '',
+                            'issues': existing_address['issues'] or '',
+                            'api_source': f"{existing_address['api_source']}_cached" if existing_address['api_source'] else 'cached',
+                            'latitude': str(existing_address['latitude']) if existing_address['latitude'] else '',
+                            'longitude': str(existing_address['longitude']) if existing_address['longitude'] else '',
+                            'address_id': existing_address['id'],
+                            'from_cache': True
+                        }
+                        return result
+                    else:
+                        print(f"   ⚠️  Found cached address but it's fallback data (ID: {existing_address['id']}) - processing with AI...")
+            
+            # If not in database, process with AI model
+            print(f"   🤖 Processing with AI model...")
+            if target_country:
+                print(f"   🌍 Using country-specific formatting for: {target_country}")
+            result = standardize_address(address_str, target_country)
             
             if isinstance(result, dict) and 'formatted_address' in result:
                 enhanced_result = {
                     'status': 'success',
-                    'original_address': str(address),
-                    'formatted_address': result.get('formatted_address', ''),
-                    'street_number': result.get('street_number', ''),
-                    'street_name': result.get('street_name', ''),
-                    'street_type': result.get('street_type', ''),
-                    'unit_type': result.get('unit_type', ''),
-                    'unit_number': result.get('unit_number', ''),
-                    'city': result.get('city', ''),
-                    'state': result.get('state', ''),
-                    'postal_code': result.get('postal_code', ''),
-                    'country': result.get('country', ''),
+                    'original_address': address_str,
+                    'formatted_address': str(result.get('formatted_address', '')),
+                    'street_number': str(result.get('street_number', '') or ''),
+                    'street_name': str(result.get('street_name', '') or ''),
+                    'street_type': str(result.get('street_type', '') or ''),
+                    'unit_type': str(result.get('unit_type', '') or ''),
+                    'unit_number': str(result.get('unit_number', '') or ''),
+                    'city': str(result.get('city', '') or ''),
+                    'state': str(result.get('state', '') or ''),
+                    'postal_code': str(result.get('postal_code', '') or ''),
+                    'country': str(result.get('country', '') or ''),
                     'confidence': result.get('confidence', 'unknown'),
                     'issues': ', '.join(result.get('issues', [])) if result.get('issues') else '',
                     'api_source': 'azure_openai',
                     'latitude': '',
-                    'longitude': ''
+                    'longitude': '',
+                    'from_cache': False
                 }
                 
                 # Try to enhance with free APIs if enabled
                 if use_free_apis:
-                    enhanced_result = self.fill_missing_components_with_free_apis(str(address), enhanced_result)
+                    enhanced_result = self.fill_missing_components_with_free_apis(address_str, enhanced_result)
+                
+                # Save to database only if successfully processed by OpenAI
+                if self.db_service:
+                    address_id = self.db_service.save_address(address_str, enhanced_result)
+                    enhanced_result['address_id'] = address_id
+                    print(f"   💾 Saved to Azure SQL Database (ID: {address_id})")
+                else:
+                    enhanced_result['address_id'] = None
+                    print(f"   ⚠️  Database not available - result not cached")
                 
                 return enhanced_result
             else:
@@ -172,8 +265,8 @@ class CSVAddressProcessor:
                     print(f"   ⚠️  Azure OpenAI failed, trying free APIs...")
                     fallback_result = {
                         'status': 'partial',
-                        'original_address': str(address),
-                        'formatted_address': str(address),
+                        'original_address': address_str,
+                        'formatted_address': address_str,
                         'street_number': '',
                         'street_name': '',
                         'street_type': '',
@@ -187,17 +280,26 @@ class CSVAddressProcessor:
                         'issues': 'azure_openai_failed',
                         'api_source': 'fallback',
                         'latitude': '',
-                        'longitude': ''
+                        'longitude': '',
+                        'from_cache': False
                     }
                     
-                    return self.fill_missing_components_with_free_apis(str(address), fallback_result)
+                    enhanced_fallback = self.fill_missing_components_with_free_apis(address_str, fallback_result)
+                    
+                    # Do NOT save failed attempts to database - let them be processed fresh each time
+                    enhanced_fallback['address_id'] = None
+                    print(f"   ⚠️  Not saving fallback data to database - will retry OpenAI next time")
+                    
+                    return enhanced_fallback
                 
                 return {
                     'status': 'error',
                     'reason': 'invalid_response',
-                    'original_address': str(address),
-                    'formatted_address': str(address),
-                    'confidence': 'low'
+                    'original_address': address_str,
+                    'formatted_address': address_str,
+                    'confidence': 'low',
+                    'address_id': None,
+                    'from_cache': False
                 }
                 
         except Exception as e:
@@ -207,21 +309,203 @@ class CSVAddressProcessor:
                 'reason': f'processing_error: {str(e)}',
                 'original_address': str(address),
                 'formatted_address': str(address),
-                'confidence': 'low'
+                'confidence': 'low',
+                'address_id': None,
+                'from_cache': False
             }
     
-    def process_csv_file(self, input_file: str, output_file: str = None, 
-                        address_column: str = None, batch_size: int = 5, 
-                        use_free_apis: bool = True) -> str:
+    def standardize_addresses_batch(self, address_batch: List[str], start_index: int, target_country: str = None, use_free_apis: bool = True) -> List[Dict[str, Any]]:
         """
-        Process a CSV file and standardize addresses
+        Standardize a batch of addresses efficiently using batch API calls
+        
+        Args:
+            address_batch: List of address strings to process
+            start_index: Starting index for row numbering
+            target_country: Target country for formatting
+            use_free_apis: Whether to use free APIs for enhancement
+            
+        Returns:
+            List of standardized address results
+        """
+        print(f"🚀 Processing batch of {len(address_batch)} addresses...")
+        
+        # Separate addresses into cached and non-cached
+        cached_results = {}
+        addresses_to_process = []
+        addresses_to_process_mapping = {}  # Maps batch index to original index
+        
+        # Check database cache for each address
+        for i, address in enumerate(address_batch):
+            original_index = start_index + i
+            
+            if pd.isna(address) or not str(address).strip():
+                cached_results[original_index] = {
+                    'status': 'skipped',
+                    'reason': 'empty_address',
+                    'formatted_address': '',
+                    'confidence': 'n/a',
+                    'address_id': None,
+                    'from_cache': False,
+                    'input_index': i
+                }
+                continue
+            
+            address_str = str(address).strip()
+            
+            # Check database cache
+            if self.db_service:
+                existing_address = self.db_service.find_existing_address(address_str)
+                if existing_address and existing_address.get('api_source') != 'fallback':
+                    print(f"   ✅ Found cached address for row {original_index + 1}")
+                    cached_results[original_index] = {
+                        'status': 'success',
+                        'original_address': address_str,
+                        'formatted_address': existing_address['formatted_address'],
+                        'street_number': existing_address['street_number'] or '',
+                        'street_name': existing_address['street_name'] or '',
+                        'street_type': existing_address['street_type'] or '',
+                        'unit_type': existing_address['unit_type'] or '',
+                        'unit_number': existing_address['unit_number'] or '',
+                        'city': existing_address['city'] or '',
+                        'state': existing_address['state'] or '',
+                        'postal_code': existing_address['postal_code'] or '',
+                        'country': existing_address['country'] or '',
+                        'confidence': existing_address['confidence'] or '',
+                        'issues': existing_address['issues'] or '',
+                        'api_source': f"{existing_address['api_source']}_cached",
+                        'latitude': str(existing_address['latitude']) if existing_address['latitude'] else '',
+                        'longitude': str(existing_address['longitude']) if existing_address['longitude'] else '',
+                        'address_id': existing_address['id'],
+                        'from_cache': True,
+                        'input_index': i
+                    }
+                    continue
+            
+            # Add to batch processing list
+            batch_index = len(addresses_to_process)
+            addresses_to_process.append(address_str)
+            addresses_to_process_mapping[batch_index] = original_index
+        
+        # Process non-cached addresses in batch
+        batch_results = []
+        if addresses_to_process:
+            print(f"   🤖 Processing {len(addresses_to_process)} addresses with AI batch processing...")
+            try:
+                batch_results = standardize_multiple_addresses(
+                    addresses_to_process, 
+                    target_country=target_country, 
+                    use_batch=True
+                )
+            except Exception as e:
+                print(f"   ❌ Batch processing failed, falling back to individual processing: {str(e)}")
+                # Fallback to individual processing
+                batch_results = []
+                for i, address in enumerate(addresses_to_process):
+                    try:
+                        result = standardize_address(address, target_country)
+                        result['input_index'] = i
+                        result['original_address'] = address
+                        batch_results.append(result)
+                    except Exception as individual_error:
+                        error_result = {
+                            'error': str(individual_error),
+                            'input_index': i,
+                            'original_address': address,
+                            'formatted_address': '',
+                            'confidence': 'low',
+                            'issues': ['processing_error']
+                        }
+                        batch_results.append(error_result)
+        
+        # Combine cached and batch processed results
+        all_results = []
+        for i in range(len(address_batch)):
+            original_index = start_index + i
+            
+            # Check if we have a cached result
+            if original_index in cached_results:
+                all_results.append(cached_results[original_index])
+            else:
+                # Find the corresponding batch result
+                batch_index = None
+                for batch_idx, orig_idx in addresses_to_process_mapping.items():
+                    if orig_idx == original_index:
+                        batch_index = batch_idx
+                        break
+                
+                if batch_index is not None and batch_index < len(batch_results):
+                    result = batch_results[batch_index]
+                    
+                    # Convert to our expected format
+                    enhanced_result = {
+                        'status': 'success' if 'error' not in result else 'error',
+                        'original_address': result.get('original_address', address_batch[i]),
+                        'formatted_address': str(result.get('formatted_address', '')),
+                        'street_number': str(result.get('street_number', '') or ''),
+                        'street_name': str(result.get('street_name', '') or ''),
+                        'street_type': str(result.get('street_type', '') or ''),
+                        'unit_type': str(result.get('unit_type', '') or ''),
+                        'unit_number': str(result.get('unit_number', '') or ''),
+                        'city': str(result.get('city', '') or ''),
+                        'state': str(result.get('state', '') or ''),
+                        'postal_code': str(result.get('postal_code', '') or ''),
+                        'country': str(result.get('country', '') or ''),
+                        'confidence': result.get('confidence', 'unknown'),
+                        'issues': ', '.join(result.get('issues', [])) if result.get('issues') else '',
+                        'api_source': 'azure_openai_batch',
+                        'latitude': '',
+                        'longitude': '',
+                        'from_cache': False,
+                        'address_id': None
+                    }
+                    
+                    # Try to enhance with free APIs if enabled
+                    if use_free_apis and enhanced_result['status'] == 'success':
+                        enhanced_result = self.fill_missing_components_with_free_apis(
+                            enhanced_result['original_address'], 
+                            enhanced_result
+                        )
+                    
+                    # Save to database if successful
+                    if self.db_service and enhanced_result['status'] == 'success':
+                        try:
+                            address_id = self.db_service.save_address(
+                                enhanced_result.get('original_address', ''),
+                                enhanced_result
+                            )
+                            enhanced_result['address_id'] = address_id
+                        except Exception as db_error:
+                            print(f"   ⚠️  Warning: Could not save to database: {str(db_error)}")
+                    
+                    all_results.append(enhanced_result)
+                else:
+                    # Fallback for missing results
+                    all_results.append({
+                        'status': 'error',
+                        'reason': 'missing_result',
+                        'original_address': str(address_batch[i]),
+                        'formatted_address': str(address_batch[i]),
+                        'confidence': 'low',
+                        'from_cache': False,
+                        'address_id': None
+                    })
+        
+        print(f"✅ Batch completed: {len(all_results)} results")
+        return all_results
+    
+    def process_csv_file(self, input_file: str, output_file: str = None, 
+                        address_column: str = None, batch_size: int = 10, 
+                        use_free_apis: bool = True, enable_batch_processing: bool = True) -> str:
+        """
+        Process a CSV file and standardize addresses using efficient batch processing
         
         Args:
             input_file: Path to input CSV file
             output_file: Path to output CSV file (optional)
             address_column: Specific column name containing addresses (optional)
-            batch_size: Number of addresses to process in each batch
+            batch_size: Number of addresses to process in each batch (default: 10)
             use_free_apis: Whether to use free APIs to fill missing components
+            enable_batch_processing: Whether to use batch processing for efficiency
         
         Returns:
             Path to the output file
@@ -257,7 +541,7 @@ class CSVAddressProcessor:
             return self.process_site_address_format(df, output_file, use_free_apis)
         else:
             # Process regular address format
-            return self.process_regular_address_format(df, address_column, output_file, use_free_apis)
+            return self.process_regular_address_format(df, address_column, output_file, use_free_apis, enable_batch_processing)
     
     def process_site_address_format(self, df: pd.DataFrame, output_file: str = None, use_free_apis: bool = True) -> str:
         """Process CSV with site address column structure"""
@@ -267,10 +551,13 @@ class CSVAddressProcessor:
         print("📋 Processing mode: ADD STANDARDIZED COLUMNS")
         print("   Original columns preserved + new standardized columns added")
         
+        # Detect country column
+        country_column = self.detect_country_column(df)
+        
         # Add combined address column
         df['Combined_Address'] = df.apply(self.combine_site_address_fields, axis=1)
         
-        # Add standardization result columns (including new API-related columns)
+        # Add standardization result columns (including new database-related columns)
         base_col_name = "Standardized_Address"
         df[f"{base_col_name}_formatted"] = ""
         df[f"{base_col_name}_street_number"] = ""
@@ -288,58 +575,132 @@ class CSVAddressProcessor:
         df[f"{base_col_name}_api_source"] = ""
         df[f"{base_col_name}_latitude"] = ""
         df[f"{base_col_name}_longitude"] = ""
+        df[f"{base_col_name}_address_id"] = ""  # New: Unique database ID
+        df[f"{base_col_name}_from_cache"] = ""  # New: Whether from cache
         
         # Process each row
         total_rows = len(df)
         processed_count = 0
         success_count = 0
         error_count = 0
+        cached_count = 0
         
-        for index, row in df.iterrows():
-            combined_address = row['Combined_Address']
+        # Get batch size from config
+        try:
+            from app.config.address_config import PROMPT_CONFIG
+            batch_size = PROMPT_CONFIG.get("batch_size", 10)
+            enable_batch = PROMPT_CONFIG.get("enable_batch_processing", True)
+        except ImportError:
+            batch_size = 10
+            enable_batch = True
+        
+        print(f"🚀 Processing {total_rows} addresses...")
+        if enable_batch:
+            print(f"   Using batch processing (batch size: {batch_size})")
+        else:
+            print(f"   Using individual processing")
+        
+        # Process in batches
+        for batch_start in range(0, total_rows, batch_size):
+            batch_end = min(batch_start + batch_size, total_rows)
+            batch_df = df.iloc[batch_start:batch_end]
             
-            if not combined_address.strip():
-                print(f"Row {index + 1}: Skipping empty address")
-                processed_count += 1
-                continue
+            # Extract addresses and countries for this batch
+            batch_addresses = []
+            batch_countries = []
+            batch_indices = []
+            
+            for idx, (_, row) in enumerate(batch_df.iterrows()):
+                combined_address = row['Combined_Address']
+                batch_addresses.append(combined_address)
                 
-            result = self.standardize_single_address(combined_address, index, use_free_apis)
+                # Get target country from column if available
+                target_country = None
+                if country_column and country_column in row:
+                    target_country = str(row[country_column]).strip() if pd.notna(row[country_column]) else None
+                batch_countries.append(target_country)
+                batch_indices.append(batch_start + idx)
             
-            # Update DataFrame with results
-            df.at[index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
-            df.at[index, f"{base_col_name}_street_number"] = result.get('street_number', '')
-            df.at[index, f"{base_col_name}_street_name"] = result.get('street_name', '')
-            df.at[index, f"{base_col_name}_street_type"] = result.get('street_type', '')
-            df.at[index, f"{base_col_name}_unit_type"] = result.get('unit_type', '')
-            df.at[index, f"{base_col_name}_unit_number"] = result.get('unit_number', '')
-            df.at[index, f"{base_col_name}_city"] = result.get('city', '')
-            df.at[index, f"{base_col_name}_state"] = result.get('state', '')
-            df.at[index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
-            df.at[index, f"{base_col_name}_country"] = result.get('country', '')
-            df.at[index, f"{base_col_name}_confidence"] = result.get('confidence', '')
-            df.at[index, f"{base_col_name}_issues"] = result.get('issues', '')
-            df.at[index, f"{base_col_name}_status"] = result.get('status', '')
-            df.at[index, f"{base_col_name}_api_source"] = result.get('api_source', '')
-            df.at[index, f"{base_col_name}_latitude"] = result.get('latitude', '')
-            df.at[index, f"{base_col_name}_longitude"] = result.get('longitude', '')
-            
-            processed_count += 1
-            if result.get('status') == 'success':
-                success_count += 1
+            # Process this batch
+            if enable_batch and len(batch_addresses) > 1:
+                print(f"   Processing batch {batch_start//batch_size + 1}: rows {batch_start+1}-{batch_end}")
+                
+                # Use the most common country in the batch, or None
+                common_country = max(set(batch_countries), key=batch_countries.count) if any(batch_countries) else None
+                
+                batch_results = self.standardize_addresses_batch(
+                    batch_addresses, 
+                    batch_start, 
+                    target_country=common_country, 
+                    use_free_apis=use_free_apis
+                )
             else:
-                error_count += 1
+                # Individual processing for small batches or when batch processing is disabled
+                batch_results = []
+                for i, address in enumerate(batch_addresses):
+                    result = self.standardize_single_address(
+                        address, 
+                        batch_start + i, 
+                        batch_countries[i], 
+                        use_free_apis
+                    )
+                    batch_results.append(result)
+            
+            # Update DataFrame with batch results
+            for i, result in enumerate(batch_results):
+                df_index = batch_start + i
+                
+                # Update DataFrame with results
+                df.at[df_index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
+                df.at[df_index, f"{base_col_name}_street_number"] = result.get('street_number', '')
+                df.at[df_index, f"{base_col_name}_street_name"] = result.get('street_name', '')
+                df.at[df_index, f"{base_col_name}_street_type"] = result.get('street_type', '')
+                df.at[df_index, f"{base_col_name}_unit_type"] = result.get('unit_type', '')
+                df.at[df_index, f"{base_col_name}_unit_number"] = result.get('unit_number', '')
+                df.at[df_index, f"{base_col_name}_city"] = result.get('city', '')
+                df.at[df_index, f"{base_col_name}_state"] = result.get('state', '')
+                df.at[df_index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
+                df.at[df_index, f"{base_col_name}_country"] = result.get('country', '')
+                df.at[df_index, f"{base_col_name}_confidence"] = result.get('confidence', '')
+                df.at[df_index, f"{base_col_name}_issues"] = result.get('issues', '')
+                df.at[df_index, f"{base_col_name}_status"] = result.get('status', '')
+                df.at[df_index, f"{base_col_name}_api_source"] = result.get('api_source', '')
+                df.at[df_index, f"{base_col_name}_latitude"] = result.get('latitude', '')
+                df.at[df_index, f"{base_col_name}_longitude"] = result.get('longitude', '')
+                df.at[df_index, f"{base_col_name}_address_id"] = result.get('address_id', '')
+                df.at[df_index, f"{base_col_name}_from_cache"] = 'Yes' if result.get('from_cache', False) else 'No'
+                
+                processed_count += 1
+                if result.get('status') == 'success':
+                    success_count += 1
+                else:
+                    error_count += 1
+                    
+                if result.get('from_cache', False):
+                    cached_count += 1
             
             # Progress indicator
-            if processed_count % 5 == 0:
-                print(f"Progress: {processed_count}/{total_rows} ({processed_count/total_rows*100:.1f}%)")
+            print(f"Progress: {processed_count}/{total_rows} ({processed_count/total_rows*100:.1f}%) - {cached_count} cached")
             
-            # Small delay to avoid overwhelming the API
-            time.sleep(0.1)
+            # Small delay between batches to avoid overwhelming the API
+            if not enable_batch:
+                time.sleep(0.1)
+        
+        # Print enhanced summary with cache statistics
+        print(f"\n📊 Processing Summary:")
+        print(f"   Total processed: {processed_count}")
+        print(f"   Successful: {success_count}")
+        print(f"   Errors: {error_count}")
+        print(f"   Cached addresses: {cached_count}/{processed_count} ({cached_count/processed_count*100:.1f}%)")
+        print(f"   New addresses processed: {processed_count - cached_count}")
         
         return self.save_and_summarize_results(df, output_file, processed_count, success_count, error_count, ["Combined_Address"])
     
     def process_regular_address_format(self, df: pd.DataFrame, address_column: str = None, output_file: str = None, use_free_apis: bool = True) -> str:
         """Process CSV with regular address format"""
+        
+        # Detect country column
+        country_column = self.detect_country_column(df)
         
         # Detect address columns
         if address_column:
@@ -382,16 +743,25 @@ class CSVAddressProcessor:
             df[f"{base_col_name}_api_source"] = ""
             df[f"{base_col_name}_latitude"] = ""
             df[f"{base_col_name}_longitude"] = ""
+            df[f"{base_col_name}_address_id"] = ""  # New: Unique database ID
+            df[f"{base_col_name}_from_cache"] = ""  # New: Whether from cache
             
             # Process addresses in batches
             total_rows = len(df)
             processed_count = 0
             success_count = 0
             error_count = 0
+            cached_count = 0
             
             for index, row in df.iterrows():
                 address = row[addr_col]
-                result = self.standardize_single_address(address, index, use_free_apis)
+                
+                # Get target country from column if available
+                target_country = None
+                if country_column and country_column in row:
+                    target_country = str(row[country_column]).strip() if pd.notna(row[country_column]) else None
+                    
+                result = self.standardize_single_address(address, index, target_country, use_free_apis)
                 
                 # Update DataFrame with results
                 df.at[index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
@@ -410,19 +780,25 @@ class CSVAddressProcessor:
                 df.at[index, f"{base_col_name}_api_source"] = result.get('api_source', '')
                 df.at[index, f"{base_col_name}_latitude"] = result.get('latitude', '')
                 df.at[index, f"{base_col_name}_longitude"] = result.get('longitude', '')
+                df.at[index, f"{base_col_name}_address_id"] = result.get('address_id', '')
+                df.at[index, f"{base_col_name}_from_cache"] = 'Yes' if result.get('from_cache', False) else 'No'
                 
                 processed_count += 1
                 if result.get('status') == 'success':
                     success_count += 1
                 else:
                     error_count += 1
+                    
+                if result.get('from_cache', False):
+                    cached_count += 1
                 
                 # Progress indicator
                 if processed_count % 10 == 0:
-                    print(f"Progress: {processed_count}/{total_rows} ({processed_count/total_rows*100:.1f}%)")
+                    print(f"Progress: {processed_count}/{total_rows} ({processed_count/total_rows*100:.1f}%) - {cached_count} cached")
                 
-                # Small delay to avoid overwhelming the API
-                time.sleep(0.1)
+                # Small delay to avoid overwhelming the API (only for non-cached)
+                if not result.get('from_cache', False):
+                    time.sleep(0.1)
             
             total_processed += processed_count
             total_success += success_count
@@ -559,14 +935,14 @@ class CSVAddressProcessor:
         """Create simplified address variants for better geocoding success"""
         simplified_addresses = []
         
-        # Extract basic components
-        street_number = current_result.get('street_number', '').strip()
-        street_name = current_result.get('street_name', '').strip()
-        street_type = current_result.get('street_type', '').strip()
-        city = current_result.get('city', '').strip()
-        state = current_result.get('state', '').strip()
-        postal_code = current_result.get('postal_code', '').strip()
-        country = current_result.get('country', '').strip()
+        # Extract basic components - handle None values safely
+        street_number = (current_result.get('street_number') or '').strip() if current_result.get('street_number') else ''
+        street_name = (current_result.get('street_name') or '').strip() if current_result.get('street_name') else ''
+        street_type = (current_result.get('street_type') or '').strip() if current_result.get('street_type') else ''
+        city = (current_result.get('city') or '').strip() if current_result.get('city') else ''
+        state = (current_result.get('state') or '').strip() if current_result.get('state') else ''
+        postal_code = (current_result.get('postal_code') or '').strip() if current_result.get('postal_code') else ''
+        country = (current_result.get('country') or '').strip() if current_result.get('country') else ''
         
         # Strategy 1: Basic street address + city + postal code (most likely to work)
         if street_name and city and postal_code:
@@ -747,11 +1123,28 @@ def main():
     parser.add_argument('-b', '--batch-size', type=int, default=5, help='Batch size for processing (default: 5)')
     parser.add_argument('--no-free-apis', action='store_true', help='Disable free API enhancement')
     parser.add_argument('--test-apis', action='store_true', help='Test free APIs and exit')
+    parser.add_argument('--db-stats', action='store_true', help='Show database statistics and exit')
     
     args = parser.parse_args()
     
     # Create processor instance
     processor = CSVAddressProcessor()
+    
+    # Show database stats if requested
+    if args.db_stats:
+        if processor.db_service:
+            stats = processor.db_service.get_database_stats()
+            print("📊 AddressIQ Azure SQL Database Statistics")
+            print("=" * 50)
+            print(f"Server: dev-server-sqldb.database.windows.net")
+            print(f"Total unique addresses: {stats['total_unique_addresses']:,}")
+            print(f"Total address lookups: {stats['total_address_lookups']:,}")
+            print(f"Addresses reused: {stats['reused_addresses']:,}")
+            print(f"Cache hit rate: {stats['cache_hit_rate']:.1f}%")
+            print(f"API calls saved: {stats['total_address_lookups'] - stats['total_unique_addresses']:,}")
+        else:
+            print("❌ Database service not available")
+        return
     
     # Test APIs if requested
     if args.test_apis:
@@ -765,8 +1158,8 @@ def main():
         sys.exit(1)
     
     try:
-        print("🏠 AddressIQ CSV Processor")
-        print("=" * 40)
+        print("🏠 AddressIQ CSV Processor with Azure SQL Database")
+        print("=" * 60)
         print(f"Input file: {args.input_file}")
         
         # Process the CSV file
@@ -780,6 +1173,13 @@ def main():
         
         print(f"\n✅ Processing completed successfully!")
         print(f"📁 Output saved to: {output_file}")
+        
+        # Show final database stats
+        if processor.db_service:
+            final_stats = processor.db_service.get_database_stats()
+            print(f"\n📊 Final Azure SQL Database Stats:")
+            print(f"   Total unique addresses: {final_stats['total_unique_addresses']:,}")
+            print(f"   Cache hit rate: {final_stats['cache_hit_rate']:.1f}%")
         
     except Exception as e:
         print(f"\n❌ Error: {str(e)}")

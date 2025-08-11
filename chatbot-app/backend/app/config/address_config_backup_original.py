@@ -1,5 +1,5 @@
 # Address Standardization Configuration
-# Optimized version with concise, effective prompts
+# Customize these settings based on your organization's requirements
 
 # System prompts for different use cases
 ADDRESS_STANDARDIZATION_PROMPT = """You are an expert global address standardization system. Parse the raw address data and return it in standardized JSON format.
@@ -54,83 +54,39 @@ ADDRESS_STANDARDIZATION_PROMPT = """You are an expert global address standardiza
 6. Correct common spelling errors
 7. Use proper postal code formats by country
 
-Process this address:"""
+Process this address:""""""
 
 # Alternative organization-specific prompt for global address normalization
-ORGANIZATION_SPECIFIC_PROMPT = """You are an intelligent address normalization system. Take raw address inputs and return clean, standardized addresses.
+ORGANIZATION_SPECIFIC_PROMPT = """
+**ORGANIZATION-SPECIFIC REQUIREMENTS:**
 
-**TASKS:**
-1. Correct spelling errors
-2. Expand abbreviations  
-3. Reorder components logically
-4. Infer missing components where possible
-5. Apply country-specific formatting
+You are an intelligent address normalization and formatting system. Your task is to take raw, unstructured, or abbreviated address inputs from any country and return a clean, standardized, and complete address in a globally recognized format.
 
-**INPUT:** Raw address string
-**OUTPUT:** Fully formatted address only, no explanations
+Your responsibilities include:
 
-Example: "795 sec 22 Pkt-B GGN Haryna" → "795, Pocket B, Sector 22, Gurugram, Haryana 122015, India"
+1. **Correcting spelling errors** (e.g., "Calfornia" → "California").
+2. **Expanding abbreviations** (e.g., "St" → "Street", "NY" → "New York", "GGN" → "Gurugram").
+3. **Reordering address components** into a logical and readable structure.
+4. **Inferring missing components** where possible (e.g., city, state, country) based on known patterns or context.
+5. **Appending postal/ZIP codes** and **country names** where applicable.
+6. **Returning the address in a clean, comma-separated format**, suitable for postal use.
+
+### Input:
+A raw or informal address string.  
+Example:  
+"795 sec 22 Pkt-B GGN Haryna"
+
+### Output:
+A fully formatted, corrected address.  
+Example:  
+"795, Pocket B, Sector 22, Gurugram, Haryana 122015, India"
+
+### Additional Instructions:
+- If the address is ambiguous or incomplete, make the best possible educated guess based on global address conventions.
+- Always include the **postal code** and **country** if they can be inferred.
+- Do not hallucinate or fabricate details that are clearly not present or inferable.
+- Output only the final formatted address, no explanations.
 """
-
-# Batch processing prompt for multiple addresses
-BATCH_ADDRESS_STANDARDIZATION_PROMPT = """You are an expert global address standardization system. Process multiple raw addresses and return them in standardized JSON format.
-
-**CORE CAPABILITIES:**
-- Global address parsing (195+ countries)
-- Spelling correction and abbreviation expansion  
-- Component extraction and validation
-- Country-specific formatting standards
-- Postal code validation and formatting
-
-**BATCH OUTPUT FORMAT:**
-Return a JSON array where each object represents one standardized address:
-```json
-[
-  {
-    "input_index": 0,
-    "street_number": "123",
-    "street_name": "Main Street", 
-    "street_type": "Street",
-    "unit_type": "Suite",
-    "unit_number": "100",
-    "building_name": null,
-    "floor_number": null,
-    "city": "New York",
-    "state": "NY",
-    "county": null,
-    "postal_code": "10001",
-    "country": "USA",
-    "country_code": "USA",
-    "district": null,
-    "region": null,
-    "suburb": null,
-    "locality": null,
-    "sublocality": null,
-    "canton": null,
-    "prefecture": null,
-    "oblast": null,
-    "formatted_address": "123 Main Street, Suite 100, New York, NY 10001, USA",
-    "confidence": "high",
-    "issues": [],
-    "address_type": "residential",
-    "po_box": null,
-    "delivery_instructions": null,
-    "mail_route": null
-  }
-]
-```
-
-**RULES:**
-1. Return ONLY valid JSON array - no explanations
-2. Use input_index to match each result to input address (0-based)
-3. Use appropriate country-specific formatting in formatted_address
-4. Set confidence: "high" (complete), "medium" (minor issues), "low" (major issues)
-5. List specific issues in issues array if any problems found
-6. Standardize abbreviations (St→Street, NY→New York, etc.)
-7. Correct common spelling errors
-8. Use proper postal code formats by country
-
-Process these addresses:"""
 
 # Country-specific formatting rules
 COUNTRY_FORMATS = {
@@ -197,10 +153,7 @@ PROMPT_CONFIG = {
     "use_organization_prompt": False,  # Use simple format prompt for chat interface
     "fallback_to_default": True,
     "temperature": 0.7,
-    "max_tokens": 1500,  # Increased for batch processing
+    "max_tokens": 800,
     "frequency_penalty": 0,
-    "presence_penalty": 0,
-    # Batch processing settings
-    "batch_size": 10,  # Number of addresses to process in one API call
-    "enable_batch_processing": True  # Enable batch processing for CSV operations
+    "presence_penalty": 0
 }
