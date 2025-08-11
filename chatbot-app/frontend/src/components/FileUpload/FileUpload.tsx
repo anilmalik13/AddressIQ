@@ -13,14 +13,19 @@ const FileUpload: React.FC = () => {
     const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            // Validate file type
+            // Validate file type - now includes CSV
             const allowedTypes = [
                 'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'text/csv',
+                'application/csv'
             ];
             
-            if (!allowedTypes.includes(file.type)) {
-                alert('Please select a valid Excel file (.xls or .xlsx)');
+            const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+            const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+            
+            if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+                alert('Please select a valid Excel (.xlsx, .xls) or CSV (.csv) file');
                 return;
             }
 
@@ -43,21 +48,21 @@ const FileUpload: React.FC = () => {
     return (
         <div className="file-upload-container">
             <div className="file-upload-card">
-                <h1>Excel File Upload</h1>
-                <p>Upload your Excel file to process address data</p>
+                <h1>File Upload</h1>
+                <p>Upload your Excel (.xlsx, .xls) or CSV (.csv) file to process address data</p>
                 
                 <div className="upload-section">
                     <div className="file-input-wrapper">
                         <input
                             type="file"
                             id="file-input"
-                            accept=".xlsx,.xls"
+                            accept=".xlsx,.xls,.csv"
                             onChange={handleFileSelect}
                             disabled={uploading}
                             className="file-input"
                         />
                         <label htmlFor="file-input" className="file-input-label">
-                            {selectedFile ? selectedFile.name : 'Choose Excel File'}
+                            {selectedFile ? selectedFile.name : 'Choose Excel or CSV File'}
                         </label>
                     </div>
 

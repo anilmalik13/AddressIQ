@@ -4,16 +4,18 @@ A modern intelligent address processing application with advanced file upload, a
 
 ## Overview
 
-AddressIQ is a full-stack web application that combines a React TypeScript frontend with a Python Flask backend to deliver comprehensive address intelligence solutions. The application provides file upload functionality, address processing capabilities, and interactive map visualization.
+AddressIQ is a full-stack web application that combines a React TypeScript frontend with a Python Flask backend to deliver comprehensive address intelligence solutions. The application provides file upload functionality for Excel/CSV files, address processing capabilities with AI-powered standardization, and interactive map visualization.
 
 ## Features
 
-- **File Upload Interface**: Excel file upload with progress tracking and validation
-- **Address Processing**: Advanced address standardization and processing capabilities
+- **File Upload Interface**: Excel/CSV file upload with progress tracking and validation
+- **Address Processing**: AI-powered address standardization and processing capabilities  
 - **Interactive Map Visualization**: Geographic data visualization with Leaflet integration
 - **Redux State Management**: Comprehensive state management with Redux Toolkit
 - **Real-time Communication**: Seamless frontend-backend integration
 - **Modern Tech Stack**: Built with the latest web technologies
+- **Batch Processing**: Process multiple addresses from uploaded files
+- **Free API Fallback**: Graceful fallback to free geocoding APIs when Azure OpenAI is unavailable
 
 ## Architecture
 
@@ -26,9 +28,10 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 
 ### Backend (`/backend`)
 - **Python Flask** application
-- **Address Processing Engine**: Standardization and validation
-- **RESTful API**: Clean endpoints for frontend communication
-- **Modular Architecture**: Organized services and models
+- **File Upload API**: Secure Excel/CSV file upload with validation
+- **Address Processing Engine**: AI-powered standardization with free API fallback
+- **RESTful API**: Clean endpoints for file and address processing
+- **Modular Architecture**: Organized services for scalability
 
 ## Project Structure
 
@@ -141,17 +144,19 @@ The frontend will run on `http://localhost:3003`
 ##  Features
 
 ### File Upload Component
-- Excel file upload (.xlsx, .xls) with drag-and-drop support
+- Excel/CSV file upload (.xlsx, .xls, .csv) with drag-and-drop support
 - Real-time upload progress tracking
 - File type validation and error handling
 - Success/error feedback with user-friendly messages
+- File storage in secure directory with timestamp naming
 
 ### Address Processing Component
 - Free text address input and processing
-- Address standardization and validation
-- Before/after address comparison
+- AI-powered address standardization with Azure OpenAI integration
+- Graceful fallback to free geocoding APIs (Nominatim, Geocodify)
+- Before/after address comparison with confidence scoring
 - Copy to clipboard functionality
-- Real-time processing feedback
+- Real-time processing feedback with detailed component breakdown
 
 ### Interactive Map Visualization
 - Interactive maps using Leaflet and React-Leaflet
@@ -176,13 +181,17 @@ The frontend will run on `http://localhost:3003`
 - **POST** `/api/upload-excel`
   - **Content-Type**: `multipart/form-data`
   - **Body**: FormData with file field
-  - **Response**: `{ message: string }`
+  - **Response**: `{ message: string, file_path: string, filename: string, file_info: object }`
+
+#### List Uploaded Files
+- **GET** `/api/uploaded-files`
+  - **Response**: `{ files: array }` with file metadata
 
 #### Address Processing
 - **POST** `/api/process-address`
   - **Content-Type**: `application/json`
   - **Body**: `{ address: string }`
-  - **Response**: `{ processedAddress: string }` or `{ message: string }`
+  - **Response**: `{ processedAddress: string, confidence: string, components: object, status: string, source: string }`
 
 #### Geographic Data
 - **GET** `/api/coordinates`
@@ -208,9 +217,10 @@ The frontend will run on `http://localhost:3003`
 
 ### Common Issues
 1. **CORS Errors**: Ensure Flask-CORS is installed and configured
-2. **File Upload Failures**: Check file format (.xlsx, .xls) and size limits
+2. **File Upload Failures**: Check file format (.xlsx, .xls, .csv) and size limits (50MB max)
 3. **Module Not Found**: Run `npm install` in frontend and `pip install -r requirements.txt` in backend
 4. **Port Conflicts**: Ensure ports 3003 and 5001 are available
+5. **Azure OpenAI Issues**: Check credentials or rely on free API fallback
 
 ### Debug Mode
 The application includes extensive logging. Check the console output for:
@@ -231,9 +241,11 @@ The application includes extensive logging. Check the console output for:
 
 ### Backend
 - **Python 3.11+**
-- **Flask** web framework
-- **Address processing libraries**
-- **RESTful API design**
+- **Flask** web framework with CORS support
+- **Pandas & OpenPyXL** for Excel/CSV processing
+- **Azure OpenAI** integration with OAuth2 authentication
+- **Free geocoding APIs** (Nominatim, Geocodify) for fallback
+- **Werkzeug** for secure file handling
 
 ##  Contributing
 
@@ -249,14 +261,17 @@ This project is licensed under the MIT License. See the LICENSE file for more de
 
 ##  Recent Updates
 
+-  Implemented comprehensive file upload API for Excel/CSV processing
+-  Added AI-powered address standardization with Azure OpenAI integration
+-  Created graceful fallback to free geocoding APIs
+-  Enhanced file validation and secure storage with timestamp naming
 -  Implemented tabbed navigation interface
--  Added file upload functionality with progress tracking
--  Created address processing and standardization features
 -  Integrated interactive map visualization
 -  Enhanced Redux state management architecture
 -  Improved responsive design and user experience
 -  Added comprehensive error handling and user feedback
 -  Removed legacy chat components for focused functionality
+-  Added support for CSV files in addition to Excel formats
 
 ---
 
