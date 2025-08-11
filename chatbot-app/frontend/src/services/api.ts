@@ -50,7 +50,7 @@ export const getUploadedFiles = async () => {
 // Address Processing API
 export const processAddress = async (address: string): Promise<any> => {
     try {
-        const response = await api.post('/process-address', {
+        const response = await api.post('/api/process-address', {
             address: address,
         });
 
@@ -58,6 +58,8 @@ export const processAddress = async (address: string): Promise<any> => {
             processedAddress: response.data.processedAddress || response.data.message,
             confidence: response.data.confidence || 'unknown',
             components: response.data.components || {},
+            source: response.data.source || 'unknown',
+            status: response.data.status || 'unknown',
             error: response.data.error || null
         };
     } catch (error: any) {

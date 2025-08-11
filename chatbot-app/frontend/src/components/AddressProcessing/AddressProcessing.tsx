@@ -5,7 +5,7 @@ import './AddressProcessing.css';
 
 const AddressProcessing: React.FC = () => {
     const dispatch = useAppDispatch();
-    const { processing, originalAddress, processedAddress, error } = useAppSelector(
+    const { processing, processedAddress, error } = useAppSelector(
         (state) => state.addressProcessing
     );
     const [inputAddress, setInputAddress] = useState<string>('');
@@ -28,7 +28,7 @@ const AddressProcessing: React.FC = () => {
     const handleCopyResult = useCallback(() => {
         if (processedAddress) {
             navigator.clipboard.writeText(processedAddress);
-            alert('Processed address copied to clipboard!');
+            alert('✅ Processed address copied to clipboard!');
         }
     }, [processedAddress]);
 
@@ -77,25 +77,27 @@ const AddressProcessing: React.FC = () => {
                         </div>
                     )}
 
-                    {originalAddress && processedAddress && (
+                    {processedAddress && (
                         <div className="result-section">
                             <div className="result success">
-                                <h3>Processing Complete!</h3>
+                                <h3>✅ Address Processed Successfully!</h3>
                                 
-                                <div className="address-comparison">
-                                    <div className="original-address">
-                                        <h4>Original Address:</h4>
-                                        <p>{originalAddress}</p>
-                                    </div>
-                                    
-                                    <div className="processed-address">
-                                        <h4>Processed Address:</h4>
-                                        <p>{processedAddress}</p>
+                                <div className="processed-address-container">
+                                    <label className="result-label">Standardized Address:</label>
+                                    <div className="result-box">
+                                        <textarea
+                                            value={processedAddress}
+                                            disabled
+                                            className="address-result"
+                                            rows={3}
+                                            placeholder="Your processed address will appear here..."
+                                        />
                                         <button 
                                             onClick={handleCopyResult}
-                                            className="copy-button"
+                                            className="copy-result-button"
+                                            title="Copy to clipboard"
                                         >
-                                            Copy to Clipboard
+                                            📋 Copy
                                         </button>
                                     </div>
                                 </div>
