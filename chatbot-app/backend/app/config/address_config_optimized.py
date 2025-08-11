@@ -72,66 +72,6 @@ ORGANIZATION_SPECIFIC_PROMPT = """You are an intelligent address normalization s
 Example: "795 sec 22 Pkt-B GGN Haryna" → "795, Pocket B, Sector 22, Gurugram, Haryana 122015, India"
 """
 
-# Batch processing prompt for multiple addresses
-BATCH_ADDRESS_STANDARDIZATION_PROMPT = """You are an expert global address standardization system. Process multiple raw addresses and return them in standardized JSON format.
-
-**CORE CAPABILITIES:**
-- Global address parsing (195+ countries)
-- Spelling correction and abbreviation expansion  
-- Component extraction and validation
-- Country-specific formatting standards
-- Postal code validation and formatting
-
-**BATCH OUTPUT FORMAT:**
-Return a JSON array where each object represents one standardized address:
-```json
-[
-  {
-    "input_index": 0,
-    "street_number": "123",
-    "street_name": "Main Street", 
-    "street_type": "Street",
-    "unit_type": "Suite",
-    "unit_number": "100",
-    "building_name": null,
-    "floor_number": null,
-    "city": "New York",
-    "state": "NY",
-    "county": null,
-    "postal_code": "10001",
-    "country": "USA",
-    "country_code": "USA",
-    "district": null,
-    "region": null,
-    "suburb": null,
-    "locality": null,
-    "sublocality": null,
-    "canton": null,
-    "prefecture": null,
-    "oblast": null,
-    "formatted_address": "123 Main Street, Suite 100, New York, NY 10001, USA",
-    "confidence": "high",
-    "issues": [],
-    "address_type": "residential",
-    "po_box": null,
-    "delivery_instructions": null,
-    "mail_route": null
-  }
-]
-```
-
-**RULES:**
-1. Return ONLY valid JSON array - no explanations
-2. Use input_index to match each result to input address (0-based)
-3. Use appropriate country-specific formatting in formatted_address
-4. Set confidence: "high" (complete), "medium" (minor issues), "low" (major issues)
-5. List specific issues in issues array if any problems found
-6. Standardize abbreviations (St→Street, NY→New York, etc.)
-7. Correct common spelling errors
-8. Use proper postal code formats by country
-
-Process these addresses:"""
-
 # Country-specific formatting rules
 COUNTRY_FORMATS = {
     "USA": {
@@ -197,10 +137,7 @@ PROMPT_CONFIG = {
     "use_organization_prompt": False,  # Use simple format prompt for chat interface
     "fallback_to_default": True,
     "temperature": 0.7,
-    "max_tokens": 1500,  # Increased for batch processing
+    "max_tokens": 800,
     "frequency_penalty": 0,
-    "presence_penalty": 0,
-    # Batch processing settings
-    "batch_size": 10,  # Number of addresses to process in one API call
-    "enable_batch_processing": True  # Enable batch processing for CSV operations
+    "presence_penalty": 0
 }
