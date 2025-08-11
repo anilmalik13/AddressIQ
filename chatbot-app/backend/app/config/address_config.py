@@ -194,7 +194,7 @@ Apply {target_country} specific formatting rules and populate all relevant geogr
 # Prompt configuration settings
 PROMPT_CONFIG = {
     "use_address_standardization_prompt": True,  # Use JSON-based prompt for CSV processing
-    "use_organization_prompt": False,  # Use simple format prompt for chat interface
+    "use_organization_prompt": False,  # Use simple format prompt for address processing interface
     "fallback_to_default": True,
     "temperature": 0.7,
     "max_tokens": 1500,  # Increased for batch processing
