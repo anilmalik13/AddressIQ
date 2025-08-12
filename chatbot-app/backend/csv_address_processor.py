@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced CSV Address Processor for AddressIQ
+Enhanced CSV Address Processor for AddressIQ with Inbound/Outbound Directory Management
 This script processes CSV files containing addresses and standardizes them using Azure OpenAI
 """
 
@@ -15,6 +15,8 @@ import argparse
 from pathlib import Path
 import requests
 from urllib.parse import quote
+import shutil
+import glob
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -32,17 +34,26 @@ except ImportError as e:
 class CSVAddressProcessor:
     """
     A comprehensive address processor that can:
-    1. Read CSV files with address data
+    1. Read CSV files from inbound directory
     2. Process single addresses directly
     3. Process multiple addresses from input
     4. Detect address columns automatically
     5. Standardize addresses using Azure OpenAI
     6. Add detailed standardization results
     7. Fill missing address components using free APIs
-    8. Save enhanced CSV with original and standardized data
+    8. Save enhanced CSV to outbound directory
+    9. Manage inbound/outbound directories automatically
     """
     
-    def __init__(self):
+    def __init__(self, base_directory: str = None):
+        # Set up directory structure
+        self.base_directory = Path(base_directory) if base_directory else Path.cwd()
+        self.inbound_dir = self.base_directory / "inbound"
+        self.outbound_dir = self.base_directory / "outbound"
+        self.archive_dir = self.base_directory / "archive"
+        
+        # Create directories if they don't exist
+        self.setup_directories()
         self.supported_address_columns = [
             'address', 'full_address', 'street_address', 'mailing_address',
             'shipping_address', 'billing_address', 'location', 'addr',
@@ -91,6 +102,162 @@ class CSVAddressProcessor:
         else:
             self.db_service = None
             print("⚠️  Running without database caching")
+    
+    def setup_directories(self):
+        """Create and setup the directory structure"""
+        print("📁 Setting up directory structure...")
+        
+        # Create directories
+        self.inbound_dir.mkdir(exist_ok=True)
+        self.outbound_dir.mkdir(exist_ok=True)
+        self.archive_dir.mkdir(exist_ok=True)
+        
+        print(f"   📥 Inbound directory: {self.inbound_dir}")
+        print(f"   📤 Outbound directory: {self.outbound_dir}")
+        print(f"   📦 Archive directory: {self.archive_dir}")
+        
+        # Show directory status
+        inbound_files = list(self.inbound_dir.glob("*.csv"))
+        outbound_files = list(self.outbound_dir.glob("*.csv"))
+        
+        print(f"   📊 Inbound files: {len(inbound_files)}")
+        print(f"   📊 Outbound files: {len(outbound_files)}")
+        
+        if inbound_files:
+            print(f"   📋 Files in inbound: {[f.name for f in inbound_files]}")
+    
+    def clean_outbound_directory(self):
+        """Clean the outbound directory before processing"""
+        print("🧹 Cleaning outbound directory...")
+        
+        outbound_files = list(self.outbound_dir.glob("*"))
+        if outbound_files:
+            for file_path in outbound_files:
+                try:
+                    if file_path.is_file():
+                        file_path.unlink()  # Delete file
+                        print(f"   🗑️  Deleted: {file_path.name}")
+                    elif file_path.is_dir():
+                        shutil.rmtree(file_path)  # Delete directory
+                        print(f"   🗑️  Deleted directory: {file_path.name}")
+                except Exception as e:
+                    print(f"   ⚠️  Could not delete {file_path.name}: {e}")
+            
+            print(f"✅ Cleaned {len(outbound_files)} items from outbound directory")
+        else:
+            print("✅ Outbound directory already clean")
+    
+    def archive_inbound_files(self, processed_files: List[Path]):
+        """Move processed files from inbound to archive directory"""
+        print("📦 Archiving processed files...")
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        archived_count = 0
+        
+        for file_path in processed_files:
+            try:
+                # Create archive filename with timestamp
+                archive_filename = f"{file_path.stem}_{timestamp}{file_path.suffix}"
+                archive_path = self.archive_dir / archive_filename
+                
+                # Move file to archive
+                shutil.move(str(file_path), str(archive_path))
+                print(f"   📦 Archived: {file_path.name} → {archive_filename}")
+                archived_count += 1
+                
+            except Exception as e:
+                print(f"   ⚠️  Could not archive {file_path.name}: {e}")
+        
+        print(f"✅ Archived {archived_count} files")
+    
+    def get_inbound_files(self) -> List[Path]:
+        """Get all CSV files from inbound directory"""
+        csv_files = list(self.inbound_dir.glob("*.csv"))
+        xlsx_files = list(self.inbound_dir.glob("*.xlsx"))  # Also support Excel files
+        
+        all_files = csv_files + xlsx_files
+        
+        if all_files:
+            print(f"📥 Found {len(all_files)} files in inbound directory:")
+            for file_path in all_files:
+                print(f"   📄 {file_path.name}")
+        else:
+            print("📥 No CSV/Excel files found in inbound directory")
+        
+        return all_files
+    
+    def process_all_inbound_files(self, batch_size: int = 10, use_free_apis: bool = True):
+        """Process all files in the inbound directory"""
+        print("🚀 Starting batch processing of inbound files...")
+        print("=" * 60)
+        
+        # Clean outbound directory first
+        self.clean_outbound_directory()
+        
+        # Get all inbound files
+        inbound_files = self.get_inbound_files()
+        
+        if not inbound_files:
+            print("❌ No files to process in inbound directory")
+            return
+        
+        processed_files = []
+        total_success = 0
+        total_errors = 0
+        
+        for file_path in inbound_files:
+            try:
+                print(f"\n🔄 Processing: {file_path.name}")
+                print("-" * 40)
+                
+                # Generate output filename in outbound directory
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_filename = f"{file_path.stem}_processed_{timestamp}.csv"
+                output_path = self.outbound_dir / output_filename
+                
+                # Process the file
+                result_path = self.process_csv_file(
+                    input_file=str(file_path),
+                    output_file=str(output_path),
+                    batch_size=batch_size,
+                    use_free_apis=use_free_apis
+                )
+                
+                if result_path:
+                    print(f"✅ Successfully processed: {file_path.name}")
+                    print(f"📤 Output saved to: {output_filename}")
+                    processed_files.append(file_path)
+                    total_success += 1
+                else:
+                    print(f"❌ Failed to process: {file_path.name}")
+                    total_errors += 1
+                    
+            except Exception as e:
+                print(f"❌ Error processing {file_path.name}: {str(e)}")
+                total_errors += 1
+        
+        # Archive processed files
+        if processed_files:
+            self.archive_inbound_files(processed_files)
+        
+        # Final summary
+        print(f"\n{'='*60}")
+        print("BATCH PROCESSING SUMMARY")
+        print(f"{'='*60}")
+        print(f"Files processed successfully: {total_success}")
+        print(f"Files with errors: {total_errors}")
+        print(f"Total files: {len(inbound_files)}")
+        print(f"📤 Output files in: {self.outbound_dir}")
+        print(f"📦 Processed files archived to: {self.archive_dir}")
+        
+        if self.db_service:
+            try:
+                final_stats = self.db_service.get_database_stats()
+                print(f"📊 Final Database Stats:")
+                print(f"   Total unique addresses: {final_stats['total_unique_addresses']}")
+                print(f"   Cache hit rate: {final_stats['cache_hit_rate']:.1f}%")
+            except Exception as e:
+                print(f"   ⚠️  Could not get final database stats: {e}")
     
     def process_single_address_input(self, address: str, country: str = None, output_format: str = 'json') -> Dict[str, Any]:
         """
@@ -1072,7 +1239,14 @@ class CSVAddressProcessor:
         # Generate output filename if not provided
         if not output_file:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file = f"addresses_standardized_{timestamp}.csv"
+            output_filename = f"addresses_standardized_{timestamp}.csv"
+            # Save to outbound directory by default
+            output_file = str(self.outbound_dir / output_filename)
+        
+        # Ensure output file is in outbound directory if not specified otherwise
+        output_path = Path(output_file)
+        if not output_path.is_absolute() and output_path.parent == Path('.'):
+            output_file = str(self.outbound_dir / output_path.name)
         
         # Save results
         try:
@@ -1384,6 +1558,9 @@ Examples:
   # Process CSV file
   python csv_address_processor.py addresses.csv
   
+  # Process all files in inbound directory
+  python csv_address_processor.py --batch-process
+  
   # Process single address
   python csv_address_processor.py --address "123 Main St, NYC, NY"
   
@@ -1414,6 +1591,17 @@ Examples:
         nargs='+',
         help='Multiple addresses to process'
     )
+    input_group.add_argument(
+        '--batch-process',
+        action='store_true',
+        help='Process all files in inbound directory'
+    )
+    
+    # Directory management options
+    parser.add_argument(
+        '--base-dir',
+        help='Base directory for inbound/outbound/archive folders (default: current directory)'
+    )
     
     # Options for CSV processing
     parser.add_argument('-o', '--output', help='Output file path')
@@ -1439,8 +1627,8 @@ Examples:
     
     args = parser.parse_args()
     
-    # Create processor instance
-    processor = CSVAddressProcessor()
+    # Create processor instance with base directory if specified
+    processor = CSVAddressProcessor(base_directory=args.base_dir)
     
     # Show database stats if requested
     if args.db_stats:
@@ -1464,7 +1652,19 @@ Examples:
         return
     
     # Process based on input type
-    if args.input_file:
+    if args.batch_process:
+        # Batch process all files in inbound directory
+        print("🚀 Starting batch processing mode...")
+        try:
+            processor.process_all_inbound_files(
+                batch_size=args.batch_size,
+                use_free_apis=not args.no_free_apis
+            )
+        except Exception as e:
+            print(f"❌ Error in batch processing: {e}")
+            sys.exit(1)
+            
+    elif args.input_file:
         # CSV file processing (existing functionality)
         print(f"📁 Processing CSV file: {args.input_file}")
         try:
