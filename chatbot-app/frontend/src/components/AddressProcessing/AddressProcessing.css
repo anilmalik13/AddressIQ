@@ -33,15 +33,17 @@
 }
 
 .address-processing-card h1 {
-    color: #666 !important;
+    color: #495057 !important;
     margin-bottom: 8px;
     font-size: 28px;
+    font-weight: 700;
 }
 
 .address-processing-card p {
-    color: #666;
+    color: #6c757d;
     margin-bottom: 30px;
     font-size: 16px;
+    line-height: 1.5;
 }
 
 .processing-section {
@@ -57,33 +59,38 @@
 }
 
 .input-section label {
+    display: block;
+    margin-bottom: 10px;
     font-weight: 600;
-    color: #333;
+    color: #495057;
     font-size: 16px;
 }
 
 .address-input {
     width: 100%;
-    padding: 12px;
+    padding: 15px;
     border: 2px solid #dee2e6;
-    border-radius: 6px;
-    font-size: 16px;
-    font-family: inherit;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     resize: vertical;
     min-height: 100px;
     box-sizing: border-box;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
+    background-color: #fff;
+    line-height: 1.5;
 }
 
 .address-input:focus {
     outline: none;
     border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
 .address-input:disabled {
-    background-color: #e9ecef;
+    background-color: #f8f9fa;
     cursor: not-allowed;
+    color: #6c757d;
 }
 
 .button-group {
@@ -93,49 +100,56 @@
 }
 
 .process-button {
-    background-color: #007bff;
+    background: linear-gradient(135deg, #007bff, #0056b3);
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
+    padding: 12px 28px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 16px;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
+    font-weight: 600;
+    transition: all 0.3s ease;
     flex: 1;
     min-width: 150px;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
 }
 
 .process-button:hover:not(:disabled) {
-    background-color: #0056b3;
+    background: linear-gradient(135deg, #0056b3, #004085);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 }
 
 .process-button:disabled {
-    background-color: #6c757d;
+    background: #6c757d;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .reset-button {
     background-color: #6c757d;
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
+    padding: 12px 28px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 16px;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
+    font-weight: 600;
+    transition: all 0.3s ease;
     flex: 1;
     min-width: 120px;
 }
 
 .reset-button:hover:not(:disabled) {
     background-color: #5a6268;
+    transform: translateY(-1px);
 }
 
 .reset-button:disabled {
     background-color: #adb5bd;
     cursor: not-allowed;
+    transform: none;
 }
 
 .loading-section {
@@ -267,4 +281,145 @@
     .address-comparison {
         gap: 15px;
     }
+}
+
+/* Processing Details */
+.processing-details {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #007bff;
+}
+
+.confidence-source {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.confidence, .source {
+    font-weight: 600;
+    color: #495057;
+}
+
+.confidence {
+    color: #28a745;
+}
+
+.source {
+    color: #6c757d;
+}
+
+/* Simplified Result Container */
+.processed-address-container {
+    margin-top: 20px;
+}
+
+.result-label {
+    display: block;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.result-box {
+    position: relative;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    border: 2px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Address Result Textarea */
+.address-result {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #28a745;
+    border-radius: 6px;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    background-color: #f8fff9;
+    color: #155724;
+    resize: vertical;
+    margin-bottom: 15px;
+    line-height: 1.5;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.address-result:focus {
+    border-color: #20c997;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* Copy Result Button */
+.copy-result-button {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.copy-result-button:hover {
+    background: linear-gradient(135deg, #218838, #1ea984);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.copy-result-button:active {
+    transform: translateY(0);
+}
+
+/* Success Message Enhancement */
+.result.success h3 {
+    color: #155724;
+    margin-bottom: 20px;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Remove old styles */
+.address-display {
+    display: none;
+}
+
+.address-display.original {
+    display: none;
+}
+
+.address-display.processed {
+    display: none;
+}
+
+.address-display.components {
+    display: none;
+}
+
+.address-components {
+    display: none;
+}
+
+.copy-button {
+    display: none;
+}
+
+.address-comparison {
+    display: none;
 }
