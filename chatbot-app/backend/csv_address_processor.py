@@ -640,6 +640,9 @@ class CSVAddressProcessor:
                             'address_id': existing_address['id'],
                             'from_cache': True
                         }
+                        # Enhance cached result with coordinates/components if missing
+                        if use_free_apis and (not result.get('latitude', '').strip() or not result.get('longitude', '').strip()):
+                            result = self.fill_missing_components_with_free_apis(address_str, result)
                         return result
                     else:
                         print(f"   ⚠️  Found cached address but it's fallback data (ID: {existing_address['id']}) - processing with AI...")
@@ -784,7 +787,7 @@ class CSVAddressProcessor:
                 existing_address = self.db_service.find_existing_address(address_str)
                 if existing_address and existing_address.get('api_source') != 'fallback':
                     print(f"   ✅ Found cached address for row {original_index + 1}")
-                    cached_results[original_index] = {
+                    cached_result = {
                         'status': 'success',
                         'original_address': address_str,
                         'formatted_address': existing_address['formatted_address'],
@@ -806,13 +809,16 @@ class CSVAddressProcessor:
                         'from_cache': True,
                         'input_index': i
                     }
+                    # Enhance cached result with coordinates/components if missing
+                    if use_free_apis and (not cached_result.get('latitude', '').strip() or not cached_result.get('longitude', '').strip()):
+                        cached_result = self.fill_missing_components_with_free_apis(address_str, cached_result)
+                    cached_results[original_index] = cached_result
                     continue
             
             # Add to batch processing list
             batch_index = len(addresses_to_process)
             addresses_to_process.append(address_str)
             addresses_to_process_mapping[batch_index] = original_index
-        
         # Process non-cached addresses in batch
         batch_results = []
         if addresses_to_process:
@@ -1565,7 +1571,7 @@ Examples:
   python csv_address_processor.py --address "123 Main St, NYC, NY"
   
   # Process multiple addresses
-  python csv_address_processor.py --addresses "123 Main St, NYC" "456 Oak Ave, LA"
+  python csv_address_processor.py --address "123 Main St, NYC" "456 Oak Ave, LA"
   
   # With country specification
   python csv_address_processor.py --address "123 High St, London" --country "UK"
@@ -1584,12 +1590,8 @@ Examples:
     )
     input_group.add_argument(
         '--address', '-a',
-        help='Single address to process'
-    )
-    input_group.add_argument(
-        '--addresses', '-A',
         nargs='+',
-        help='Multiple addresses to process'
+        help='Address(es) to process - single or multiple addresses'
     )
     input_group.add_argument(
         '--batch-process',
@@ -1690,50 +1692,24 @@ Examples:
             sys.exit(1)
             
     elif args.address:
-        # Single address processing
-        print(f"🏠 Processing single address")
-        result = processor.process_single_address_input(
-            args.address, 
-            args.country, 
-            args.format
-        )
-        
-        if args.output:
-            # Save to JSON file
-            with open(args.output, 'w', encoding='utf-8') as f:
-                json.dump(result, f, indent=2, ensure_ascii=False)
-            print(f"\n📄 Result saved to: {args.output}")
-        else:
-            # Print to console
-            print(f"\n📋 Result:")
-            if args.format == 'formatted':
-                print(f"   Original: {result.get('original_address', 'N/A')}")
-                print(f"   Formatted: {result.get('formatted_address', 'N/A')}")
-                print(f"   Confidence: {result.get('confidence', 'N/A')}")
-                print(f"   From cache: {result.get('from_cache', False)}")
-                print(f"   Status: {result.get('status', 'N/A')}")
-            else:
-                print(json.dumps(result, indent=2, ensure_ascii=False))
+        # Single or multiple address processing (auto-detected by number of arguments)
+        if len(args.address) == 1:
+            # Single address processing
+            print(f"🏠 Processing single address")
+            result = processor.process_single_address_input(
+                args.address[0], 
+                args.country, 
+                args.format
+            )
             
-    elif args.addresses:
-        # Multiple addresses processing
-        print(f"🏠 Processing {len(args.addresses)} addresses")
-        results = processor.process_multiple_addresses_input(
-            args.addresses,
-            args.country,
-            args.format
-        )
-        
-        if args.output:
-            # Save to JSON file
-            with open(args.output, 'w', encoding='utf-8') as f:
-                json.dump(results, f, indent=2, ensure_ascii=False)
-            print(f"\n📄 Results saved to: {args.output}")
-        else:
-            # Print to console
-            print(f"\n📋 Results:")
-            for i, result in enumerate(results, 1):
-                print(f"\n--- Address {i} ---")
+            if args.output:
+                # Save to JSON file
+                with open(args.output, 'w', encoding='utf-8') as f:
+                    json.dump(result, f, indent=2, ensure_ascii=False)
+                print(f"\n📄 Result saved to: {args.output}")
+            else:
+                # Print to console
+                print(f"\n📋 Result:")
                 if args.format == 'formatted':
                     print(f"   Original: {result.get('original_address', 'N/A')}")
                     print(f"   Formatted: {result.get('formatted_address', 'N/A')}")
@@ -1742,6 +1718,33 @@ Examples:
                     print(f"   Status: {result.get('status', 'N/A')}")
                 else:
                     print(json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            # Multiple addresses processing
+            print(f"🏠 Processing {len(args.address)} addresses")
+            results = processor.process_multiple_addresses_input(
+                args.address,
+                args.country,
+                args.format
+            )
+            
+            if args.output:
+                # Save to JSON file
+                with open(args.output, 'w', encoding='utf-8') as f:
+                    json.dump(results, f, indent=2, ensure_ascii=False)
+                print(f"\n📄 Results saved to: {args.output}")
+            else:
+                # Print to console
+                print(f"\n📋 Results:")
+                for i, result in enumerate(results, 1):
+                    print(f"\n--- Address {i} ---")
+                    if args.format == 'formatted':
+                        print(f"   Original: {result.get('original_address', 'N/A')}")
+                        print(f"   Formatted: {result.get('formatted_address', 'N/A')}")
+                        print(f"   Confidence: {result.get('confidence', 'N/A')}")
+                        print(f"   From cache: {result.get('from_cache', False)}")
+                        print(f"   Status: {result.get('status', 'N/A')}")
+                    else:
+                        print(json.dumps(result, indent=2, ensure_ascii=False))
     
     else:
         # No input provided, show help
