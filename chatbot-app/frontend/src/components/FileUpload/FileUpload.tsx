@@ -11,6 +11,7 @@ const FileUpload: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     // Use a ref for the polling interval to avoid triggering re-renders
     const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Start polling for processing status when we get a processing ID
     useEffect(() => {
@@ -84,6 +85,10 @@ const FileUpload: React.FC = () => {
             clearInterval(statusIntervalRef.current);
             statusIntervalRef.current = null;
         }
+        // Clear native file input so selecting the same file again fires onChange
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     }, [dispatch]);
 
     const handleDownload = useCallback(() => {
@@ -109,10 +114,15 @@ const FileUpload: React.FC = () => {
                 <div className="upload-section">
                     <div className="file-input-wrapper">
                         <input
+                            ref={fileInputRef}
                             type="file"
                             id="file-input"
                             accept=".xlsx,.xls,.csv"
                             onChange={handleFileSelect}
+                            onClick={(e) => {
+                                // Ensure value cleared before opening dialog so selecting same file triggers onChange
+                                (e.currentTarget as HTMLInputElement).value = '';
+                            }}
                             disabled={uploading}
                             className="file-input"
                         />

@@ -36,6 +36,17 @@ export interface AddressProcessingState {
     confidence: string | null;
     source: string | null;
     error: string | null;
+    multiResults?: ProcessedAddressResult[] | null;
+}
+
+export interface ProcessedAddressResult {
+    originalAddress: string;
+    processedAddress: string;
+    status: string;
+    confidence: string;
+    source: string;
+    components: Record<string, string>;
+    error?: string | null;
 }
 
 export interface RootState {

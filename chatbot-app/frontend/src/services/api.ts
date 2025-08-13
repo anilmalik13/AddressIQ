@@ -119,6 +119,28 @@ export const processAddress = async (address: string): Promise<any> => {
     }
 };
 
+// Multiple Addresses Processing API
+export const processAddresses = async (addresses: string[]): Promise<any[]> => {
+    try {
+        const response = await api.post('/process-addresses', { addresses });
+        return (response.data.results || []).map((r: any) => ({
+            originalAddress: r.originalAddress,
+            processedAddress: r.processedAddress,
+            status: r.status,
+            confidence: r.confidence,
+            source: r.source,
+            components: r.components || {},
+            error: r.error || null
+        }));
+    } catch (error: any) {
+        console.error('Error processing multiple addresses:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Multi-address processing failed.');
+    }
+};
+
 // Region-Country Coordinates API
 export const getCoordinatesByRegionCountry = async (region: string, country: string) => {
     // Remove duplicate '/api' because baseURL is '/api'

@@ -66,6 +66,7 @@ def health_check():
             '/api/download/<filename>',
             '/api/uploaded-files',
             '/api/process-address',
+            '/api/process-addresses',
             '/api/coordinates'
         ]
     }), 200
@@ -321,6 +322,107 @@ def process_address():
             
     except Exception as e:
         return jsonify({'error': f'Address processing failed: {str(e)}'}), 500
+
+@app.route('/api/process-addresses', methods=['POST'])
+def process_addresses():
+    """Process multiple addresses (newline list) returning array of results"""
+    try:
+        data = request.get_json() or {}
+        addresses = data.get('addresses')
+        if not addresses or not isinstance(addresses, list):
+            return jsonify({'error': 'addresses (list) is required'}), 400
+
+        import sys, os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from csv_address_processor import CSVAddressProcessor
+        processor = CSVAddressProcessor()
+
+        results = []
+        for idx, raw in enumerate(addresses):
+            addr = (raw or '').strip()
+            if not addr:
+                results.append({
+                    'originalAddress': raw,
+                    'processedAddress': '',
+                    'status': 'skipped',
+                    'confidence': 'n/a',
+                    'source': 'none',
+                    'components': {},
+                    'error': 'Empty address line'
+                })
+                continue
+            try:
+                single = processor.standardize_single_address(addr, idx)
+                if single and single.get('status') == 'success' and single.get('formatted_address'):
+                    results.append({
+                        'originalAddress': addr,
+                        'processedAddress': single.get('formatted_address', addr),
+                        'status': 'success',
+                        'confidence': single.get('confidence', 'unknown'),
+                        'source': 'azure_openai',
+                        'components': {
+                            'street_number': single.get('street_number', ''),
+                            'street_name': single.get('street_name', ''),
+                            'city': single.get('city', ''),
+                            'state': single.get('state', ''),
+                            'postal_code': single.get('postal_code', ''),
+                            'country': single.get('country', ''),
+                            'latitude': single.get('latitude', ''),
+                            'longitude': single.get('longitude', '')
+                        }
+                    })
+                else:
+                    processor.configure_free_apis(nominatim=True, geocodify=True)
+                    fallback = {'success': False}
+                    try:
+                        fallback = processor.geocode_with_nominatim(addr)
+                    except Exception:
+                        try:
+                            fallback = processor.geocode_with_geocodify(addr)
+                        except Exception:
+                            pass
+                    if fallback.get('success'):
+                        results.append({
+                            'originalAddress': addr,
+                            'processedAddress': fallback.get('formatted_address', addr),
+                            'status': 'success',
+                            'confidence': fallback.get('confidence', 'medium'),
+                            'source': 'free_api',
+                            'components': {
+                                'street_number': fallback.get('street_number', ''),
+                                'street_name': fallback.get('street_name', ''),
+                                'city': fallback.get('city', ''),
+                                'state': fallback.get('state', ''),
+                                'postal_code': fallback.get('postal_code', ''),
+                                'country': fallback.get('country', ''),
+                                'latitude': fallback.get('latitude', ''),
+                                'longitude': fallback.get('longitude', '')
+                            }
+                        })
+                    else:
+                        results.append({
+                            'originalAddress': addr,
+                            'processedAddress': addr,
+                            'status': 'fallback',
+                            'confidence': 'unavailable',
+                            'source': 'original',
+                            'components': {},
+                            'error': 'Processing unavailable'
+                        })
+            except Exception as inner_e:
+                results.append({
+                    'originalAddress': addr,
+                    'processedAddress': addr,
+                    'status': 'error',
+                    'confidence': 'unknown',
+                    'source': 'error',
+                    'components': {},
+                    'error': str(inner_e)
+                })
+
+        return jsonify({'results': results, 'count': len(results)}), 200
+    except Exception as e:
+        return jsonify({'error': f'Multi-address processing failed: {str(e)}'}), 500
 
 @app.route('/api/uploaded-files', methods=['GET'])
 def list_uploaded_files():

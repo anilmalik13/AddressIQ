@@ -170,6 +170,146 @@
     margin-top: 20px;
 }
 
+/* Steps visualization */
+.steps-wrapper {
+    margin-top: 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+.steps {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding-top: 18px;
+}
+
+.step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #dee2e6, #dee2e6);
+    z-index: 1;
+}
+
+.step-marker {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #adb5bd;
+    font-size: 12px;
+    line-height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #6c757d;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.step.done .step-marker {
+    background: #28a745;
+    border-color: #28a745;
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(40,167,69,0.15);
+}
+
+.step-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: #6c757d;
+    margin-top: 4px;
+}
+
+.step.done .step-label {
+    color: #28a745;
+}
+
+/* File metadata */
+.file-meta {
+    margin-top: 10px;
+    text-align: center;
+    color: #495057;
+}
+
+.file-meta small {
+    background: #e9ecef;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+/* Logs */
+.logs {
+    margin-top: 14px;
+    max-height: 140px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    background: #fff;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+.logs ul {
+    list-style: none;
+    padding: 0;
+    margin: 6px 0 0 0;
+}
+
+.logs li {
+    padding: 4px 0;
+    border-bottom: 1px dashed #f1f3f5;
+    font-family: ui-monospace, monospace;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.logs li:last-child {
+    border-bottom: none;
+}
+
+.logs small strong {
+    color: #495057;
+}
+
+/* Scrollbar styling for logs */
+.logs::-webkit-scrollbar {
+    width: 6px;
+}
+.logs::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.logs::-webkit-scrollbar-thumb {
+    background: #ced4da;
+    border-radius: 4px;
+}
+.logs::-webkit-scrollbar-thumb:hover {
+    background: #adb5bd;
+}
+
 .progress-bar {
     width: 100%;
     height: 8px;

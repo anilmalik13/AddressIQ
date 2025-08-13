@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { AddressProcessingState } from '../../types';
+import { AddressProcessingState, ProcessedAddressResult } from '../../types';
 
 const initialState: AddressProcessingState = {
     processing: false,
@@ -9,6 +9,7 @@ const initialState: AddressProcessingState = {
     confidence: null,
     source: null,
     error: null,
+    multiResults: null,
 };
 
 const addressProcessingSlice = createSlice({
@@ -23,6 +24,17 @@ const addressProcessingSlice = createSlice({
             state.confidence = null;
             state.source = null;
             state.error = null;
+            state.multiResults = null;
+        },
+        processAddressesRequest: (state, action: PayloadAction<string[]>) => {
+            state.processing = true;
+            state.originalAddress = action.payload.join('\n');
+            state.processedAddress = null;
+            state.addressComponents = null;
+            state.confidence = null;
+            state.source = null;
+            state.error = null;
+            state.multiResults = null;
         },
         processAddressSuccess: (state, action: PayloadAction<{
             processedAddress: string;
@@ -37,6 +49,15 @@ const addressProcessingSlice = createSlice({
             state.source = action.payload.source;
             state.error = null;
         },
+        processAddressesSuccess: (state, action: PayloadAction<ProcessedAddressResult[]>) => {
+            state.processing = false;
+            state.multiResults = action.payload;
+            state.processedAddress = null;
+            state.addressComponents = null;
+            state.confidence = null;
+            state.source = null;
+            state.error = null;
+        },
         processAddressFailure: (state, action: PayloadAction<string>) => {
             state.processing = false;
             state.error = action.payload;
@@ -44,6 +65,7 @@ const addressProcessingSlice = createSlice({
             state.addressComponents = null;
             state.confidence = null;
             state.source = null;
+            state.multiResults = null;
         },
         resetAddressState: (state) => {
             state.processing = false;
@@ -53,13 +75,16 @@ const addressProcessingSlice = createSlice({
             state.confidence = null;
             state.source = null;
             state.error = null;
+            state.multiResults = null;
         },
     },
 });
 
 export const {
     processAddressRequest,
+    processAddressesRequest,
     processAddressSuccess,
+    processAddressesSuccess,
     processAddressFailure,
     resetAddressState,
 } = addressProcessingSlice.actions;
