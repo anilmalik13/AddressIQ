@@ -150,4 +150,20 @@ export const getCoordinatesByRegionCountry = async (region: string, country: str
     return response.data;
 };
 
+// Public standardization API (single/multiple)
+export const processPublicStandardize = async (addresses: string[], apiKey?: string): Promise<{results: any[]}> => {
+    try {
+        const headers: any = {};
+        if (apiKey) headers['X-API-Key'] = apiKey;
+        const response = await api.post('/public/standardize', { addresses }, { headers });
+        return response.data;
+    } catch (error: any) {
+        console.error('Error calling public standardize:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Public standardization failed.');
+    }
+};
+
 export default api;

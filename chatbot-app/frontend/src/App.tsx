@@ -4,9 +4,10 @@ import { store } from './store';
 import FileUpload from './components/FileUpload';
 import AddressProcessing from './components/AddressProcessing';
 import RegionCityMap from './components/RegionCityMap';
+import PublicAPI from './components/PublicAPI/PublicAPI';
 import './App.css';
 
-type ActiveView = 'upload' | 'processing' | 'map';
+type ActiveView = 'upload' | 'processing' | 'map' | 'publicapi';
 
 const App: React.FC = () => {
     const [activeView, setActiveView] = useState<ActiveView>('upload');
@@ -19,6 +20,8 @@ const App: React.FC = () => {
                 return <AddressProcessing />;
             case 'map':
                 return <RegionCityMap />;
+            case 'publicapi':
+                return <PublicAPI />;
             default:
                 return <FileUpload />;
         }
@@ -32,6 +35,8 @@ const App: React.FC = () => {
                 return 'Address Processing';
             case 'map':
                 return 'Region & City Map View';
+            case 'publicapi':
+                return 'Public API';
             default:
                 return 'Excel File Upload';
         }
@@ -61,6 +66,12 @@ const App: React.FC = () => {
                             onClick={() => setActiveView('map')}
                         >
                             Map View
+                        </button>
+                        <button 
+                            className={`tab ${activeView === 'publicapi' ? 'active' : ''}`}
+                            onClick={() => setActiveView('publicapi')}
+                        >
+                            Public API
                         </button>
                     </div>
                 </header>
