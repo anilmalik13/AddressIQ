@@ -30,6 +30,30 @@ os.makedirs(OUTBOUND_FOLDER, exist_ok=True)
 # Store processing status
 processing_status = {}
 
+# Helper for consistent status updates and lightweight logging
+def _update_status(processing_id: str, **fields):
+    entry = processing_status.get(processing_id)
+    if not entry:
+        return
+    now_iso = datetime.utcnow().isoformat() + 'Z'
+    entry['updated_at'] = now_iso
+    log_message = fields.pop('log', None)
+    for k, v in fields.items():
+        entry[k] = v
+    if log_message:
+        logs = entry.setdefault('logs', [])
+        logs.append({'ts': now_iso, 'message': log_message, 'progress': entry.get('progress')})
+        # Keep only last 100 log entries
+        if len(logs) > 100:
+            del logs[:-100]
+
+@app.route('/api/processing-status/<processing_id>/logs', methods=['GET'])
+def get_processing_logs(processing_id):
+    entry = processing_status.get(processing_id)
+    if not entry:
+        return jsonify({'error': 'Processing ID not found'}), 404
+    return jsonify({'logs': entry.get('logs', [])}), 200
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Simple health check endpoint for frontend connectivity tests"""
@@ -72,64 +96,27 @@ def process_file_background(processing_id, filename):
     try:
         inbound_file = INBOUND_FOLDER / filename
         if not inbound_file.exists():
-            processing_status[processing_id].update({
-                'status': 'error',
-                'message': 'Uploaded file not found on server',
-                'progress': 100,
-                'error': 'Missing inbound file'
-            })
+            _update_status(processing_id, status='error', message='Uploaded file not found on server', progress=100, error='Missing inbound file', log='Inbound file missing')
             return
 
-        processing_status[processing_id].update({
-            'status': 'processing',
-            'message': 'Initializing processor...',
-            'progress': 20
-        })
+        _update_status(processing_id, status='processing', message='Initializing processor...', progress=20, log='Processor initialization')
 
         processor = CSVAddressProcessor(base_directory=str(BASE_DIR))
+        _update_status(processing_id, message='Reading input file...', progress=35, log='Reading input file')
+        time.sleep(0.15)
 
-        # Slight delay to simulate staged progress updates
-        processing_status[processing_id].update({
-            'message': 'Reading input file...',
-            'progress': 35
-        })
-        time.sleep(0.2)
-
-        # Call processor directly
-        processing_status[processing_id].update({
-            'message': 'Standardizing addresses...',
-            'progress': 55
-        })
+        _update_status(processing_id, message='Standardizing addresses...', progress=55, log='Starting standardization')
         output_path = processor.process_csv_file(str(inbound_file))
 
-        processing_status[processing_id].update({
-            'message': 'Finalizing output...',
-            'progress': 85
-        })
+        _update_status(processing_id, message='Finalizing output...', progress=85, log='Finalizing output file')
         time.sleep(0.1)
 
         if output_path and os.path.exists(output_path):
-            processing_status[processing_id].update({
-                'status': 'completed',
-                'message': 'File processed successfully',
-                'progress': 100,
-                'output_file': os.path.basename(output_path),
-                'output_path': output_path
-            })
+            _update_status(processing_id, status='completed', message='File processed successfully', progress=100, output_file=os.path.basename(output_path), output_path=output_path, finished_at=datetime.utcnow().isoformat() + 'Z', log='Processing completed')
         else:
-            processing_status[processing_id].update({
-                'status': 'error',
-                'message': 'Output file not generated',
-                'progress': 100,
-                'error': 'Processor did not return output path'
-            })
+            _update_status(processing_id, status='error', message='Output file not generated', progress=100, error='Processor did not return output path', log='No output file located')
     except Exception as e:
-        processing_status[processing_id].update({
-            'status': 'error',
-            'message': 'Processing failed with error',
-            'progress': 100,
-            'error': str(e)
-        })
+        _update_status(processing_id, status='error', message='Processing failed with error', progress=100, error=str(e), log=f'Exception: {e}')
 
 @app.route('/api/processing-status/<processing_id>', methods=['GET'])
 def get_processing_status(processing_id):
@@ -215,9 +202,23 @@ def upload_excel():
             'status': 'uploaded',
             'message': 'File uploaded successfully',
             'filename': unique_filename,
+            'original_filename': filename,
             'progress': 10,
             'output_file': None,
-            'error': None
+            'error': None,
+            'file_info': file_info,
+            'started_at': datetime.utcnow().isoformat() + 'Z',
+            'updated_at': datetime.utcnow().isoformat() + 'Z',
+            'finished_at': None,
+            'logs': [{'ts': datetime.utcnow().isoformat() + 'Z', 'message': 'Upload received', 'progress': 10}],
+            'steps': [
+                {'name': 'upload', 'label': 'Upload', 'target': 10},
+                {'name': 'initialize', 'label': 'Initialize', 'target': 20},
+                {'name': 'read', 'label': 'Read File', 'target': 35},
+                {'name': 'standardize', 'label': 'Standardize', 'target': 55},
+                {'name': 'finalize', 'label': 'Finalize', 'target': 85},
+                {'name': 'complete', 'label': 'Complete', 'target': 100}
+            ]
         }
         
         # Start batch processing in background thread

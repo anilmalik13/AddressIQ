@@ -96,6 +96,10 @@ const FileUpload: React.FC = () => {
     const isCompleted = processingStatus?.status === 'completed';
     const hasError = processingStatus?.status === 'error' || !!error;
 
+    const steps = processingStatus?.steps || [];
+    const currentProgress = processingStatus?.progress || 0;
+    const recentLogs = (processingStatus?.logs || []).slice(-5).reverse();
+
     return (
         <div className="file-upload-container">
             <div className="file-upload-card">
@@ -167,6 +171,36 @@ const FileUpload: React.FC = () => {
                                     : `${uploadProgress}% uploaded`
                                 }
                             </p>
+                            {steps.length > 0 && (
+                                <div className="steps-wrapper">
+                                    <div className="steps">
+                                        {steps.map(s => {
+                                            const reached = currentProgress >= s.target;
+                                            return (
+                                                <div key={s.name} className={`step ${reached ? 'done' : ''}`}> 
+                                                    <div className="step-marker">{reached ? '✓' : ''}</div>
+                                                    <div className="step-label">{s.label}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                            {processingStatus?.file_info && (
+                                <div className="file-meta">
+                                    <small>Rows: {processingStatus.file_info.rows} | Columns: {processingStatus.file_info.columns}</small>
+                                </div>
+                            )}
+                            {recentLogs.length > 0 && (
+                                <div className="logs">
+                                    <small><strong>Recent activity:</strong></small>
+                                    <ul>
+                                        {recentLogs.map(l => (
+                                            <li key={l.ts}>{new Date(l.ts).toLocaleTimeString()} - {l.message}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                     )}
 
