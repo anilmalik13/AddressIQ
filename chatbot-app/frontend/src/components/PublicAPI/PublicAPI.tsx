@@ -108,7 +108,7 @@ const PublicAPI: React.FC = () => {
         );
       case 'medium':
         // Gauge / speedometer
-        return (
+  return (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 14v-4" />
             <path d="M8 14.5a4 4 0 0 1 8 0" />
@@ -214,7 +214,7 @@ const PublicAPI: React.FC = () => {
         <div className="publicapi-content">
           <div className="input-section">
             <div className="section-title">Try the API</div>
-
+            
             {/* Endpoint first */}
             <div className="form-group">
               <label className="form-label">Endpoint (HTTP GET)</label>
@@ -282,29 +282,29 @@ const PublicAPI: React.FC = () => {
                 <div className="accordion-panel">
                   {results && results.length > 0 ? (
                     <div className="results-section" style={{marginTop: 0, borderTop: 'none', paddingTop: 0}}>
-                      <div className="results-grid">
-                        {results.map((result, index) => (
-                          <div key={index} className="result-card">
-                            <div className="result-header">
-                              <span className="result-number">Address #{index + 1}</span>
-                              <div className="copy-buttons">
-                                <button className="btn-copy" onClick={() => copy(result.original)}>
-                                  Copy Original
-                                </button>
-                                <button className="btn-copy" onClick={() => copy(result.formatted)}>
-                                  Copy Formatted
-                                </button>
-                                <button className="btn-copy" onClick={() => copy(JSON.stringify(result.components))}>
-                                  Copy JSON
-                                </button>
-                              </div>
-                            </div>
+                <div className="results-grid">
+                  {results.map((result, index) => (
+                    <div key={index} className="result-card">
+                      <div className="result-header">
+                        <span className="result-number">Address #{index + 1}</span>
+                        <div className="copy-buttons">
+                          <button className="btn-copy" onClick={() => copy(result.original)}>
+                            Copy Original
+                          </button>
+                          <button className="btn-copy" onClick={() => copy(result.formatted)}>
+                            Copy Formatted
+                          </button>
+                          <button className="btn-copy" onClick={() => copy(JSON.stringify(result.components))}>
+                            Copy JSON
+                          </button>
+                        </div>
+                      </div>
 
-                            <div className="status-chips">
+                      <div className="status-chips">
                               <span className="status-wrapper">
-                                <span className={getStatusChipClass(result.status)}>
-                                  {result.status}
-                                </span>
+                        <span className={getStatusChipClass(result.status)}>
+                          {result.status}
+                        </span>
                               </span>
                               <span className="confidence-wrapper">
                                 <span
@@ -314,24 +314,26 @@ const PublicAPI: React.FC = () => {
                                 >
                                   {getConfidenceIcon(result.confidence)}
                                   <span>{result.confidence}</span>
-                                </span>
-                              </span>
-                            </div>
+                        </span>
+                        <span className="status-chip">
+                          {result.confidence}
+                        </span>
+                      </div>
 
-                            <div className="address-comparison">
-                              <div className="address-row">
-                                <span className="address-label">Original</span>
-                                <span className="address-value">{result.original}</span>
-                              </div>
-                              <div className="address-row">
-                                <span className="address-label">Standardized</span>
-                                <span className="address-value formatted">{result.formatted}</span>
-                              </div>
-                            </div>
+                      <div className="address-comparison">
+                        <div className="address-row">
+                          <span className="address-label">Original</span>
+                          <span className="address-value">{result.original}</span>
+                        </div>
+                        <div className="address-row">
+                          <span className="address-label">Standardized</span>
+                          <span className="address-value formatted">{result.formatted}</span>
+                        </div>
+                      </div>
 
-                            <div className="components-section">
-                              <div className="components-title">Address Components</div>
-                              <div className="components-grid">
+                      <div className="components-section">
+                        <div className="components-title">Address Components</div>
+                        <div className="components-grid">
                                 {(() => {
                                   const comps = (result.components ?? {}) as Record<string, any>;
                                   const orderedKeys = [
@@ -339,31 +341,31 @@ const PublicAPI: React.FC = () => {
                                     ...Object.keys(comps).filter(k => !COMPONENT_ORDER.includes(k)).sort(),
                                   ];
                                   return orderedKeys.map((key) => (
-                                    <div key={key} className="component-item">
-                                      <span className="component-key">{key.replace(/_/g, ' ')}</span>
+                            <div key={key} className="component-item">
+                              <span className="component-key">{key.replace(/_/g, ' ')}</span>
                                       <span className="component-value">{String(comps[key] ?? '') || '—'}</span>
-                                    </div>
+                            </div>
                                   ));
                                 })()}
-                              </div>
-                            </div>
-
-                            {result.error && (
-                              <div className="error-row">
-                                <span className="error-label">Error</span>
-                                <span className="error-value">{result.error}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                        </div>
                       </div>
+
+                      {result.error && (
+                        <div className="error-row">
+                          <span className="error-label">Error</span>
+                          <span className="error-value">{result.error}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
                     </div>
                   ) : (
                     <div className="no-results">No results found. Enter the address in the above field to see the results.</div>
                   )}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
             {/* Response Format Accordion */}
             <div className="accordion-item">
@@ -373,7 +375,7 @@ const PublicAPI: React.FC = () => {
               </button>
               {responseOpen && (
                 <div className="accordion-panel">
-                  <div className="response-format">
+            <div className="response-format">
                     <div className="code-block response-example">{responsePreview}</div>
                   </div>
                 </div>
