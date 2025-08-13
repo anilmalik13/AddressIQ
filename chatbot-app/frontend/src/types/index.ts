@@ -3,11 +3,21 @@ export interface User {
     name: string;
 }
 
+export interface ProcessingStatus {
+    status: 'uploaded' | 'processing' | 'completed' | 'error';
+    message: string;
+    progress: number;
+    output_file?: string;
+    error?: string;
+}
+
 export interface FileUploadState {
     uploading: boolean;
     uploadProgress: number;
     uploadResult: string | null;
     error: string | null;
+    processingId: string | null;
+    processingStatus: ProcessingStatus | null;
 }
 
 export interface AddressProcessingState {

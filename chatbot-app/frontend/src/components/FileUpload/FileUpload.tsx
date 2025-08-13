@@ -1,14 +1,51 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { uploadFileRequest, resetUploadState } from '../../store/slices/fileUploadSlice';
+import { uploadFileRequest, resetUploadState, checkProcessingStatus, downloadProcessedFile } from '../../store/slices/fileUploadSlice';
 import './FileUpload.css';
 
 const FileUpload: React.FC = () => {
     const dispatch = useAppDispatch();
-    const { uploading, uploadProgress, uploadResult, error } = useAppSelector(
+    const { uploading, uploadProgress, uploadResult, error, processingId, processingStatus } = useAppSelector(
         (state) => state.fileUpload
     );
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    // Use a ref for the polling interval to avoid triggering re-renders
+    const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Start polling for processing status when we get a processing ID
+    useEffect(() => {
+        const done = ['completed', 'error'];
+        const currentStatus = processingStatus?.status;
+        if (processingId && !done.includes(currentStatus || '')) {
+            // Start polling if not already started
+            if (!statusIntervalRef.current) {
+                statusIntervalRef.current = setInterval(() => {
+                    dispatch(checkProcessingStatus(processingId));
+                }, 2000);
+            }
+        } else {
+            // Stop polling if finished or no processing id
+            if (statusIntervalRef.current) {
+                clearInterval(statusIntervalRef.current);
+                statusIntervalRef.current = null;
+            }
+        }
+        return () => {
+            // On dependency change/unmount, if processing finished, clear interval
+            if ((!processingId || done.includes(currentStatus || '')) && statusIntervalRef.current) {
+                clearInterval(statusIntervalRef.current);
+                statusIntervalRef.current = null;
+            }
+        };
+    }, [dispatch, processingId, processingStatus?.status]);
+
+    // Ensure interval cleared on unmount
+    useEffect(() => () => {
+        if (statusIntervalRef.current) {
+            clearInterval(statusIntervalRef.current);
+            statusIntervalRef.current = null;
+        }
+    }, []);
 
     const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -43,7 +80,21 @@ const FileUpload: React.FC = () => {
     const handleReset = useCallback(() => {
         setSelectedFile(null);
         dispatch(resetUploadState());
+        if (statusIntervalRef.current) {
+            clearInterval(statusIntervalRef.current);
+            statusIntervalRef.current = null;
+        }
     }, [dispatch]);
+
+    const handleDownload = useCallback(() => {
+        if (processingStatus?.output_file) {
+            dispatch(downloadProcessedFile(processingStatus.output_file));
+        }
+    }, [dispatch, processingStatus?.output_file]);
+
+    const isProcessing = processingStatus && ['uploaded', 'processing'].includes(processingStatus.status);
+    const isCompleted = processingStatus?.status === 'completed';
+    const hasError = processingStatus?.status === 'error' || !!error;
 
     return (
         <div className="file-upload-container">
@@ -76,44 +127,70 @@ const FileUpload: React.FC = () => {
                     <div className="button-group">
                         <button
                             onClick={handleUpload}
-                            disabled={!selectedFile || uploading}
+                            disabled={!selectedFile || uploading || !!isProcessing}
                             className="upload-button"
                         >
-                            {uploading ? 'Uploading...' : 'Upload File'}
+                            {uploading ? 'Uploading...' : isProcessing ? 'Processing...' : 'Upload & Process File'}
                         </button>
                         
                         <button
                             onClick={handleReset}
-                            disabled={uploading}
+                            disabled={uploading || !!isProcessing}
                             className="reset-button"
                         >
                             Reset
                         </button>
+
+                        {isCompleted && processingStatus?.output_file && (
+                            <button
+                                onClick={handleDownload}
+                                className="download-button"
+                            >
+                                Download Processed File
+                            </button>
+                        )}
                     </div>
 
-                    {uploading && (
+                    {(uploading || isProcessing) && (
                         <div className="progress-section">
                             <div className="progress-bar">
                                 <div 
                                     className="progress-fill" 
-                                    style={{ width: `${uploadProgress}%` }}
+                                    style={{ 
+                                        width: `${isProcessing ? processingStatus?.progress || 0 : uploadProgress}%` 
+                                    }}
                                 />
                             </div>
-                            <p>{uploadProgress}% uploaded</p>
+                            <p>
+                                {isProcessing 
+                                    ? `${processingStatus?.progress || 0}% - ${processingStatus?.message || 'Processing...'}`
+                                    : `${uploadProgress}% uploaded`
+                                }
+                            </p>
                         </div>
                     )}
 
-                    {uploadResult && (
+                    {isCompleted && (
                         <div className="result success">
-                            <h3>Success!</h3>
+                            <h3>Processing Complete!</h3>
+                            <p>{processingStatus?.message}</p>
+                            {processingStatus?.output_file && (
+                                <p><strong>Output file:</strong> {processingStatus.output_file}</p>
+                            )}
+                        </div>
+                    )}
+
+                    {uploadResult && !processingStatus && (
+                        <div className="result success">
+                            <h3>Upload Complete!</h3>
                             <p>{uploadResult}</p>
                         </div>
                     )}
 
-                    {error && (
+                    {hasError && (
                         <div className="result error">
                             <h3>Error</h3>
-                            <p>{error}</p>
+                            <p>{error || processingStatus?.error}</p>
                         </div>
                     )}
                 </div>
