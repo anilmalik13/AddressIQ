@@ -301,22 +301,20 @@ const PublicAPI: React.FC = () => {
                       </div>
 
                       <div className="status-chips">
-                              <span className="status-wrapper">
-                        <span className={getStatusChipClass(result.status)}>
-                          {result.status}
+                        <span className="status-wrapper">
+                          <span className={getStatusChipClass(result.status)}>
+                            {result.status}
+                          </span>
                         </span>
-                              </span>
-                              <span className="confidence-wrapper">
-                                <span
-                                  className={getConfidenceChipClass(result.confidence)}
-                                  title={`Confidence level: ${result.confidence}`}
-                                  aria-label={`Confidence level ${result.confidence}`}
-                                >
-                                  {getConfidenceIcon(result.confidence)}
-                                  <span>{result.confidence}</span>
-                        </span>
-                        <span className="status-chip">
-                          {result.confidence}
+                        <span className="confidence-wrapper">
+                          <span
+                            className={getConfidenceChipClass(result.confidence)}
+                            title={`Confidence level: ${result.confidence}`}
+                            aria-label={`Confidence level ${result.confidence}`}
+                          >
+                            {getConfidenceIcon(result.confidence)}
+                            <span>{result.confidence}</span>
+                          </span>
                         </span>
                       </div>
 
