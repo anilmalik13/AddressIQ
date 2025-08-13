@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from .services.azure_openai import get_access_token, connect_wso2
 from csv_address_processor import CSVAddressProcessor  # direct import for in-process execution
+import uuid
+import re
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -29,6 +31,32 @@ os.makedirs(OUTBOUND_FOLDER, exist_ok=True)
 
 # Store processing status
 processing_status = {}
+
+# Simple API key security for public standardization endpoint
+PUBLIC_API_KEY = os.getenv('ADDRESSIQ_PUBLIC_API_KEY')  # set in environment / .env
+
+def _check_api_key():
+    """Validate API key from header X-API-Key or query parameter api_key if key configured.
+    If no PUBLIC_API_KEY configured, allow all (development mode)."""
+    if not PUBLIC_API_KEY:
+        return True, None  # open mode
+    supplied = request.headers.get('X-API-Key') or request.args.get('api_key')
+    if supplied and supplied == PUBLIC_API_KEY:
+        return True, None
+    return False, 'Invalid or missing API key'
+
+def _sanitize_address(addr: str) -> str:
+    if not isinstance(addr, str):
+        return ''
+    # Remove control characters, trim length, neutralize script tags
+    addr = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', ' ', addr)
+    addr = addr.replace('\r', ' ').replace('\n', ' ').strip()
+    # Basic strip of dangerous angle brackets
+    addr = addr.replace('<', ' ').replace('>', ' ')
+    # limit length
+    if len(addr) > 500:
+        addr = addr[:500]
+    return addr
 
 # Helper for consistent status updates and lightweight logging
 def _update_status(processing_id: str, **fields):
@@ -67,6 +95,7 @@ def health_check():
             '/api/uploaded-files',
             '/api/process-address',
             '/api/process-addresses',
+            '/api/public/standardize',
             '/api/coordinates'
         ]
     }), 200
@@ -423,6 +452,116 @@ def process_addresses():
         return jsonify({'results': results, 'count': len(results)}), 200
     except Exception as e:
         return jsonify({'error': f'Multi-address processing failed: {str(e)}'}), 500
+
+@app.route('/api/public/standardize', methods=['POST', 'GET'])
+def public_standardize():
+    """Public API: standardize one or more addresses.
+    Security: optional API key via X-API-Key header or api_key query parameter.
+    Input (POST JSON): {"address": ".."} or {"addresses": ["..",".."]}
+    Input (GET): /api/public/standardize?address=..&address=..
+    Response JSON: {request_id, count, results:[{original, formatted, components:{}, confidence, status, source, error}]}
+    """
+    ok, err = _check_api_key()
+    if not ok:
+        return jsonify({'error': err}), 401
+    try:
+        if request.method == 'GET':
+            # multiple 'address' params allowed
+            addrs = request.args.getlist('address') or []
+        else:
+            payload = request.get_json(silent=True) or {}
+            if 'addresses' in payload and isinstance(payload['addresses'], list):
+                addrs = payload['addresses']
+            elif 'address' in payload:
+                addrs = [payload['address']]
+            else:
+                return jsonify({'error': 'Provide "address" or "addresses" in body'}), 400
+        if not addrs:
+            return jsonify({'error': 'No addresses supplied'}), 400
+        # Sanitize & de-duplicate while keeping order
+        cleaned = []
+        seen = set()
+        for a in addrs:
+            s = _sanitize_address(a)
+            if not s:
+                continue
+            key = s.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(s)
+        if not cleaned:
+            return jsonify({'error': 'All supplied addresses were empty after sanitization'}), 400
+
+        processor = CSVAddressProcessor(base_directory=str(BASE_DIR))
+        results = []
+        for idx, addr in enumerate(cleaned):
+            try:
+                res = processor.standardize_single_address(addr, idx)
+                if res and res.get('status') == 'success' and res.get('formatted_address'):
+                    results.append(_format_public_result(addr, res, 'azure_openai'))
+                else:
+                    # fallback
+                    processor.configure_free_apis(nominatim=True, geocodify=True)
+                    fb = {'success': False}
+                    try:
+                        fb = processor.geocode_with_nominatim(addr)
+                    except Exception:
+                        try:
+                            fb = processor.geocode_with_geocodify(addr)
+                        except Exception:
+                            pass
+                    if fb.get('success'):
+                        results.append(_format_public_result(addr, fb, 'free_api'))
+                    else:
+                        results.append({
+                            'original': addr,
+                            'formatted': addr,
+                            'components': {},
+                            'confidence': 'unavailable',
+                            'status': 'fallback',
+                            'source': 'original',
+                            'error': 'Standardization unavailable'
+                        })
+            except Exception as inner:
+                results.append({
+                    'original': addr,
+                    'formatted': addr,
+                    'components': {},
+                    'confidence': 'unknown',
+                    'status': 'error',
+                    'source': 'error',
+                    'error': str(inner)
+                })
+
+        return jsonify({
+            'request_id': str(uuid.uuid4()),
+            'count': len(results),
+            'results': results,
+            'api_version': 'v1'
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Public standardization failed: {str(e)}'}), 500
+
+def _format_public_result(original_addr: str, data: dict, source: str):
+    return {
+        'original': original_addr,
+        'formatted': data.get('formatted_address', original_addr),
+        'components': {
+            'street_number': data.get('street_number', ''),
+            'street_name': data.get('street_name', ''),
+            'city': data.get('city', ''),
+            'state': data.get('state', ''),
+            'postal_code': data.get('postal_code', ''),
+            'country': data.get('country', ''),
+            'latitude': data.get('latitude', ''),
+            'longitude': data.get('longitude', '')
+        },
+        'confidence': data.get('confidence', 'unknown'),
+        'status': data.get('status', 'success'),
+        'source': source,
+        'error': None
+    }
 
 @app.route('/api/uploaded-files', methods=['GET'])
 def list_uploaded_files():
