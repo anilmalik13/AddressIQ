@@ -71,6 +71,64 @@ ORGANIZATION_SPECIFIC_PROMPT = """You are an intelligent address normalization s
 Example: "795 sec 22 Pkt-B GGN Haryna" → "795, Pocket B, Sector 22, Gurugram, Haryana 122015, India"
 """
 
+# Address comparison prompt for OpenAI analysis
+ADDRESS_COMPARISON_PROMPT = """You are an expert address comparison system. Compare these two addresses and provide a detailed analysis.
+
+CRITICAL: You must carefully compare each component to determine if these are the same physical location or different locations.
+
+ADDRESSES TO COMPARE:
+Original Address 1: "{addr1}"
+Standardized Address 1: "{std_addr1}"
+
+Original Address 2: "{addr2}"
+Standardized Address 2: "{std_addr2}"{country_context}
+
+COMPARISON RULES:
+1. DIFFERENT STREET NUMBERS = Different addresses (score 0-10)
+2. DIFFERENT STREET NAMES = Different addresses (score 0-15) 
+3. DIFFERENT CITIES = Different addresses (score 0-20)
+4. DIFFERENT STATES/PROVINCES = Different addresses (score 0-25)
+5. Only if ALL major components match should you consider HIGH scores
+
+ANALYSIS REQUIRED:
+1. Overall similarity score (0-100, where 100 = identical location)
+2. Match level classification (EXACT, HIGH, MEDIUM, LOW, NO_MATCH)
+3. Component-wise analysis
+4. Geographic relationship
+5. Confidence in the comparison
+6. Explanation of differences/similarities
+
+RESPONSE FORMAT (JSON):
+{{
+    "overall_score": 15,
+    "match_level": "NO_MATCH",
+    "likely_same_address": false,
+    "confidence": "high",
+    "component_analysis": {{
+        "street_match": {{"score": 0, "note": "Completely different street names"}},
+        "city_match": {{"score": 0, "note": "Different cities"}},
+        "state_match": {{"score": 0, "note": "Different states"}},
+        "geographic_relationship": "Different locations entirely"
+    }},
+    "key_differences": ["Different street numbers", "Different street names", "Different cities", "Different states"],
+    "key_similarities": ["Both are valid US addresses"],
+    "explanation": "These are completely different physical locations in different cities and states.",
+    "recommendation": "TREAT_AS_DIFFERENT_ADDRESSES"
+}}
+
+SCORING GUIDELINES (be strict):
+- 95-100: Identical location (only minor formatting like St vs Street)
+- 85-94: Very likely same location (same street/building, minor variations)
+- 70-84: Probably same location (some uncertainty in components)
+- 50-69: Possibly related (same general area/neighborhood)
+- 30-49: Different but nearby (same city/town)
+- 0-29: Completely different locations
+
+EXAMPLES:
+- "123 Main St" vs "123 Main Street" = EXACT (score 98)
+- "123 Main St, Boston" vs "456 Oak Ave, Boston" = NO_MATCH (score 25)
+- "123 Main St, Boston" vs "123 Main St, Seattle" = NO_MATCH (score 20)"""
+
 # Batch processing prompt for multiple addresses
 BATCH_ADDRESS_STANDARDIZATION_PROMPT = """You are an expert global address standardization system.
 Return a raw JSON array only (no markdown, no code fences, no text).

@@ -21,7 +21,7 @@ import glob
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.azure_openai import standardize_address, standardize_multiple_addresses
+from app.services.azure_openai import standardize_address, standardize_multiple_addresses, compare_multiple_addresses, read_csv_with_encoding_detection
 
 # Import Azure SQL Database service
 try:
@@ -258,6 +258,68 @@ class CSVAddressProcessor:
                 print(f"   Cache hit rate: {final_stats['cache_hit_rate']:.1f}%")
             except Exception as e:
                 print(f"   ⚠️  Could not get final database stats: {e}")
+    
+    def process_all_inbound_comparison_files(self, batch_size: int = 5):
+        """Process all comparison files in the inbound directory"""
+        print("🚀 Starting batch processing of inbound comparison files...")
+        print("=" * 60)
+        
+        # Clean outbound directory first
+        self.clean_outbound_directory()
+        
+        # Get all inbound files
+        inbound_files = self.get_inbound_files()
+        
+        if not inbound_files:
+            print("❌ No files to process in inbound directory")
+            return
+        
+        processed_files = []
+        total_success = 0
+        total_errors = 0
+        
+        for file_path in inbound_files:
+            try:
+                print(f"\n🔄 Processing comparison file: {file_path.name}")
+                print("-" * 40)
+                
+                # Process the comparison file
+                output_path = self.process_csv_comparison_file(
+                    input_file=str(file_path),
+                    batch_size=batch_size
+                )
+                
+                if output_path:
+                    processed_files.append(file_path)
+                    total_success += 1
+                    print(f"✅ Successfully processed: {file_path.name}")
+                    print(f"📁 Output saved to: {Path(output_path).name}")
+                else:
+                    total_errors += 1
+                    print(f"❌ Failed to process: {file_path.name}")
+                    
+            except Exception as e:
+                print(f"❌ Error processing {file_path.name}: {str(e)}")
+                total_errors += 1
+                continue
+        
+        # Final summary
+        print("\n" + "=" * 60)
+        print("🎯 BATCH COMPARISON PROCESSING SUMMARY")
+        print("=" * 60)
+        print(f"📁 Files found: {len(inbound_files)}")
+        print(f"✅ Successfully processed: {total_success}")
+        print(f"❌ Errors: {total_errors}")
+        
+        if processed_files:
+            print(f"📦 Processed files archived from inbound directory")
+        
+        if total_errors == 0 and total_success > 0:
+            print("🎉 All comparison files processed successfully!")
+        elif total_success > 0:
+            print("⚠️  Some files processed with errors - check logs above")
+        else:
+            print("❌ No files were processed successfully")
     
     def process_single_address_input(self, address: str, country: str = None, output_format: str = 'json') -> Dict[str, Any]:
         """
@@ -1553,7 +1615,503 @@ class CSVAddressProcessor:
         components['postal_code'] = str(result.get('postal_code', '')) if result.get('postal_code') and result.get('postal_code') != 'null' else ''
         
         return components
+
+    def compare_addresses_with_openai(self, address1: str, address2: str, country: str = None) -> Dict[str, Any]:
+        """
+        Compare two addresses using OpenAI and return comprehensive match analysis
+        
+        Args:
+            address1: First address to compare
+            address2: Second address to compare
+            country: Optional target country context
+        
+        Returns:
+            Dictionary with comparison results and match score
+        """
+        print(f"\n🔍 Comparing addresses with OpenAI:")
+        print(f"   Address 1: {address1}")
+        print(f"   Address 2: {address2}")
+        
+        # First standardize both addresses (use existing functionality)
+        print("🤖 Standardizing both addresses...")
+        std_result1 = self.process_single_address_input(address1, country, 'json')
+        std_result2 = self.process_single_address_input(address2, country, 'json')
+        
+        # Then ask OpenAI to compare them
+        comparison_prompt = self._create_comparison_prompt(
+            address1, address2, 
+            std_result1.get('formatted_address', ''), 
+            std_result2.get('formatted_address', ''),
+            country
+        )
+        
+        try:
+            from app.services.azure_openai import compare_addresses
+            
+            # Use the new Azure OpenAI comparison service
+            comparison_result = compare_addresses(comparison_prompt, target_country=country)
+            
+            if comparison_result and isinstance(comparison_result, dict):
+                # Check if it's the full OpenAI response or just the content
+                if 'choices' in comparison_result and comparison_result['choices']:
+                    # Extract content from full response
+                    content = comparison_result['choices'][0]['message']['content']
+                    parsed_comparison = self._parse_comparison_result(content)
+                elif 'overall_score' in comparison_result:
+                    # The Azure service already parsed the JSON for us
+                    parsed_comparison = comparison_result
+                else:
+                    # Assume it's already parsed content
+                    parsed_comparison = self._parse_comparison_result(str(comparison_result))
+                
+                # Return flattened structure for easier CLI handling
+                return {
+                    'original_address_1': address1,
+                    'original_address_2': address2,
+                    'standardized_address_1': std_result1.get('formatted_address', ''),
+                    'standardized_address_2': std_result2.get('formatted_address', ''),
+                    'match_level': parsed_comparison.get('match_level', 'NO_MATCH'),
+                    'confidence_score': parsed_comparison.get('overall_score', 0),
+                    'analysis': parsed_comparison.get('explanation', 'No analysis available'),
+                    'method_used': 'azure_openai',
+                    'timestamp': datetime.now().isoformat(),
+                    'likely_same_address': parsed_comparison.get('likely_same_address', False),
+                    'confidence': parsed_comparison.get('confidence', 'low'),
+                    'component_analysis': parsed_comparison.get('component_analysis', {}),
+                    'key_differences': parsed_comparison.get('key_differences', []),
+                    'key_similarities': parsed_comparison.get('key_similarities', [])
+                }
+            else:
+                return self._fallback_comparison(address1, address2, std_result1, std_result2)
+                
+        except Exception as e:
+            print(f"❌ OpenAI comparison failed: {e}")
+            return self._fallback_comparison(address1, address2, std_result1, std_result2)
+
+    def _create_comparison_prompt(self, addr1: str, addr2: str, std_addr1: str, std_addr2: str, country: str = None) -> str:
+        """Create a comprehensive prompt for address comparison using config"""
+        
+        try:
+            from app.config.address_config import ADDRESS_COMPARISON_PROMPT
+            
+            country_context = f"\nContext: Both addresses are expected to be in {country}." if country else ""
+            
+            # Format the prompt template with actual addresses
+            prompt = ADDRESS_COMPARISON_PROMPT.format(
+                addr1=addr1,
+                std_addr1=std_addr1,
+                addr2=addr2,
+                std_addr2=std_addr2,
+                country_context=country_context
+            )
+            
+            return prompt
+            
+        except ImportError:
+            # Fallback to basic prompt if config not available
+            country_context = f"\nContext: Both addresses are expected to be in {country}." if country else ""
+            
+            fallback_prompt = f"""Compare these two addresses and provide a match score (0-100) and analysis.
+
+Address 1: "{addr1}" (Standardized: "{std_addr1}")
+Address 2: "{addr2}" (Standardized: "{std_addr2}"){country_context}
+
+Return JSON with: overall_score, match_level, likely_same_address, confidence, explanation"""
+            
+            return fallback_prompt
+
+    def _parse_comparison_result(self, ai_response: str) -> Dict[str, Any]:
+        """Parse and validate OpenAI comparison response"""
+        try:
+            import json
+            import re
+            
+            # Try to extract JSON from the response
+            json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+            if json_match:
+                comparison_data = json.loads(json_match.group())
+                
+                # Validate required fields
+                required_fields = ['overall_score', 'match_level', 'likely_same_address', 'confidence']
+                for field in required_fields:
+                    if field not in comparison_data:
+                        comparison_data[field] = self._get_default_value(field)
+                
+                # Ensure score is within valid range
+                score = comparison_data.get('overall_score', 0)
+                if not isinstance(score, (int, float)) or score < 0 or score > 100:
+                    comparison_data['overall_score'] = 0
+                
+                # Validate match level
+                valid_levels = ['EXACT', 'HIGH', 'MEDIUM', 'LOW', 'NO_MATCH']
+                if comparison_data.get('match_level') not in valid_levels:
+                    comparison_data['match_level'] = self._score_to_match_level(comparison_data['overall_score'])
+                
+                return comparison_data
+            else:
+                raise ValueError("No valid JSON found in response")
+                
+        except Exception as e:
+            print(f"⚠️ Could not parse OpenAI comparison result: {e}")
+            return self._create_fallback_comparison_result()
+
+    def _score_to_match_level(self, score: float) -> str:
+        """Convert numeric score to match level"""
+        if score >= 95: return "EXACT"
+        elif score >= 85: return "HIGH" 
+        elif score >= 70: return "MEDIUM"
+        elif score >= 30: return "LOW"
+        else: return "NO_MATCH"
+
+    def _get_default_value(self, field: str):
+        """Get default values for missing fields"""
+        defaults = {
+            'overall_score': 0,
+            'match_level': 'NO_MATCH',
+            'likely_same_address': False,
+            'confidence': 'low'
+        }
+        return defaults.get(field, '')
+
+    def _create_fallback_comparison_result(self) -> Dict[str, Any]:
+        """Create a fallback comparison result when OpenAI fails"""
+        return {
+            'overall_score': 0,
+            'match_level': 'NO_MATCH',
+            'likely_same_address': False,
+            'confidence': 'low',
+            'explanation': 'Comparison could not be completed using OpenAI',
+            'error': 'Failed to analyze addresses'
+        }
+
+    def _fallback_comparison(self, address1: str, address2: str, std_result1: Dict[str, Any], std_result2: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback comparison using simple string matching when OpenAI fails"""
+        print("⚠️ Using fallback comparison method...")
+        
+        # Simple string similarity as fallback
+        formatted1 = std_result1.get('formatted_address', address1).lower().strip()
+        formatted2 = std_result2.get('formatted_address', address2).lower().strip()
+        
+        # Basic similarity calculation
+        from difflib import SequenceMatcher
+        similarity = SequenceMatcher(None, formatted1, formatted2).ratio()
+        score = int(similarity * 100)
+        
+        return {
+            'original_address_1': address1,
+            'original_address_2': address2,
+            'standardized_address_1': std_result1.get('formatted_address', ''),
+            'standardized_address_2': std_result2.get('formatted_address', ''),
+            'match_level': self._score_to_match_level(score),
+            'confidence_score': score,
+            'analysis': f'Fallback comparison using string similarity: {score}%',
+            'method_used': 'string_similarity_fallback',
+            'timestamp': datetime.now().isoformat(),
+            'likely_same_address': score >= 80,
+            'confidence': 'low',
+            'component_analysis': {},
+            'key_differences': [],
+            'key_similarities': []
+        }
     
+    def process_csv_comparison_file(self, input_file, output_file=None, batch_size=5):
+        """
+        Process a CSV file containing pairs of addresses for comparison.
+        
+        Expected CSV format:
+        - address1, address2 (two columns with addresses to compare)
+        OR
+        - id, address1, address2 (with an ID column)
+        
+        Args:
+            input_file (str): Path to input CSV file (can be filename only if in inbound directory)
+            output_file (str): Path to output CSV file (auto-generated in outbound if not provided)
+            batch_size (int): Number of comparisons to process at once
+            
+        Returns:
+            str: Path to the generated output file
+        """
+        try:
+            # Handle file path - check if it's just a filename (look in inbound) or full path
+            input_path = Path(input_file)
+            if not input_path.is_absolute() and not input_path.exists():
+                # Try to find it in inbound directory
+                inbound_path = self.inbound_dir / input_file
+                if inbound_path.exists():
+                    input_path = inbound_path
+                    print(f"📥 Found input file in inbound directory: {input_file}")
+                else:
+                    # If not found, use original path (might be relative to current dir)
+                    input_path = Path(input_file)
+            
+            # Verify input file exists
+            if not input_path.exists():
+                raise FileNotFoundError(f"Input file not found: {input_file}")
+            
+            # Read the CSV file with automatic encoding detection for international characters
+            df = read_csv_with_encoding_detection(str(input_path))
+            
+            # Detect column structure
+            columns = df.columns.tolist()
+            if len(columns) < 2:
+                raise ValueError("CSV file must have at least 2 columns for address comparison")
+            
+            # Determine column mapping
+            if len(columns) == 2:
+                # Assume format: address1, address2
+                addr1_col, addr2_col = columns[0], columns[1]
+                id_col = None
+            elif len(columns) >= 3:
+                # Assume format: id, address1, address2
+                id_col, addr1_col, addr2_col = columns[0], columns[1], columns[2]
+            
+            print(f"📊 Detected columns:")
+            if id_col:
+                print(f"   ID column: {id_col}")
+            print(f"   Address 1 column: {addr1_col}")
+            print(f"   Address 2 column: {addr2_col}")
+            print(f"   Total rows to compare: {len(df):,}")
+            
+            # Generate output filename if not provided
+            if not output_file:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                base_name = input_path.stem
+                output_file = self.outbound_dir / f"{base_name}_comparison_results_{timestamp}.csv"
+            else:
+                # If output file provided, handle path
+                output_path = Path(output_file)
+                if not output_path.is_absolute():
+                    # If relative path, put it in outbound directory
+                    output_file = self.outbound_dir / output_file
+                else:
+                    output_file = output_path
+            
+            print(f"📤 Output will be saved to: {output_file}")
+            
+            # Prepare results list
+            results = []
+            
+            # Process in batches
+            total_rows = len(df)
+            processed = 0
+            
+            print(f"\n🚀 Starting efficient batch address comparison processing...")
+            print(f"   📊 Using batch size: {batch_size} (multiple pairs per API call)")
+            start_time = time.time()
+            
+            for batch_start in range(0, total_rows, batch_size):
+                batch_end = min(batch_start + batch_size, total_rows)
+                batch_df = df.iloc[batch_start:batch_end]
+                
+                print(f"📦 Processing batch {batch_start//batch_size + 1}: rows {batch_start + 1}-{batch_end}")
+                
+                # Prepare address pairs for efficient batch processing
+                address_pairs = []
+                row_metadata = []
+                
+                for idx, row in batch_df.iterrows():
+                    address1 = str(row[addr1_col]).strip() if pd.notna(row[addr1_col]) else ""
+                    address2 = str(row[addr2_col]).strip() if pd.notna(row[addr2_col]) else ""
+                    
+                    address_pairs.append({
+                        'address1': address1,
+                        'address2': address2
+                    })
+                    
+                    # Store row metadata for later
+                    row_data = {'original_row_index': idx}
+                    if id_col:
+                        row_data['id'] = row[id_col] if pd.notna(row[id_col]) else ''
+                    row_metadata.append(row_data)
+                
+                try:
+                    # Use efficient batch comparison - process multiple pairs in one API call!
+                    batch_results = compare_multiple_addresses(address_pairs, batch_size=len(address_pairs))
+                    
+                    # Process batch results
+                    for i, comparison_result in enumerate(batch_results):
+                        try:
+                            metadata = row_metadata[i] if i < len(row_metadata) else {}
+                            pair = address_pairs[i] if i < len(address_pairs) else {'address1': '', 'address2': ''}
+                            
+                            # Handle empty addresses
+                            if not pair.get('address1', '').strip() or not pair.get('address2', '').strip():
+                                result_row = {
+                                    'original_address_1': pair.get('address1', ''),
+                                    'original_address_2': pair.get('address2', ''),
+                                    'standardized_address_1': '',
+                                    'standardized_address_2': '',
+                                    'match_level': 'NO_MATCH',
+                                    'confidence_score': 0,
+                                    'analysis': 'One or both addresses are empty',
+                                    'method_used': 'validation_check',
+                                    'timestamp': datetime.now().isoformat(),
+                                    'status': 'empty_address'
+                                }
+                            else:
+                                result_row = {
+                                    'original_address_1': comparison_result.get('original_address_1', pair.get('address1', '')),
+                                    'original_address_2': comparison_result.get('original_address_2', pair.get('address2', '')),
+                                    'standardized_address_1': comparison_result.get('standardized_address_1', ''),
+                                    'standardized_address_2': comparison_result.get('standardized_address_2', ''),
+                                    'match_level': comparison_result.get('match_level', 'UNKNOWN'),
+                                    'confidence_score': comparison_result.get('confidence_score', comparison_result.get('overall_score', 0)),
+                                    'analysis': comparison_result.get('analysis', 'Batch comparison completed'),
+                                    'method_used': comparison_result.get('method_used', 'azure_openai_batch'),
+                                    'timestamp': comparison_result.get('timestamp', datetime.now().isoformat()),
+                                    'status': 'success' if 'error' not in comparison_result else 'error'
+                                }
+                            
+                            # Add ID if present
+                            if 'id' in metadata:
+                                result_row['id'] = metadata['id']
+                            
+                            results.append(result_row)
+                            processed += 1
+                            
+                        except Exception as result_error:
+                            # Handle individual result processing errors
+                            metadata = row_metadata[i] if i < len(row_metadata) else {}
+                            pair = address_pairs[i] if i < len(address_pairs) else {'address1': '', 'address2': ''}
+                            
+                            error_result = {
+                                'original_address_1': pair.get('address1', ''),
+                                'original_address_2': pair.get('address2', ''),
+                                'standardized_address_1': '',
+                                'standardized_address_2': '',
+                                'match_level': 'ERROR',
+                                'confidence_score': 0,
+                                'analysis': f'Error processing result: {str(result_error)}',
+                                'method_used': 'error_handling',
+                                'timestamp': datetime.now().isoformat(),
+                                'status': 'error'
+                            }
+                            
+                            if 'id' in metadata:
+                                error_result['id'] = metadata['id']
+                            
+                            results.append(error_result)
+                            processed += 1
+                            
+                except Exception as batch_error:
+                    print(f"   ❌ Batch processing failed, falling back to individual processing: {str(batch_error)}")
+                    
+                    # Fallback to individual processing for this batch
+                    for i, (pair, metadata) in enumerate(zip(address_pairs, row_metadata)):
+                        try:
+                            address1 = pair['address1']
+                            address2 = pair['address2']
+                            
+                            if not address1 or not address2:
+                                # Handle empty addresses
+                                result_row = {
+                                    'original_address_1': address1,
+                                    'original_address_2': address2,
+                                    'standardized_address_1': '',
+                                    'standardized_address_2': '',
+                                    'match_level': 'NO_MATCH',
+                                    'confidence_score': 0,
+                                    'analysis': 'One or both addresses are empty',
+                                    'method_used': 'validation_check',
+                                    'timestamp': datetime.now().isoformat(),
+                                    'status': 'empty_address'
+                                }
+                            else:
+                                # Perform individual comparison as fallback
+                                comparison_result = self.compare_addresses_with_openai(address1, address2)
+                                
+                                result_row = {
+                                    'original_address_1': address1,
+                                    'original_address_2': address2,
+                                    'standardized_address_1': comparison_result['standardized_address_1'],
+                                    'standardized_address_2': comparison_result['standardized_address_2'],
+                                    'match_level': comparison_result['match_level'],
+                                    'confidence_score': comparison_result['confidence_score'],
+                                    'analysis': comparison_result['analysis'],
+                                    'method_used': comparison_result['method_used'],
+                                    'timestamp': comparison_result['timestamp'],
+                                    'status': 'success'
+                                }
+                            
+                            # Add ID if present
+                            if 'id' in metadata:
+                                result_row['id'] = metadata['id']
+                            
+                            results.append(result_row)
+                            processed += 1
+                            
+                        except Exception as individual_error:
+                            print(f"   ⚠️  Error processing individual comparison: {str(individual_error)}")
+                            
+                            # Create error result for individual failure
+                            error_result = {
+                                'original_address_1': pair.get('address1', ''),
+                                'original_address_2': pair.get('address2', ''),
+                                'standardized_address_1': '',
+                                'standardized_address_2': '',
+                                'match_level': 'ERROR',
+                                'confidence_score': 0,
+                                'analysis': f'Individual processing error: {str(individual_error)}',
+                                'method_used': 'error_fallback',
+                                'timestamp': datetime.now().isoformat(),
+                                'status': 'error'
+                            }
+                            
+                            if 'id' in metadata:
+                                error_result['id'] = metadata['id']
+                            
+                            results.append(error_result)
+                            processed += 1
+                
+                # Progress indicator
+                elapsed = time.time() - start_time
+                rate = processed / elapsed if elapsed > 0 else 0
+                print(f"   ✓ Processed {processed}/{total_rows} ({processed/total_rows*100:.1f}%) - {rate:.1f} comparisons/sec")
+                
+                # Brief pause between batches
+                time.sleep(0.1)
+            
+            # Create results DataFrame
+            results_df = pd.DataFrame(results)
+            
+            # Reorder columns to put ID first if present
+            if id_col:
+                column_order = ['id'] + [col for col in results_df.columns if col != 'id']
+                results_df = results_df[column_order]
+            
+            # Save results
+            results_df.to_csv(output_file, index=False, encoding='utf-8')
+            
+            # Calculate summary statistics
+            elapsed_time = time.time() - start_time
+            avg_rate = processed / elapsed_time if elapsed_time > 0 else 0
+            
+            match_counts = results_df['match_level'].value_counts()
+            
+            print(f"\n✅ Address comparison processing completed!")
+            print(f"📊 Processing Summary:")
+            print(f"   Total comparisons: {processed:,}")
+            print(f"   Processing time: {elapsed_time:.1f} seconds")
+            print(f"   Average rate: {avg_rate:.1f} comparisons/second")
+            print(f"\n📈 Match Level Distribution:")
+            for level, count in match_counts.items():
+                percentage = (count / processed * 100) if processed > 0 else 0
+                print(f"   {level}: {count:,} ({percentage:.1f}%)")
+            
+            # Archive input file if it was from inbound directory
+            if str(input_path).startswith(str(self.inbound_dir)):
+                print(f"\n📦 Archiving processed input file...")
+                self.archive_inbound_files([input_path])
+            
+            return str(output_file)
+            
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Input file not found: {input_file}")
+        except pd.errors.EmptyDataError:
+            raise ValueError(f"Input file is empty: {input_file}")
+        except Exception as e:
+            raise Exception(f"Error processing CSV comparison file: {e}")
+
 def main():
     """Enhanced command line interface supporting both CSV files and direct address input"""
     parser = argparse.ArgumentParser(
@@ -1567,11 +2125,20 @@ Examples:
   # Process all files in inbound directory
   python csv_address_processor.py --batch-process
   
+  # Process all comparison files in inbound directory
+  python csv_address_processor.py --batch-compare
+  
   # Process single address
   python csv_address_processor.py --address "123 Main St, NYC, NY"
   
   # Process multiple addresses
   python csv_address_processor.py --address "123 Main St, NYC" "456 Oak Ave, LA"
+  
+  # Compare two addresses
+  python csv_address_processor.py --compare "123 Main St, NYC" "123 Main Street, New York"
+  
+  # Process CSV file for address comparison
+  python csv_address_processor.py comparison_data.csv --compare-csv
   
   # With country specification
   python csv_address_processor.py --address "123 High St, London" --country "UK"
@@ -1582,7 +2149,7 @@ Examples:
     )
     
     # Input options (mutually exclusive)
-    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group = parser.add_mutually_exclusive_group(required=False)
     input_group.add_argument(
         'input_file', 
         nargs='?', 
@@ -1597,6 +2164,11 @@ Examples:
         '--batch-process',
         action='store_true',
         help='Process all files in inbound directory'
+    )
+    input_group.add_argument(
+        '--batch-compare',
+        action='store_true',
+        help='Process all comparison files in inbound directory'
     )
     
     # Directory management options
@@ -1621,6 +2193,20 @@ Examples:
         choices=['json', 'formatted', 'detailed'],
         default='json',
         help='Output format for direct address processing (default: json)'
+    )
+    
+    # Address comparison options
+    comparison_group = parser.add_argument_group('Address Comparison')
+    comparison_group.add_argument(
+        '--compare',
+        nargs=2,
+        metavar=('ADDRESS1', 'ADDRESS2'),
+        help='Compare two addresses using OpenAI analysis'
+    )
+    comparison_group.add_argument(
+        '--compare-csv',
+        action='store_true',
+        help='Enable address comparison mode for CSV files'
     )
     
     # Utility options
@@ -1653,6 +2239,51 @@ Examples:
         processor.test_free_apis()
         return
     
+    # Handle address comparison
+    if args.compare:
+        address1, address2 = args.compare
+        print(f"🔍 Comparing addresses:")
+        print(f"   Address 1: {address1}")
+        print(f"   Address 2: {address2}")
+        print("-" * 80)
+        
+        try:
+            result = processor.compare_addresses_with_openai(address1, address2)
+            
+            # Format output based on format argument
+            if args.format == 'json':
+                print(json.dumps(result, indent=2, default=str, ensure_ascii=False))
+            elif args.format == 'formatted':
+                print(f"📊 Comparison Results:")
+                print(f"   Match Level: {result['match_level']}")
+                print(f"   Confidence Score: {result['confidence_score']}")
+                print(f"   Analysis: {result['analysis']}")
+                print(f"   Method Used: {result['method_used']}")
+                print(f"\n📍 Standardized Addresses:")
+                print(f"   Address 1: {result['standardized_address_1']}")
+                print(f"   Address 2: {result['standardized_address_2']}")
+            elif args.format == 'detailed':
+                print(f"📊 Detailed Comparison Results:")
+                print(f"   Match Level: {result['match_level']}")
+                print(f"   Confidence Score: {result['confidence_score']}")
+                print(f"   Analysis: {result['analysis']}")
+                print(f"   Method Used: {result['method_used']}")
+                print(f"   Timestamp: {result['timestamp']}")
+                print(f"\n📍 Standardized Addresses:")
+                print(f"   Address 1: {result['standardized_address_1']}")
+                print(f"   Address 2: {result['standardized_address_2']}")
+            
+            # Save to file if output specified
+            if args.output:
+                with open(args.output, 'w', encoding='utf-8') as f:
+                    json.dump(result, f, indent=2, default=str, ensure_ascii=False)
+                print(f"\n📄 Comparison result saved to: {args.output}")
+                
+        except Exception as e:
+            print(f"❌ Error comparing addresses: {e}")
+            sys.exit(1)
+        return
+    
     # Process based on input type
     if args.batch_process:
         # Batch process all files in inbound directory
@@ -1666,19 +2297,40 @@ Examples:
             print(f"❌ Error in batch processing: {e}")
             sys.exit(1)
             
+    elif args.batch_compare:
+        # Batch process all comparison files in inbound directory
+        print("🚀 Starting batch comparison processing mode...")
+        try:
+            processor.process_all_inbound_comparison_files(
+                batch_size=args.batch_size
+            )
+        except Exception as e:
+            print(f"❌ Error in batch comparison processing: {e}")
+            sys.exit(1)
+            
     elif args.input_file:
-        # CSV file processing (existing functionality)
+        # CSV file processing
         print(f"📁 Processing CSV file: {args.input_file}")
         try:
-            output_file = processor.process_csv_file(
-                input_file=args.input_file,
-                output_file=args.output,
-                address_column=args.column,
-                batch_size=args.batch_size,
-                use_free_apis=not args.no_free_apis
-            )
-            print(f"\n✅ Processing completed successfully!")
-            print(f"📁 Output saved to: {output_file}")
+            # Check if comparison mode is enabled for CSV
+            if args.compare_csv:
+                output_file = processor.process_csv_comparison_file(
+                    input_file=args.input_file,
+                    output_file=args.output,
+                    batch_size=args.batch_size
+                )
+                print(f"\n✅ Address comparison processing completed successfully!")
+                print(f"📁 Comparison results saved to: {output_file}")
+            else:
+                output_file = processor.process_csv_file(
+                    input_file=args.input_file,
+                    output_file=args.output,
+                    address_column=args.column,
+                    batch_size=args.batch_size,
+                    use_free_apis=not args.no_free_apis
+                )
+                print(f"\n✅ Processing completed successfully!")
+                print(f"📁 Output saved to: {output_file}")
             
             # Show final database stats
             if processor.db_service:
@@ -1747,9 +2399,10 @@ Examples:
                         print(json.dumps(result, indent=2, ensure_ascii=False))
     
     else:
-        # No input provided, show help
-        parser.print_help()
-        sys.exit(1)
+        # No input provided and no comparison requested, check if we need help
+        if not (args.compare or args.test_apis or args.db_stats):
+            parser.print_help()
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
