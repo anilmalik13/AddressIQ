@@ -3,6 +3,18 @@ import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { uploadFileRequest, resetUploadState, checkProcessingStatus, downloadProcessedFile } from '../../store/slices/fileUploadSlice';
 import './FileUpload.css';
 
+// Human-readable file size formatter to avoid showing 0.00 MB for small files
+function formatFileSize(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes < 0) return '-';
+    if (bytes < 1024) return `${bytes} B`;
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(0)} KB`;
+    const mb = kb / 1024;
+    if (mb < 1024) return `${mb.toFixed(2)} MB`;
+    const gb = mb / 1024;
+    return `${gb.toFixed(2)} GB`;
+}
+
 const FileUpload: React.FC = () => {
     const dispatch = useAppDispatch();
     const { uploading, uploadProgress, uploadResult, error, processingId, processingStatus } = useAppSelector(
@@ -134,7 +146,7 @@ const FileUpload: React.FC = () => {
                     {selectedFile && (
                         <div className="file-info">
                             <p><strong>File:</strong> {selectedFile.name}</p>
-                            <p><strong>Size:</strong> {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <p><strong>Size:</strong> {formatFileSize(selectedFile.size)}</p>
                         </div>
                     )}
 

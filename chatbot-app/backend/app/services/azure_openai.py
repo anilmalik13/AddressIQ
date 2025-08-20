@@ -17,10 +17,11 @@ try:
         get_country_specific_prompt
     )
     CONFIG_AVAILABLE = True
-    print("✅ Address configuration loaded successfully")
+    # Avoid non-ASCII emoji in import-time logs to prevent encoding issues on some consoles
+    print("Address configuration loaded successfully")
 except ImportError:
     CONFIG_AVAILABLE = False
-    print("⚠️  Warning: address_config.py not found, using fallback prompts")
+    print("Warning: address_config.py not found, using fallback prompts")
 
 # Load environment variables
 load_dotenv()

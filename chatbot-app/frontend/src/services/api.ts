@@ -37,6 +37,32 @@ export const uploadExcelFile = async (file: File, onProgress?: (progress: number
     }
 };
 
+// Upload for batch compare
+export const uploadCompareFile = async (file: File, onProgress?: (progress: number) => void): Promise<{message: string, processing_id: string}> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const response = await api.post('/upload-compare', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (pe) => {
+                if (onProgress && pe.total) {
+                    const progress = Math.round((pe.loaded * 100) / pe.total);
+                    onProgress(progress);
+                }
+            },
+        });
+        return {
+            message: response.data.message || 'Compare started',
+            processing_id: response.data.processing_id
+        };
+    } catch (error: any) {
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Compare upload failed. Please try again.');
+    }
+};
+
 // Check processing status
 export const checkProcessingStatus = async (processingId: string) => {
     try {

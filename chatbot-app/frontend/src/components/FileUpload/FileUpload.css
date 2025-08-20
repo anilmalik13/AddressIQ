@@ -360,6 +360,25 @@
     color: inherit;
 }
 
+/* Output filename row: keep within grid and ellipsize */
+.output-file-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 8px;
+}
+
+.output-file-label {
+    font-weight: 600;
+}
+
+.output-file-name {
+    min-width: 0; /* allow shrinking in grid */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 @media (max-width: 600px) {
     .file-upload-container {
         padding: 15px;
