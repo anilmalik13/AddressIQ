@@ -1191,7 +1191,7 @@ class CSVAddressProcessor:
         
         return self.save_and_summarize_results(df, output_file, processed_count, success_count, error_count, ["Combined_Address"])
     
-    def process_regular_address_format(self, df: pd.DataFrame, address_column: str = None, output_file: str = None, use_free_apis: bool = True) -> str:
+    def process_regular_address_format(self, df: pd.DataFrame, address_column: str = None, output_file: str = None, use_free_apis: bool = True, enable_batch_processing: bool = True) -> str:
         """Process CSV with regular address format"""
         
         # Detect country column
@@ -1848,8 +1848,13 @@ Return JSON with: overall_score, match_level, likely_same_address, confidence, e
             if not input_path.exists():
                 raise FileNotFoundError(f"Input file not found: {input_file}")
             
-            # Read the CSV file with automatic encoding detection for international characters
-            df = read_csv_with_encoding_detection(str(input_path))
+            # Read the input file; support both CSV and Excel (xlsx/xls)
+            ext = input_path.suffix.lower()
+            if ext in ['.xlsx', '.xls']:
+                df = pd.read_excel(str(input_path))
+            else:
+                # Read the CSV file with automatic encoding detection for international characters
+                df = read_csv_with_encoding_detection(str(input_path))
             
             # Detect column structure
             columns = df.columns.tolist()
@@ -2101,6 +2106,14 @@ Return JSON with: overall_score, match_level, likely_same_address, confidence, e
             # Archive input file if it was from inbound directory
             if str(input_path).startswith(str(self.inbound_dir)):
                 print(f"\n📦 Archiving processed input file...")
+                try:
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    archive_filename = f"{input_path.stem}_{timestamp}{input_path.suffix}"
+                    archive_path = self.archive_dir / archive_filename
+                    shutil.move(str(input_path), str(archive_path))
+                    print(f"   📦 Archived: {input_path.name} → {archive_filename}")
+                except Exception as e:
+                    print(f"   ⚠️  Could not archive input file: {e}")
                 self.archive_inbound_files([input_path])
             
             return str(output_file)

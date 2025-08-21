@@ -8,10 +8,11 @@ import threading
 import subprocess
 import time
 from pathlib import Path
-from .services.azure_openai import get_access_token, connect_wso2
+from .services.azure_openai import get_access_token, connect_wso2, read_csv_with_encoding_detection
 from csv_address_processor import CSVAddressProcessor  # direct import for in-process execution
 import uuid
 import re
+import sys
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -148,6 +149,83 @@ def process_file_background(processing_id, filename):
     except Exception as e:
         _update_status(processing_id, status='error', message='Processing failed with error', progress=100, error=str(e), log=f'Exception: {e}')
 
+def process_compare_background(processing_id, filename):
+    """Run batch compare across inbound via subprocess and detect produced outbound file."""
+    try:
+        inbound_file = INBOUND_FOLDER / filename
+        if not inbound_file.exists():
+            _update_status(processing_id, status='error', message='Uploaded file not found on server', progress=100, error='Missing inbound file', log='Inbound file missing')
+            return
+
+        # Snapshot outbound directory before run
+        before = {f.name: (OUTBOUND_FOLDER / f.name).stat().st_mtime for f in OUTBOUND_FOLDER.glob('*') if f.is_file()}
+        start_ts = time.time()
+
+        _update_status(processing_id, status='processing', message='Running batch comparison...', progress=35, log='Starting batch-compare subprocess')
+
+        script_path = BASE_DIR / 'csv_address_processor.py'
+        # Target only the uploaded file to avoid interference from other inbound files
+        cmd = [
+            sys.executable,
+            str(script_path),
+            str(inbound_file),  # positional input_file per argparse spec
+            '--compare-csv',
+            '--batch-size', '5'
+        ]
+        try:
+            recent_lines = []
+            child_env = os.environ.copy()
+            child_env['PYTHONIOENCODING'] = 'utf-8'
+            with subprocess.Popen(
+                cmd,
+                cwd=str(BASE_DIR),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                env=child_env
+            ) as proc:
+                for line in proc.stdout:  # stream logs
+                    line_stripped = line.strip()
+                    _update_status(processing_id, log=line_stripped)
+                    recent_lines.append(line_stripped)
+                    if len(recent_lines) > 40:
+                        recent_lines.pop(0)
+                ret = proc.wait()
+                if ret != 0:
+                    tail = '\n'.join(recent_lines[-10:])
+                    _update_status(processing_id, status='error', message='Batch comparison failed', progress=100, error=f'return code {ret}: {tail}', log=f'Batch-compare exited {ret}')
+                    return
+        except Exception as se:
+            _update_status(processing_id, status='error', message='Failed to start batch comparison', progress=100, error=str(se), log=f'Subprocess error: {se}')
+            return
+
+        _update_status(processing_id, message='Locating comparison result...', progress=75, log='Scanning outbound directory for new files')
+
+        # Find new/updated files after start_ts
+        candidates = []
+        for p in OUTBOUND_FOLDER.glob('*.csv'):
+            try:
+                mtime = p.stat().st_mtime
+                if mtime >= start_ts and (p.name not in before or mtime > before.get(p.name, 0)):
+                    candidates.append((mtime, p))
+            except Exception:
+                continue
+
+        if not candidates:
+            _update_status(processing_id, status='error', message='Comparison output not found', progress=100, error='No new file in outbound', log='No outbound file detected')
+            return
+
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        newest = candidates[0][1]
+
+        _update_status(processing_id, status='completed', message='Comparison completed', progress=100,
+                       output_file=newest.name, output_path=str(newest), finished_at=datetime.utcnow().isoformat() + 'Z',
+                       log=f'Found output: {newest.name}')
+    except Exception as e:
+        _update_status(processing_id, status='error', message='Batch comparison failed with error', progress=100, error=str(e), log=f'Exception: {e}')
+
 @app.route('/api/processing-status/<processing_id>', methods=['GET'])
 def get_processing_status(processing_id):
     """Get the status of file processing"""
@@ -209,19 +287,25 @@ def upload_excel():
         # Validate file content by trying to read it
         try:
             if filename.lower().endswith('.csv'):
-                df = pd.read_csv(file_path, encoding='utf-8', nrows=5)  # Just read first 5 rows to validate
+                # Use robust encoding detection to handle non-UTF-8 CSVs
+                df = read_csv_with_encoding_detection(file_path)
+                # Use a small sample for file info to keep consistent with Excel path
+                df_sample = df.head(5)
             else:
-                df = pd.read_excel(file_path, nrows=5)  # Just read first 5 rows to validate
-            
+                df_sample = pd.read_excel(file_path, nrows=5)
+
             file_info = {
-                'rows': len(df),
-                'columns': len(df.columns),
-                'column_names': df.columns.tolist()
+                'rows': int(getattr(df_sample, 'shape', [0, 0])[0]),
+                'columns': int(getattr(df_sample, 'shape', [0, 0])[1]),
+                'column_names': getattr(df_sample, 'columns', []).tolist() if hasattr(df_sample, 'columns') else []
             }
-            
+
         except Exception as e:
             # If file is invalid, remove it and return error
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
             return jsonify({'error': f'Invalid file format or corrupted file: {str(e)}'}), 400
         
         # Generate processing ID for tracking
@@ -269,6 +353,81 @@ def upload_excel():
         
     except Exception as e:
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+
+@app.route('/api/upload-compare', methods=['POST'])
+def upload_compare():
+    """Handle file upload and trigger batch comparison over inbound directory."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type. Please upload Excel (.xlsx, .xls) or CSV files.'}), 400
+
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        name, ext = os.path.splitext(filename)
+        unique_filename = f"{name}_{timestamp}{ext}"
+
+        file_path = os.path.join(app.config['INBOUND_FOLDER'], unique_filename)
+        file.save(file_path)
+
+        # Validate quick read with robust CSV encoding handling
+        file_info = None
+        try:
+            if filename.lower().endswith('.csv'):
+                df = read_csv_with_encoding_detection(file_path)
+                df_sample = df.head(5)
+            else:
+                df_sample = pd.read_excel(file_path, nrows=5)
+            file_info = {
+                'rows': int(getattr(df_sample, 'shape', [0, 0])[0]),
+                'columns': int(getattr(df_sample, 'shape', [0, 0])[1]),
+                'column_names': getattr(df_sample, 'columns', []).tolist() if hasattr(df_sample, 'columns') else []
+            }
+        except Exception as ve:
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+            return jsonify({'error': f'Invalid file: {str(ve)}'}), 400
+
+        processing_id = f"cmp_{timestamp}_{hash(unique_filename) % 10000}"
+        processing_status[processing_id] = {
+            'status': 'uploaded',
+            'message': 'File uploaded for comparison',
+            'filename': unique_filename,
+            'original_filename': filename,
+            'progress': 15,
+            'output_file': None,
+            'error': None,
+            'file_info': file_info,
+            'started_at': datetime.utcnow().isoformat() + 'Z',
+            'updated_at': datetime.utcnow().isoformat() + 'Z',
+            'finished_at': None,
+            'logs': [{'ts': datetime.utcnow().isoformat() + 'Z', 'message': 'Upload received', 'progress': 15}],
+            'steps': [
+                {'name': 'upload', 'label': 'Upload', 'target': 15},
+                {'name': 'compare', 'label': 'Batch Compare', 'target': 75},
+                {'name': 'finalize', 'label': 'Finalize', 'target': 90},
+                {'name': 'complete', 'label': 'Complete', 'target': 100}
+            ]
+        }
+
+        thread = threading.Thread(target=process_compare_background, args=(processing_id, unique_filename))
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({
+            'message': 'Comparison started',
+            'processing_id': processing_id,
+            'filename': unique_filename,
+            'file_info': file_info
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Upload compare failed: {str(e)}'}), 500
 
 @app.route('/api/process-address', methods=['POST'])
 def process_address():
