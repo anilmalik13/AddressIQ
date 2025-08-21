@@ -13,6 +13,7 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 - **Interactive Geographic Mapping**: Visual representation of addresses using Leaflet maps with regional filtering
 - **Real-time Address Processing**: Individual address standardization with confidence scoring
 - **Batch Processing**: Process multiple addresses from uploaded Excel files
+- **Backend CLI Tools**: Powerful CSV processor with batch modes, address comparison, and directory management
 - **Regional Analysis**: Filter and visualize addresses by region and country
 - **Modern React UI**: Responsive interface with tabbed navigation and real-time updates
 - **RESTful API**: Clean backend API for frontend-backend communication
@@ -160,6 +161,25 @@ AddressIQ/
 6. **Access the application**
    - Frontend: http://localhost:3003
    - Backend API: http://localhost:5001
+
+## Backend CLI (CSV processor) – current capabilities
+
+In addition to the web app, the backend includes a CLI for addressing CSVs and free-text addresses:
+
+- CSV file: `python csv_address_processor.py input.csv`
+- Batch modes (use `inbound/`, `outbound/`, `archive/` under the base dir):
+   - Process all files: `python csv_address_processor.py --batch-process`
+   - Process all comparison files: `python csv_address_processor.py --batch-compare`
+   - Set base directory: `python csv_address_processor.py --batch-process --base-dir "C:\\AddressIQ\\chatbot-app\\backend"`
+- Direct address processing:
+   - Single or multiple: `python csv_address_processor.py --address "123 Main St" "456 Oak Ave"`
+   - Force country: `--country UK`; output formats: `--format json|formatted|detailed`
+   - Save output: `--output results.json`
+- Address comparison:
+   - Two addresses: `python csv_address_processor.py --compare "A1" "A2"`
+   - CSV pairs: `python csv_address_processor.py comparison.csv --compare-csv`
+- CSV options: `-c/--column`, `-b/--batch-size 5` (default 5), `-o/--output`, `--no-free-apis`
+- Utilities: `--db-stats`, `--test-apis`
 
 ## Technologies Used
 

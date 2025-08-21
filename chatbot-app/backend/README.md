@@ -1,51 +1,90 @@
-# AddressIQ - Usage Guide
+# AddressIQ Backend – CLI Usage Guide
 
-## Quick Start
+## Quick start
 
-The AddressIQ CSV processor supports both CSV files and direct address input!
+The AddressIQ processor supports CSV files, batch modes, address comparison, and direct address input.
 
-## 🎯 Usage Examples
+## 🎯 Common commands
 
-### 1. Process CSV File (Original functionality)
+### 1) Process a CSV file
 ```bash
 python csv_address_processor.py site_addresses_sample.csv
 ```
 
-### 2. Process Single Address
+### 2) Process a single address
 ```bash
-# Basic usage (auto-detects country)
+# Auto-detect country
 python csv_address_processor.py --address "795 sec 22 Pkt-B GGN Haryna"
 
-# With country specification
+# Force country
 python csv_address_processor.py --address "123 High St, London" --country "UK"
 
-# Different output formats
+# Output formats
 python csv_address_processor.py --address "123 Main St" --format formatted
 python csv_address_processor.py --address "123 Main St" --format detailed
 ```
 
-### 3. Process Multiple Addresses
+### 3) Process multiple addresses
 ```bash
-python csv_address_processor.py --addresses "123 Main St, NYC" "456 Oak Ave, LA" "789 Park Blvd, SF"
+python csv_address_processor.py --address "123 Main St, NYC" "456 Oak Ave, LA" "789 Park Blvd, SF"
 ```
 
-### 4. Save Results to File
+### 4) Save results to file
 ```bash
-# Single address to JSON file
+# Single address → JSON
 python csv_address_processor.py --address "123 Main St" --output result.json
 
-# Multiple addresses to JSON file
-python csv_address_processor.py --addresses "123 Main St" "456 Oak Ave" --output results.json
+# Multiple addresses → JSON
+python csv_address_processor.py --address "123 Main St" "456 Oak Ave" --output results.json
 ```
 
-### 5. Database Statistics
+### 5) Batch modes (inbound/outbound/archive folders)
 ```bash
-python csv_address_processor.py --db-stats
+# Process all CSV files in inbound/
+python csv_address_processor.py --batch-process
+
+# Process all comparison CSV files in inbound/
+python csv_address_processor.py --batch-compare
+
+# Use a custom base directory (defaults to current folder)
+python csv_address_processor.py --batch-process --base-dir "C:\\AddressIQ\\chatbot-app\\backend"
 ```
 
-## 📋 Output Formats
+### 6) Compare addresses
+```bash
+# Compare two free-text addresses
+python csv_address_processor.py --compare "123 Main St, NYC" "123 Main Street, New York"
 
-### `--format formatted` (Clean & Simple)
+# Compare pairs from a CSV file
+python csv_address_processor.py comparison_data.csv --compare-csv
+```
+
+### 7) Utilities
+```bash
+# Database stats
+python csv_address_processor.py --db-stats
+
+# Test connectivity to free APIs
+python csv_address_processor.py --test-apis
+```
+
+## ⚙️ Options overview
+
+- Input selection (mutually exclusive):
+  - Positional CSV file: `input_file`
+  - `--address` one or more values
+  - `--batch-process` process all inbound files
+  - `--batch-compare` process all inbound comparison files
+- CSV options: `-o/--output`, `-c/--column`, `-b/--batch-size` (default 5)
+- Address options: `--country`, `-f/--format` (`json`|`formatted`|`detailed`), `--output`
+- Comparison: `--compare ADDRESS1 ADDRESS2`, `--compare-csv`
+- Directory: `--base-dir` to set root for `inbound/`, `outbound/`, `archive/`
+- Performance: `--no-free-apis` to disable free API enhancement
+- Utilities: `--db-stats`, `--test-apis`
+
+## 📋 Output formats
+
+### `--format formatted` (clean & simple)
 ```
 Original: 795 sec 22 Pkt-B GGN Haryna
 Formatted: 795 Sector 22, Pocket B, Gurgaon, Haryana, India
@@ -54,7 +93,7 @@ From cache: false
 Status: success
 ```
 
-### `--format json` (Default - Full Response)
+### `--format json` (default – full response)
 ```json
 {
   "street_number": "795",
@@ -69,73 +108,31 @@ Status: success
 }
 ```
 
-### `--format detailed` (Complete Data)
+### `--format detailed` (complete data)
 Includes all fields plus API source, processing time, database info, etc.
 
-## 🌍 Country Auto-Detection
+## 🌍 Country auto-detection
 
-The system automatically detects countries from address patterns:
+The system detects countries from address patterns and only needs `--country` for ambiguous inputs or to force formatting.
 
-- **Indian addresses**: "GGN" → Gurgaon, "sec 22" → Sector 22
-- **US addresses**: "NYC, NY" → New York, New York
-- **UK addresses**: "London SW1A 1AA" → London, UK
-- **And 195+ more countries**
+## ⚡ Performance features
 
-You only need `--country` for ambiguous addresses or to force specific formatting.
+- Batch processing for fewer API calls (default batch size 5)
+- Database caching to reuse processed addresses
+- Smart fallbacks to individual processing when needed
 
-## ⚡ Performance Features
+## � Directories
 
-- **Batch Processing**: Processes multiple addresses in single API calls (60% faster)
-- **Database Caching**: Reuses previously processed addresses
-- **Smart Fallbacks**: Falls back to individual processing if batch fails
+- `inbound/` drop your input files here for batch modes
+- `outbound/` processed results are written here
+- `archive/` processed inputs are archived here
+- Configure root with `--base-dir` (defaults to current working directory)
 
-## 🔧 Advanced Options
+## 🔄 Backward compatibility
 
+Existing CSV processing continues to work:
 ```bash
-# CSV processing with custom batch size
-python csv_address_processor.py addresses.csv -b 10
-
-# Specify output file for CSV
-python csv_address_processor.py addresses.csv -o custom_output.csv
-
-# Process specific column in CSV
-python csv_address_processor.py addresses.csv -c "Street Address"
-
-# Test API connectivity
-python csv_address_processor.py --test-apis
-```
-
-## 🚀 Real-World Examples
-
-```bash
-# Indian address
-python csv_address_processor.py --address "Plot 123, Sector 45, Noida, UP"
-
-# US address
-python csv_address_processor.py --address "1600 Pennsylvania Ave, Washington, DC"
-
-# UK address  
-python csv_address_processor.py --address "10 Downing Street, London"
-
-# Mixed international batch
-python csv_address_processor.py --addresses \
-  "795 sec 22 Pkt-B GGN Haryna" \
-  "123 Main St, NYC, NY" \
-  "10 Downing Street, London"
-```
-
-## 📊 Database Benefits
-
-- **Cache Hit Rate**: See how many addresses are reused (saves API calls)
-- **Performance Tracking**: Monitor processing efficiency
-- **Cost Savings**: Avoid reprocessing the same addresses
-
-## 🔄 Backward Compatibility
-
-All existing CSV processing functionality remains unchanged:
-```bash
-# This still works exactly the same
 python csv_address_processor.py site_addresses_sample.csv
 ```
 
-The new features are additive - your existing workflows continue to work!
+All new features are additive to existing workflows.

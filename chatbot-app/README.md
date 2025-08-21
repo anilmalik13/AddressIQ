@@ -33,6 +33,13 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 - **RESTful API**: Clean endpoints for file and address processing
 - **Modular Architecture**: Organized services for scalability
 
+#### Backend CLI highlights
+- CSV processing: `python csv_address_processor.py file.csv`
+- Batch modes: `--batch-process`, `--batch-compare` (use with `--base-dir` to set root of inbound/outbound/archive)
+- Direct input: `--address "A1" "A2"` (supports multiple addresses)
+- Comparison: `--compare "A1" "A2"` or `input.csv --compare-csv`
+- Common options: `-o/--output`, `-c/--column`, `-b/--batch-size`, `--country`, `-f/--format json|formatted|detailed`, `--db-stats`, `--test-apis`, `--no-free-apis`
+
 ## Project Structure
 
 ```
