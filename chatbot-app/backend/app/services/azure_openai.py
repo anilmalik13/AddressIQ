@@ -49,7 +49,7 @@ def get_access_token():
     else:
         raise Exception(f'Failed to obtain access token: {response.text}')
 
-def connect_wso2(access_token, user_content: str, system_prompt: str = None, prompt_type: str = "general"):
+def connect_wso2(access_token, user_content: str, system_prompt: str = None, prompt_type: str = "general", max_tokens: int = None):
     deployment_id = os.getenv("AZURE_OPENAI_DEPLOYMENT_ID", "AOAIsharednonprodgpt35turbo16k")
     api_version = '2024-02-15-preview'
     proxy_url = 'https://api-test.cbre.com:443/t/digitaltech_us_edp/cbreopenaiendpoint/1/openai/deployments/{deployment_id}/chat/completions'
@@ -80,22 +80,32 @@ def connect_wso2(access_token, user_content: str, system_prompt: str = None, pro
             }
         ],
         "temperature": config.get("temperature", 0.7),
-        "max_tokens": config.get("max_tokens", 800),
+        "max_tokens": max_tokens or config.get("max_tokens", 800),
         "frequency_penalty": config.get("frequency_penalty", 0),
         "presence_penalty": config.get("presence_penalty", 0)
     }
 
-    print(f"Request body: {json.dumps(request_body, ensure_ascii=False)}")
+    # Check request size to prevent timeouts
+    request_body_json = json.dumps(request_body, ensure_ascii=False)
+    request_size_kb = len(request_body_json.encode('utf-8')) / 1024
+    print(f"Request size: {request_size_kb:.1f} KB")
+    
+    if request_size_kb > 100:  # Warn if request is getting large
+        print(f"⚠️ Large request detected ({request_size_kb:.1f} KB) - may timeout")
+
+    print(f"Request body: {request_body_json}")
 
     headers = {
         'Content-Type': 'application/json; charset=utf-8', 
         'Authorization': f'Bearer {access_token}'
     }
 
+    # Add timeout settings to prevent hanging requests
     response = requests.post(
         url_with_param, 
         headers=headers, 
-        data=json.dumps(request_body, ensure_ascii=False).encode('utf-8')
+        data=json.dumps(request_body, ensure_ascii=False).encode('utf-8'),
+        timeout=(30, 120)  # (connection timeout, read timeout) in seconds
     )
     print(f"OpenAI response status: {response.status_code}")
     print(f"OpenAI response body: {response.text}")
@@ -484,14 +494,45 @@ def _process_address_batch(address_list: list, target_country: str = None, batch
                 content = content[:-3]
             content = content.strip()
             
-            # Parse as JSON array
+            # Parse as JSON array with robust error handling
             try:
                 import json
-                batch_results = json.loads(content)
+                import re
+                
+                # Try multiple JSON parsing strategies
+                batch_results = None
+                
+                # Strategy 1: Direct JSON parsing
+                try:
+                    batch_results = json.loads(content)
+                except json.JSONDecodeError:
+                    # Strategy 2: Fix common JSON issues
+                    try:
+                        # Fix unescaped quotes in strings
+                        fixed_content = _fix_json_quotes(content)
+                        batch_results = json.loads(fixed_content)
+                    except json.JSONDecodeError:
+                        # Strategy 3: Extract JSON from partial response
+                        try:
+                            json_match = re.search(r'\[.*\]', content, re.DOTALL)
+                            if json_match:
+                                json_content = json_match.group(0)
+                                # Try to fix incomplete JSON
+                                json_content = _fix_incomplete_json(json_content)
+                                batch_results = json.loads(json_content)
+                        except (json.JSONDecodeError, AttributeError):
+                            # Strategy 4: Try to parse individual objects
+                            batch_results = _parse_individual_json_objects(content)
+                
+                if batch_results is None:
+                    raise ValueError("Could not parse JSON response with any strategy")
                 
                 # Ensure it's a list
                 if not isinstance(batch_results, list):
-                    raise ValueError("Expected JSON array from batch processing")
+                    if isinstance(batch_results, dict):
+                        batch_results = [batch_results]
+                    else:
+                        raise ValueError("Expected JSON array from batch processing")
                 
                 # Adjust input_index with batch_offset and add missing fields
                 processed_results = []
@@ -513,7 +554,9 @@ def _process_address_batch(address_list: list, target_country: str = None, batch
                 
                 return processed_results
                 
-            except json.JSONDecodeError as e:
+            except Exception as e:
+                # Log the problematic content for debugging
+                print(f"DEBUG: Failed to parse JSON content: {content[:500]}...")
                 raise ValueError(f"Failed to parse batch response as JSON: {str(e)}")
         else:
             raise ValueError("No response received from OpenAI for batch")
@@ -629,8 +672,66 @@ def compare_multiple_addresses(address_pairs: list, batch_size: int = 5):
             all_results.extend(batch_results)
             
         except Exception as e:
-            print(f"   ❌ Batch failed, falling back to individual processing: {str(e)}")
-            # Fallback to individual processing for this batch
+            error_message = str(e)
+            print(f"   ❌ Batch failed: {error_message}")
+            
+            # If it's a JSON truncation error and batch size > 1, try smaller batches
+            if ("Unterminated string" in error_message or "JSON" in error_message) and len(batch_pairs) > 1:
+                print(f"   🔄 Retrying with smaller batch size...")
+                # Split into smaller batches (half the size)
+                smaller_batch_size = max(1, len(batch_pairs) // 2)
+                for sub_batch_start in range(0, len(batch_pairs), smaller_batch_size):
+                    sub_batch_end = min(sub_batch_start + smaller_batch_size, len(batch_pairs))
+                    sub_batch_pairs = batch_pairs[sub_batch_start:sub_batch_end]
+                    
+                    try:
+                        print(f"     Processing sub-batch: pairs {sub_batch_start + 1}-{sub_batch_end}")
+                        sub_batch_results = _process_comparison_batch_with_standardization(sub_batch_pairs, batch_start + sub_batch_start)
+                        all_results.extend(sub_batch_results)
+                    except Exception as sub_e:
+                        print(f"     ❌ Sub-batch failed, falling back to individual processing: {str(sub_e)}")
+                        # Fallback to individual processing for this sub-batch
+                        for i, pair in enumerate(sub_batch_pairs):
+                            try:
+                                # Extract addresses from pair
+                                if isinstance(pair, dict):
+                                    addr1, addr2 = pair.get('address1', ''), pair.get('address2', '')
+                                else:
+                                    addr1, addr2 = pair[0], pair[1]
+                                
+                                # Standardize both addresses individually
+                                std_result1 = standardize_address(addr1)
+                                std_result2 = standardize_address(addr2)
+                                
+                                # Create comparison prompt for individual processing
+                                comparison_prompt = _create_single_comparison_prompt(addr1, addr2)
+                                result = compare_addresses(comparison_prompt)
+                                result['batch_index'] = batch_start + sub_batch_start + i
+                                result['original_address_1'] = addr1
+                                result['original_address_2'] = addr2
+                                result['standardized_address_1'] = std_result1.get('formatted_address', '')
+                                result['standardized_address_2'] = std_result2.get('formatted_address', '')
+                                all_results.append(result)
+                                
+                            except Exception as individual_error:
+                                # Create error result
+                                error_result = {
+                                    'batch_index': batch_start + sub_batch_start + i,
+                                    'original_address_1': addr1 if 'addr1' in locals() else 'Unknown',
+                                    'original_address_2': addr2 if 'addr2' in locals() else 'Unknown',
+                                    'standardized_address_1': '',
+                                    'standardized_address_2': '',
+                                    'overall_score': 0,
+                                    'match_level': 'ERROR',
+                                    'likely_same_address': False,
+                                    'confidence': 'low',
+                                    'explanation': f"Error processing address pair: {str(individual_error)}",
+                                    'recommendation': 'Manual review required'
+                                }
+                                all_results.append(error_result)
+            else:
+                print(f"   🔄 Falling back to individual processing...")
+                # Fallback to individual processing for this batch
             for i, pair in enumerate(batch_pairs):
                 try:
                     # Extract addresses from pair
@@ -690,8 +791,14 @@ def _process_comparison_batch_with_standardization(address_pairs: list, batch_of
         # Create enhanced batch comparison prompt that includes standardization
         batch_comparison_prompt = _create_batch_comparison_and_standardization_prompt(address_pairs, batch_offset)
         
-        # Create enhanced system prompt for batch comparison and standardization
-        batch_system_prompt = """You are an expert address comparison and standardization system for batch processing.
+        # Use the detailed batch comparison prompt from config that includes geographical intelligence
+        if CONFIG_AVAILABLE:
+            from app.config.address_config import BATCH_ADDRESS_COMPARISON_PROMPT
+            # Use the full detailed prompt with geographical intelligence
+            batch_system_prompt = BATCH_ADDRESS_COMPARISON_PROMPT
+        else:
+            # Fallback to enhanced system prompt for batch comparison and standardization
+            batch_system_prompt = """You are an expert address comparison and standardization system for batch processing.
 For each address pair, first standardize both addresses, then compare them and return a JSON array with detailed results.
 Return only valid JSON array with no markdown formatting or code blocks.
 
@@ -714,7 +821,8 @@ CRITICAL: Return a JSON array with one object per address pair comparison and st
             access_token=access_token,
             user_content=batch_comparison_prompt,
             system_prompt=batch_system_prompt,
-            prompt_type="comparison"
+            prompt_type="comparison",
+            max_tokens=3000  # Higher token limit for batch processing
         )
         
         # Extract and parse the batch response
@@ -771,7 +879,8 @@ CRITICAL: Return a JSON array with one object per address pair comparison and st
                         if 'confidence_score' not in result:
                             result['confidence_score'] = result.get('overall_score', 0)
                         if 'analysis' not in result:
-                            result['analysis'] = 'Batch comparison and standardization completed'
+                            # Map 'explanation' field to 'analysis' if available
+                            result['analysis'] = result.get('explanation', 'Batch comparison and standardization completed')
                         if 'method_used' not in result:
                             result['method_used'] = 'azure_openai_batch_with_standardization'
                         if 'standardized_address_1' not in result:
@@ -821,9 +930,14 @@ def _create_batch_comparison_and_standardization_prompt(address_pairs: list, bat
         prompt_parts.append(f"Address 2: \"{addr2}\"")
         prompt_parts.append("")
     
-    # Add standardization and comparison instructions
+    # Add detailed standardization and comparison instructions with geographical intelligence
     prompt_parts.append("TASK INSTRUCTIONS:")
-    prompt_parts.append("1. STANDARDIZE each address into proper format (street number, street name, city, state, postal code)")
+    prompt_parts.append("1. STANDARDIZE each address using geographical intelligence:")
+    prompt_parts.append("   - Apply geographical hierarchy: suburb/town → city → district/county → state/province → country")
+    prompt_parts.append("   - Expand state/province abbreviations to full names (QLD → Queensland, CA → California, NY → New York)")
+    prompt_parts.append("   - Normalize street types (St → Street, Ave → Avenue, Rd → Road)")
+    prompt_parts.append("   - Apply country-specific formatting and administrative divisions")
+    prompt_parts.append("   - Use postal code intelligence to identify correct cities/regions")
     prompt_parts.append("2. COMPARE the standardized addresses using the rules below")
     prompt_parts.append("")
     
@@ -871,3 +985,145 @@ Address 1: "{address1}"
 Address 2: "{address2}"
 
 Provide a detailed comparison including match level, confidence score, and analysis."""
+
+
+def _fix_json_quotes(content: str) -> str:
+    """
+    Fix unescaped quotes in JSON strings that commonly cause parsing errors
+    
+    Args:
+        content (str): JSON content with potential quote issues
+        
+    Returns:
+        str: Content with fixed quotes
+    """
+    import re
+    
+    # Fix unescaped quotes within string values
+    # This regex finds patterns like "field": "value with "quotes" inside"
+    # and escapes the inner quotes
+    pattern = r'"([^"]*)":\s*"([^"]*)"([^"]*)"([^"]*)"'
+    
+    def fix_quotes(match):
+        field = match.group(1)
+        value_part1 = match.group(2)
+        value_part2 = match.group(3)  # This should be the problematic quotes
+        value_part3 = match.group(4)
+        
+        # Escape the quotes in the middle part
+        fixed_value = f'{value_part1}\\"{value_part2}\\"{value_part3}'
+        return f'"{field}": "{fixed_value}"'
+    
+    # Apply the fix
+    fixed_content = re.sub(pattern, fix_quotes, content)
+    
+    # Also fix common address-specific quote issues
+    # Fix patterns like: "123 Main "Street" Apt" -> "123 Main \"Street\" Apt"
+    address_quote_pattern = r'"([^"]*\s)"([^"]*)"([^"]*)"'
+    
+    def fix_address_quotes(match):
+        part1 = match.group(1)
+        part2 = match.group(2)
+        part3 = match.group(3)
+        return f'"{part1}\\"{part2}\\"{part3}"'
+    
+    fixed_content = re.sub(address_quote_pattern, fix_address_quotes, fixed_content)
+    
+    return fixed_content
+
+
+def _fix_incomplete_json(content: str) -> str:
+    """
+    Fix incomplete JSON arrays that may be truncated due to token limits
+    
+    Args:
+        content (str): Potentially incomplete JSON content
+        
+    Returns:
+        str: Fixed JSON content
+    """
+    import re
+    
+    # Remove any trailing incomplete objects
+    # Find the last complete object in the array
+    content = content.strip()
+    
+    if not content.startswith('['):
+        content = '[' + content
+    
+    if not content.endswith(']'):
+        # Find the last complete '}' and truncate after it
+        last_complete = content.rfind('}')
+        if last_complete != -1:
+            content = content[:last_complete + 1]
+            # Ensure proper array closing
+            if not content.endswith(']'):
+                content += ']'
+        else:
+            # No complete objects found, return empty array
+            content = '[]'
+    
+    # Fix common trailing comma issues
+    content = re.sub(r',\s*]', ']', content)
+    content = re.sub(r',\s*}', '}', content)
+    
+    return content
+
+
+def _parse_individual_json_objects(content: str) -> list:
+    """
+    Try to parse individual JSON objects from malformed content
+    
+    Args:
+        content (str): Content that may contain individual JSON objects
+        
+    Returns:
+        list: List of successfully parsed JSON objects
+    """
+    import json
+    import re
+    
+    results = []
+    
+    # Try to find individual JSON objects using regex
+    # Look for patterns that start with { and end with }
+    object_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+    
+    matches = re.findall(object_pattern, content, re.DOTALL)
+    
+    for match in matches:
+        try:
+            obj = json.loads(match)
+            if isinstance(obj, dict):
+                results.append(obj)
+        except json.JSONDecodeError:
+            continue
+    
+    # If we couldn't find any objects with the simple pattern,
+    # try a more sophisticated approach
+    if not results:
+        # Split by lines and try to reconstruct objects
+        lines = content.split('\n')
+        current_object = []
+        brace_count = 0
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            current_object.append(line)
+            brace_count += line.count('{') - line.count('}')
+            
+            # When brace count reaches 0, we might have a complete object
+            if brace_count == 0 and current_object:
+                try:
+                    obj_str = ' '.join(current_object)
+                    obj = json.loads(obj_str)
+                    if isinstance(obj, dict):
+                        results.append(obj)
+                except json.JSONDecodeError:
+                    pass
+                current_object = []
+    
+    return results

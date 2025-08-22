@@ -1,0 +1,979 @@
+id,original_address_1,original_address_2,standardized_address_1,standardized_address_2,match_level,confidence_score,analysis,method_used,timestamp,status
+1,"12 ave des Morgines, Petit-Lancy, 1213, CHE","Blarenberglaan 2, Mechelen, 2800, BEL","12 Avenue des Morgines, Petit-Lancy, Geneva, 1213, Switzerland","Blarenberglaan 2, Mechelen, Antwerp, 2800, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:35.270457,success
+2,"Neue Winterthurerstr. 99, Wallisellen, 8304, CHE","Van-der-Smissen-Str. 9, Hamburg, 22767, DEU","Neue Winterthurerstrasse 99, Wallisellen, Zurich, 8304, Switzerland","Van-der-Smissen-Strasse 9, Hamburg, Hamburg, 22767, Germany",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:35.270457,success
+3,"Industriestrasse 54, Glattbrugg, 8152, CHE","Blarenberglaan 2, Mechelen, 2800, BEL","Industriestrasse 54, Glattbrugg, Zurich, 8152, Switzerland","Blarenberglaan 2, Mechelen, Antwerp, 2800, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:35.270457,success
+4,"Bern, Bern, 3018, CHE","3008, CHE","Bern, Bern, 3018, Switzerland","Bern, Bern, 3008, Switzerland",POSSIBLY_RELATED,50,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:35.270457,success
+5,"Ericss, NULL, CHE","Ericsson Software Campus, Cornmaddy, Athlone, POSTAL, IRL","Ericsson, Switzerland","Ericsson Software Campus, Cornmaddy, Athlone, County Westmeath, Ireland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:35.270457,success
+6,"as Serv Prov for Snap Switzerland GmbH​ 22 Mattenstrasse Switzerland,Basel,4058,CHE","22 Mattenstrasse_x000D_
+ _x000D_
+ _x000D_,Basel,4058,CHE","22 Mattenstrasse, Basel, 4058, Switzerland","22 Mattenstrasse, Basel, 4058, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:53.647447,success
+7,"Gloriastrasse 35,Zürich,8092,CHE","35 Kingsland, London","35 Gloriastrasse, Zürich, 8092, Switzerland","35 Kingsland, London, England",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:53.647447,success
+8,"Bärengasse 29,Zürich,8001,CHE","Hardstrasse 201,8005,CHE","29 Bärengasse, Zürich, 8001, Switzerland","201 Hardstrasse, Zürich, 8005, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:53.647447,success
+9,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","35 Lichtstrasse, Basel, 4056, Switzerland","35 Lichtstrasse, Basel, 4056, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:53.647447,success
+10,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","101 Schaffhauserstrasse, Stein, 4332, Switzerland","Schaffhauserstrasse, Stein, 4332, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:30:53.647447,success
+11,"Rothausstrasse 61,Muttenz,4132,CHE","Malpas Road_x000D_
+61 Malpas Road_x000D_
+ _x000D_,61 Malpas Road,London,E8 1NA,GBR","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland","61 Malpas Road, London, E8 1NA, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:13.229702,success
+12,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:13.229702,success
+13,"Rothausstrasse 61,Pratteln,4133,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Pratteln, 4133, Basel-Landschaft, Switzerland","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland",DIFFERENT_NEARBY,49,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:13.229702,success
+14,"Hohenrainstrasse 24,Pratteln,4133,CHE","KY0004A1 Ceres UAX, Anstruther Road, Ceres, Cupar, Fife KY15 5NH
+KY15 5NH
+%1,KY15 5NH,GBR","Hohenrainstrasse 24, Pratteln, 4133, Basel-Landschaft, Switzerland","Anstruther Road, Ceres, Cupar, Fife, KY15 5NH, Scotland, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:13.229702,success
+15,"Neuhofstrasse 30/32/34,Baar,6340,CHE","9400 Oxford Business Park, COWLEY_x000D_
+ _x000D_
+ _x000D_,OXFORD,OX4 2HN,GBR","Neuhofstrasse 30/32/34, Baar, 6340, Zug, Switzerland","9400 Oxford Business Park, Cowley, Oxford, OX4 2HN, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:13.229702,success
+16,"Zug,6300,CHE",,,,NO_MATCH,0,One or both addresses are empty,validation_check,2025-08-22T10:31:31.548992,empty_address
+17,"Bösch 21    ,Hünenberg,6331,CHE","_x000D_
+ _x000D_
+Van Asch Van Wijckstraat 55h_x000D_,AMERSFOORT,3811,NLD","Bösch 21, Hünenberg, 6331, Switzerland","Van Asch Van Wijckstraat 55h, Amersfoort, 3811, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:31.548992,success
+18,"Rothausstrasse 61,Muttenz,4132,CHE","Hullenbergweg 85
+1101 AMSTERDAM
+Netherlands,AMSTERDAM,1101,NLD","Rothausstrasse 61, Muttenz, 4132, Switzerland","Hullenbergweg 85, Amsterdam, 1101, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:31.548992,success
+19,"Hohenrainstrasse 24,Pratteln,4133,CHE","_x000D_
+ _x000D_
+Hullenbergweg 85_x000D_,AMSTERDAM,1101,NLD","Hohenrainstrasse 24, Pratteln, 4133, Switzerland","Hullenbergweg 85, Amsterdam, 1101, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:31.548992,success
+20,"Aeschengraben 27,Basel,4051,CHE","Willem Einthovenstraat 13
+2342 BH Oegstgeest
+Netherlands,Oegstgeest,2342 BH,NLD","Aeschengraben 27, Basel, 4051, Switzerland","Willem Einthovenstraat 13, Oegstgeest, 2342 BH, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:31.548992,success
+21,"25CS    ,Zurich,CHE","GOLDMAN SACHS, One Centenary Way_x000D_
+ _x000D_
+ _x000D_,BIRMINGHAM,B3 3HJ,GBR","25 Claridenstrasse, Zurich, 8002, Switzerland","Goldman Sachs, One Centenary Way, Birmingham, B3 3HJ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:54.064987,success
+22,"7RDC    ,Geneva,CHE","8 Mint Walk_x000D_
+ _x000D_
+ _x000D_,Croydon,CR0 1AE,GBR","7 Rue du Commerce, Geneva, 1204, Switzerland","8 Mint Walk, Croydon, CR0 1AE, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:54.064987,success
+23,"7RDC    ,Geneva,CHE","GOLDMAN SACHS, One Centenary Way_x000D_
+ _x000D_
+ _x000D_,BIRMINGHAM,B3 3HJ,GBR","7 Rue du Commerce, Geneva, 1204, Switzerland","Goldman Sachs, One Centenary Way, Birmingham, B3 3HJ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:54.064987,success
+24,"Ru de la Confederation 7 PO Box 3666; 1211 Geneva 3. Switzerland  ,Geneva,1211,CHE","Rue de la Confederation 8
+
+1211 Geneve
+%1,Geneve,1211,CHE","7 Rue de la Confederation, PO Box 3666, 1211 Geneva 3, Switzerland","8 Rue de la Confederation, 1211 Geneva, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:54.064987,success
+25,"Claridenstrasse 25 8021 Zurich, Switzerland  ,Zurich,8021,CHE","GOLDMAN SACHS, One Centenary Way_x000D_
+ _x000D_
+ _x000D_,BIRMINGHAM,B3 3HJ,GBR","25 Claridenstrasse, Zurich, 8021, Switzerland","Goldman Sachs, One Centenary Way, Birmingham, B3 3HJ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:31:54.064987,success
+26,"Rothausstrasse 61,Muttenz,4132,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",NO_MATCH,20,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:14.546140,success
+27,"Brandschenkestrass 110,Zürich,8002,CHE","Strahlenbergerstrasse 110-112
+63067 Offenbach
+%1,Offenbach,63067,DEU","Brandschenkestrasse 110, Zürich, 8002, Zürich, Switzerland","Strahlenbergerstrasse 110-112, Offenbach, 63067, Hesse, Germany",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:14.546140,success
+28,"Neuhofstrasse 4,Baar,6340,CHE","_x000D_
+ _x000D_
+Oostpolder 4_x000D_,EEMSHAVEN,9979 XT,NLD","Neuhofstrasse 4, Baar, 6340, Zug, Switzerland","Oostpolder 4, Eemshaven, 9979 XT, Groningen, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:14.546140,success
+29,"Gloriastrasse 35,Zürich,8092,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Gloriastrasse 35, Zürich, 8092, Zürich, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",NO_MATCH,20,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:14.546140,success
+30,"Gubelstrasse 36,Zug,6300,CHE","_x000D_
+Fokkerweg 300_x000D_
+ _x000D_,Fokkerweg 300,Oude meer,1438 AN,NLD","Gubelstrasse 36, Zug, 6300, Zug, Switzerland","Fokkerweg 300, Oude Meer, 1438 AN, North Holland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:14.546140,success
+31,"CH-ZRH-130    ,Zurich,8002,CHE","_x000D_
+Insulindelaan 130_x000D_
+Noord-Brabant_x000D_,Insulindelaan 130,EINDHOVEN,5613 BT,NLD","130 Zurich, Zurich, 8002, Switzerland","Insulindelaan 130, Eindhoven, Noord-Brabant, 5613 BT, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:33.282743,success
+32,"CH-ZRH-BAER25    ,Zurich,8001,CHE","19/20 Cornhill, Lincoln
+LN5 7HD
+%1,LN5 7HD,GBR","BAER25 Zurich, Zurich, 8001, Switzerland","19/20 Cornhill, Lincoln, Lincolnshire, LN5 7HD, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:33.282743,success
+33,"CH-ZRH-BRA150    ,Zurich,8002,CHE","_x000D_
+Kesterenlaan 150_x000D_
+Noord-Brabant_x000D_,Kesterenlaan 150,BREDA,4822 WK,NLD","BRA150 Zurich, Zurich, 8002, Switzerland","Kesterenlaan 150, Breda, Noord-Brabant, 4822 WK, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:33.282743,success
+34,"CH-ZRH-ERST1    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln
+LN5 7HD
+%1,LN5 7HD,GBR","ERST1 Zurich, Zurich, 8004, Switzerland","19/20 Cornhill, Lincoln, Lincolnshire, LN5 7HD, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:33.282743,success
+35,"CH-ZRH-EURA1    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln
+LN5 7HD
+%1,LN5 7HD,GBR","EURA1 Zurich, Zurich, 8004, Switzerland","19/20 Cornhill, Lincoln, Lincolnshire, LN5 7HD, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:33.282743,success
+36,"CH-ZRH-EURF    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln LN5 7HD %1,LN5 7HD,GBR","Zurich, 8004, Zurich, Switzerland","19/20 Cornhill, Lincoln, LN5 7HD, Lincolnshire, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:51.885820,success
+37,"CH-ZRH-EURG    ,Zurich,8004,CHE","Herculesweg 8 4338 PL Middelburg Netherlands,Middelburg,4338PL,NLD","Zurich, 8004, Zurich, Switzerland","Herculesweg 8, 4338 PL Middelburg, Zeeland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:51.885820,success
+38,"CH-ZRH-KAL1    ,Zurich,8045,CHE","19/20 Cornhill, Lincoln LN5 7HD %1,LN5 7HD,GBR","Zurich, 8045, Zurich, Switzerland","19/20 Cornhill, Lincoln, LN5 7HD, Lincolnshire, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:51.885820,success
+39,"Talstrasse 1-9,Münchenbuchsee,3053,CHE","Vulkanstrasse 106 8048 Zürich %1,Zürich,8048,CHE","Talstrasse 1-9, 3053 Münchenbuchsee, Bern, Switzerland","Vulkanstrasse 106, 8048 Zürich, Zurich, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:51.885820,success
+40,"Rothausstrasse 61,Muttenz,4132,CHE","Lichtstrasse 35_x000D_ _x000D_ _x000D_,Basel,4056,CHE","Rothausstrasse 61, 4132 Muttenz, Basel-Landschaft, Switzerland","Lichtstrasse 35, 4056 Basel, Basel-Stadt, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:32:51.885820,success
+41,"Movarco Building, 3rd Floor, Route Jo-Siffert 4    ,Givisiez,1762,CHE","Movarco Building, 3rd Floor, Route Jo-Siffert 4,1762,CHE","Movarco Building, 3rd Floor, Route Jo-Siffert 4, Givisiez, 1762, Switzerland","Movarco Building, 3rd Floor, Route Jo-Siffert 4, Givisiez, 1762, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:11.438889,success
+42,"1st floor Javastrasse 2 (HBS)    ,Volketswil,8604,CHE","1st floor Javastrasse 2 (HBS),8003,CHE","1st Floor, Javastrasse 2 (HBS), Volketswil, 8604, Switzerland","1st Floor, Javastrasse 2 (HBS), Zurich, 8003, Switzerland",DIFFERENT,10,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:11.438889,success
+43,"Gubelstrasse 24 Park Tower  ,Zug,6300,CHE","Baarerstrasse 96 Zug
+%1,GBR","Gubelstrasse 24, Park Tower, Zug, 6300, Switzerland","Baarerstrasse 96, Zug, Switzerland",DIFFERENT,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:11.438889,success
+44,"Via Penate 4    ,Mendriso,6987,CHE","_x000D_
+Blarenberglaan 2_x000D_
+ _x000D_,Blarenberglaan 2,MECHELEN,2800,BEL","Via Penate 4, Mendrisio, 6987, Switzerland","Blarenberglaan 2, Mechelen, 2800, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:11.438889,success
+45,"Neue Winterthurerstr. 99    ,Wallisellen,8304,CHE","Van-der-Smissen-Str. 9, Hamburg,22767,DEU","Neue Winterthurerstrasse 99, Wallisellen, 8304, Switzerland","Van-der-Smissen-Strasse 9, Hamburg, 22767, Germany",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:11.438889,success
+46,"Klausstrasse 4, 8008 Zurich    ,Zurich,8008,CHE","Klausstrasse 4, 8008 Zurich, Switzerland,8008,SWZ","Klausstrasse 4, 8008 Zurich, Zurich, 8008, Switzerland","Klausstrasse 4, 8008 Zurich, Zurich, 8008, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:33.025105,success
+47,"Uraniastrasse 9    ,Zurich,8002,CHE","Uraniastr. 9,8001,CHE","Uraniastrasse 9, Zurich, 8002, Switzerland","Uraniastrasse 9, Zurich, 8001, Switzerland",POSSIBLY_RELATED,65,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:33.025105,success
+48,"Uraniastrasse 9,Zürich,8001,CHE","Uraniastr. 9,8001,CHE","Uraniastrasse 9, Zurich, 8001, Switzerland","Uraniastrasse 9, Zurich, 8001, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:33.025105,success
+49,"Quai de la Poste 2    ,Genève,1204,CHE","_x000D_
+ _x000D_
+Oval Tower De Entree 195_x000D_,Amsterdam,1101 HE,NLD","Quai de la Poste 2, Geneva, 1204, Switzerland","Oval Tower De Entree 195, Amsterdam, 1101 HE, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:33.025105,success
+50,"Geneva, Place Des Bergues 3, Rue Kleberg 8-12    ,Geneva,1201,CHE","Place des Bergues 3, Rue Kleberg 8-12,CH-1201,CHE","Place Des Bergues 3, Rue Kleberg 8-12, Geneva, 1201, Switzerland","Place Des Bergues 3, Rue Kleberg 8-12, Geneva, 1201, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:33.025105,success
+51,"29 Route De l'Aroport Case Postale 216,Le Grand-Saconnex,1218,CHE","81 route de Florissant, CH 1206 Geneva %1,Geneva,1206,CHE","29 Route De l'Aeroport, Case Postale 216, Le Grand-Saconnex, Geneva, 1218, Switzerland","81 Route de Florissant, Geneva, 1206, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:52.712181,success
+52,"V Parku 2325/16, 14800 Prague 3rd & 4th floor,Prague,8005,CHE","V Parku 2326/18,148 00,CZE","V Parku 2325/16, 14800 Prague, Czech Republic","V Parku 2326/18, 14800 Prague, Czech Republic",DIFFERENT_AREAS,10,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:52.712181,success
+53,"29 Route De l'Aeroport ,Geneva,1215,CHE","Route de Saint Julien 7/9,1227,CHE","29 Route De l'Aeroport, Geneva, 1215, Switzerland","Route de Saint Julien 7/9, Geneva, 1227, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:52.712181,success
+54,"Bärengasse 29,Zürich,8001,CHE","Hardstrasse 201,8005,CHE","Bärengasse 29, Zürich, 8001, Switzerland","Hardstrasse 201, Zürich, 8005, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:52.712181,success
+55,"Picassoplatz 8 ,Basel,4051,CHE","Rosentalstrasse 67, 4058 Basel,CH","Picassoplatz 8, Basel, 4051, Switzerland","Rosentalstrasse 67, Basel, 4058, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:33:52.712181,success
+56,"Route d'Oron 79    ,Lausanne,1010,CHE","Route d'Ohain 3
+
+1380 LASNE
+%1,LASNE,1380,BEL",,,ERROR,0,Processing error: 'addr1',error_fallback,2025-08-22T10:36:10.343177,error
+57,"Wurmisweg 576,Kaiseraugst,4303,CHE","45 WATERVIEW BLVD_x000D_
+ _x000D_
+ _x000D_,PARISPPANY,07054,USA",,,ERROR,0,Processing error: 'addr1',error_fallback,2025-08-22T10:36:10.343177,error
+58,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE",,,ERROR,0,Processing error: 'addr1',error_fallback,2025-08-22T10:36:10.343177,error
+59,"Rte des Avouillons 32,Gland,1196,CHE","Route Des Avouillons 32_x000D_
+ _x000D_
+ _x000D_,Gland,1196,CHE",,,ERROR,0,Processing error: 'addr1',error_fallback,2025-08-22T10:36:10.343177,error
+60,"Klybeckstrasse,Basel,4057,CHE","Klybeckstr. 141, P 15, WKL-1358
+4057 Basel
+%1,Basel,4057,CHE",,,ERROR,0,Processing error: 'addr1',error_fallback,2025-08-22T10:36:10.343177,error
+61,"Rothausstrasse 61,Muttenz,4132,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:29.646917,success
+62,"Attisholzstrasse 11    ,Luterbach,4542,CHE","Austraße 11
+6250 Kundl
+%1,Kundl,6250,AUT","Attisholzstrasse 11, Luterbach, 4542, Solothurn, Switzerland","Austraße 11, Kundl, 6250, Tyrol, Austria",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:29.646917,success
+63,"Rothausstrasse 61,Pratteln,4133,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Pratteln, 4133, Basel-Landschaft, Switzerland","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:29.646917,success
+64,"Flughaffenstrasse,Basel,4030,CHE",tbc,"Flughafenstrasse, Basel, 4030, Basel-Stadt, Switzerland",tbc,NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:29.646917,success
+65,"Rue de la Tour de l’île 4    ,Genève,1204,CHE","Rue De La Tour-de-l'ile 4_x000D_
+ _x000D_
+ _x000D_,Genf,1204,CHE","Rue de la Tour de l’île 4, Genève, 1204, Geneva, Switzerland","Rue de la Tour de l’île 4, Genève, 1204, Geneva, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:29.646917,success
+66,"Geneva,1219,CHE","FAO: AP
+101 Knightsbridge
+London
+SW1X 7RN
+%1,SW1X 7RN,GBR","Geneva, 1219, Switzerland","101 Knightsbridge, London, SW1X 7RN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:48.615880,success
+67,"Rue des Moulieres 1242    ,Geneva,CHE","Route des Moulières 6, 1217 Meyrin IRM,CHE","Rue des Moulieres 1242, Geneva, Switzerland","Route des Moulières 6, 1217 Meyrin, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:48.615880,success
+68,"Route de la Maison, Caree 1242    ,Satigny,CHE","Route de la Maison-Carrée 31,CHE","Route de la Maison-Carrée 1242, Satigny, Switzerland","Route de la Maison-Carrée 31, Switzerland",POSSIBLY_RELATED,50,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:48.615880,success
+69,"24 AVENUE DE PROVENCE, 1007     ,Lausanne,CHE","Avenue de Provence 10-12,CHE","24 Avenue de Provence, 1007 Lausanne, Switzerland","Avenue de Provence 10-12, Lausanne, Switzerland",PROBABLY_SAME,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:48.615880,success
+70,"Uferstrasse 70. 4057    ,Basel,CHE","Uferstrasse 70. 4057,CHE","Uferstrasse 70, 4057 Basel, Switzerland","Uferstrasse 70, 4057 Basel, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:36:48.615880,success
+71,"Rudolf Dieselstr. 25    ,Winterthur,8404,CHE","Rudolf Dieselstr. 25,CHE","Rudolf Dieselstrasse 25, Winterthur, 8404, Zurich, Switzerland","Rudolf Dieselstrasse 25, Winterthur, 8404, Zurich, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:07.323884,success
+72,"Route de la Maison-carrée 31    ,Satigny,1242,CHE","Route de la Maison-Carrée 31,CHE","Route de la Maison-Carrée 31, Satigny, 1242, Geneva, Switzerland","Route de la Maison-Carrée 31, Satigny, 1242, Geneva, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:07.323884,success
+73,"Obere Ey 4    ,Dulliken,4657,CHE","Obere Ey 4,CHE","Obere Ey 4, Dulliken, 4657, Solothurn, Switzerland","Obere Ey 4, Dulliken, 4657, Solothurn, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:07.323884,success
+74,"Rue des Moulieres 1242    ,Geneva,CHE","Route des Moulières 6, 1217 Meyrin IRM,CHE","Rue des Moulieres, Geneva, 1242, Geneva, Switzerland","Route des Moulières 6, Meyrin, 1217, Geneva, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:07.323884,success
+75,"Route de la Maison, Caree 1242    ,Satigny,CHE","Route de la Maison-Carrée 31,CHE","Route de la Maison-Carrée, Satigny, 1242, Geneva, Switzerland","Route de la Maison-Carrée 31, Satigny, 1242, Geneva, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:07.323884,success
+76,"Grubenstrauss 11-3322    ,Bern,CHE","Grubenstrauss 11-3322,CHE","Grubenstrasse 11-3322, Bern, Switzerland","Grubenstrasse 11-3322, Bern, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:27.328397,success
+77,"Attisholzstrasse 11    ,Luterbach,4542,CHE","Austraße 11
+6250 Kundl
+%1,Kundl,6250,AUT","Attisholzstrasse 11, Luterbach, 4542, Switzerland","Austraße 11, Kundl, 6250, Austria",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:27.328397,success
+78,"Hauptstrasse 4    ,Sisseln AG,4334,CHE","45 WATERVIEW BLVD_x000D_
+ _x000D_
+ _x000D_,PARISPPANY,07054,USA","Hauptstrasse 4, Sisseln, 4334, Switzerland","45 Waterview Boulevard, Parsippany, New Jersey, 07054, USA",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:27.328397,success
+79,",NULL,CHE",,,,NO_MATCH,0,One or both addresses are empty,validation_check,2025-08-22T10:37:27.328397,empty_address
+80,"Via Penate 4    ,Mendriso,6987,CHE","_x000D_
+Blarenberglaan 2_x000D_
+ _x000D_,Blarenberglaan 2,MECHELEN,2800,BEL","Via Penate 4, Mendrisio, 6987, Switzerland","Blarenberglaan 2, Mechelen, 2800, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:27.328397,success
+81,"Hofwisenstrasse 56    ,Zurich,8153,CHE","Steinackerstrasse 56,CHE","Hofwisenstrasse 56, Zurich, 8153, Switzerland","Steinackerstrasse 56, Switzerland",NO_MATCH,10,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:45.269254,success
+82,"Balzzimmermannstrasse 7    ,Zurich,8058,CHE",,,,NO_MATCH,0,One or both addresses are empty,validation_check,2025-08-22T10:37:45.269254,empty_address
+83,"Gubelstrasse 24 Park Tower  ,Zug,6300,CHE","Baarerstrasse 96 Zug
+%1,GBR","Gubelstrasse 24, Park Tower, Zug, 6300, Switzerland","Baarerstrasse 96, Zug, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:45.269254,success
+84,"Freiburgerstrasse 251    ,Bern,CHE","3008,CHE","Freiburgerstrasse 251, Bern, Switzerland","3008, Bern, Switzerland",POSSIBLY_RELATED,50,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:45.269254,success
+85,"Raemistrasse 101    ,Zurich,8092,CHE","Freetrade Exchange, 4th Floor_x000D_
+37 Peter Street_x000D_
+ _x000D_,37 Peter Street,Manchester,M2 5GB,GBR","Raemistrasse 101, Zurich, 8092, Switzerland","Freetrade Exchange, 4th Floor, 37 Peter Street, Manchester, M2 5GB, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:37:45.269254,success
+86,"Rue de Bains 33    ,Genève,1211,CHE","17 Rue de Lausanne,1201,CHE","33 Rue de Bains, Geneva, 1211, Switzerland","17 Rue de Lausanne, Geneva, 1201, Switzerland",NO_MATCH,20,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:03.918031,success
+87,"Fabrikstrasse 2 4056 Basel  ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","2 Fabrikstrasse, Basel, 4056, Switzerland","35 Lichtstrasse, Basel, 4056, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:03.918031,success
+88,"Route De La Pierre 22    ,Ecublens,1024,CHE","Route de la Maison-Carrée 31,CHE","22 Route de la Pierre, Ecublens, 1024, Switzerland","31 Route de la Maison-Carrée, Switzerland",DIFFERENT_AREAS,10,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:03.918031,success
+89,"Europastrasse 31    ,Glattbrugg,8152,CHE","31 PINE ST STE 205_x000D_
+ _x000D_
+ _x000D_,Norfolk,02056,USA","31 Europastrasse, Glattbrugg, 8152, Switzerland","31 Pine Street, Suite 205, Norfolk, Massachusetts, 02056, USA",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:03.918031,success
+90,"Klybeckstrasse,Basel,4057,CHE","Klybeckstr. 141, P 15, WKL-1358
+4057 Basel
+%1,Basel,4057,CHE","Klybeckstrasse, Basel, 4057, Switzerland","141 Klybeckstrasse, P 15, WKL-1358, Basel, 4057, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:03.918031,success
+91,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein, 4332, Aargau, Switzerland","Schaffhauserstrasse, Stein, 4332, Aargau, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:23.465050,success
+92,"General-Guisan-Strasse 8    ,Zug,6300,CHE","Peter-Merian-Strasse 80,4052,CHE","General-Guisan-Strasse 8, Zug, 6300, Zug, Switzerland","Peter-Merian-Strasse 80, Basel, 4052, Basel-Stadt, Switzerland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:23.465050,success
+93,"266 Kifissias Avenue, Halandri    ,Athens,CHE","274, Kifissias Avenue, Athens. Greece.,152 32,GRC","266 Kifissias Avenue, Halandri, Athens, Greece","274 Kifissias Avenue, Athens, 152 32, Greece",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:23.465050,success
+94,"Talstrasse 1-9,Münchenbuchsee,3053,CHE","_x000D_
+ _x000D_
+Hullenbergweg 85_x000D_,AMSTERDAM,1101,NLD","Talstrasse 1-9, Münchenbuchsee, 3053, Bern, Switzerland","Hullenbergweg 85, Amsterdam, 1101, North Holland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:23.465050,success
+95,"Neuhofstrasse 4,Baar,6340,CHE","_x000D_
+ _x000D_
+Hullenbergweg 85_x000D_,AMSTERDAM,1101,NLD","Neuhofstrasse 4, Baar, 6340, Zug, Switzerland","Hullenbergweg 85, Amsterdam, 1101, North Holland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:23.465050,success
+96,"Drammensveien 288    ,Oslo,CHE","Drammensveien 288, 0283 Oslo.,283,NOR","Drammensveien 288, Oslo, Norway","Drammensveien 288, 0283 Oslo, Norway",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:41.335981,success
+97,"Poststrasse 6    ,Zug,CHE","Poststrasse 6, Underground, Ground, 1st and 2nd floor, Zug, Switzerland.,6300,CHE","Poststrasse 6, Zug, 6300, Switzerland","Poststrasse 6, Zug, 6300, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:41.335981,success
+98,"Wurmisweg 576,Kaiseraugst,4303,CHE","45 WATERVIEW BLVD_x000D_
+ _x000D_
+ _x000D_,PARISPPANY,07054,USA","Wurmisweg 576, Kaiseraugst, 4303, Switzerland","45 Waterview Boulevard, Parsippany, New Jersey, 07054, USA",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:41.335981,success
+99,"Aeschengraben 27,Basel,4051,CHE","Willem Einthovenstraat 13
+2342 BH Oegstgeest
+Netherlands,Oegstgeest,2342 BH,NLD","Aeschengraben 27, Basel, 4051, Switzerland","Willem Einthovenstraat 13, 2342 BH Oegstgeest, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:41.335981,success
+100,"25CS    ,Zurich,CHE","GOLDMAN SACHS, One Centenary Way_x000D_
+ _x000D_
+ _x000D_,BIRMINGHAM,B3 3HJ,GBR","25CS, Zurich, Switzerland","Goldman Sachs, One Centenary Way, Birmingham, B3 3HJ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:38:41.335981,success
+101,",NULL,CHE","CW0017A1 Church Minshall SAX, Muslin Row, Church Minshull, Nantwich, Cheshire CW5 6DY CW5 6DY %1,CW5 6DY,GBR","NULL, Switzerland","Muslin Row, Church Minshull, Nantwich, Cheshire, CW5 6DY, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:00.147054,success
+102,"Lindbergh-Allee 1 ,Glattpark,CHE","Livesey Street Sheffield S6 2AP %1,Sheffield,S6 2AP,GBR","Lindbergh-Allee 1, Glattpark, Switzerland","Livesey Street, Sheffield, S6 2AP, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:00.147054,success
+103,"Brandschenkestrasse 150,Zürich,8002,CHE","123 Buckingham Palace Road_x000D_ _x000D_ _x000D_,London,SW1W 9SR,GBR","Brandschenkestrasse 150, Zürich, 8002, Switzerland","123 Buckingham Palace Road, London, SW1W 9SR, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:00.147054,success
+104,"CH-ZRH-100 ,Zurich,8002,CHE","100 Industrial Drive,USA","CH-ZRH-100, Zurich, 8002, Switzerland","100 Industrial Drive, United States",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:00.147054,success
+105,"CH-ZRH-152 ,Zurich,8002,CHE","Lichtstrasse 35, WSJ-152 4056 Basel %1,Basel,4056,CHE","CH-ZRH-152, Zurich, 8002, Switzerland","Lichtstrasse 35, 4056 Basel, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:00.147054,success
+106,"CH-ZRH-BEDE    ,Zurich,8002,CHE","RICHMOND BEDE VILLAGE  HOSPITAL LANE  GOODYERS END  BEDWORTH  COVENTRY CV12 0PB %1,CV12 0PB,GBR","CH-ZRH-BEDE, Zurich, 8002, Switzerland","Richmond Bede Village, Hospital Lane, Goodyers End, Bedworth, Coventry, CV12 0PB, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:18.412755,success
+107,"CH-ZRH-BRA    ,Zurich,8002,CHE","Winsford Depot Site Wide Bradford Road_x000D_ _x000D_ _x000D_,Winsford,CW7 2PB,GBR","CH-ZRH-BRA, Zurich, 8002, Switzerland","Winsford Depot Site, Bradford Road, Winsford, CW7 2PB, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:18.412755,success
+108,"CH-ZRH-EURB    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln LN5 7HD %1,LN5 7HD,GBR","CH-ZRH-EURB, Zurich, 8004, Switzerland","19/20 Cornhill, Lincoln, LN5 7HD, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:18.412755,success
+109,"CH-ZRH-EURD    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln LN5 7HD %1,LN5 7HD,GBR","CH-ZRH-EURD, Zurich, 8004, Switzerland","19/20 Cornhill, Lincoln, LN5 7HD, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:18.412755,success
+110,"CH-ZRH-EURH    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln LN5 7HD %1,LN5 7HD,GBR","CH-ZRH-EURH, Zurich, 8004, Switzerland","19/20 Cornhill, Lincoln, LN5 7HD, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:18.412755,success
+111,"Z.A. La Piece 16    ,Rolle,1180,CHE","Z.A La Piece 16,1180,CHE","Z.A. La Pièce 16, Rolle, 1180, Switzerland","Z.A. La Pièce 16, Rolle, 1180, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:35.422516,success
+112,"Uferstrasse 70. 4057    ,Basel,CHE","Uferstrasse 70. 4057,CHE","Uferstrasse 70, Basel, 4057, Switzerland","Uferstrasse 70, Basel, 4057, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:35.422516,success
+113,"Steinackerstrasse 28    ,Kloten,8302,CHE","Steinackerstrasse 28,CHE","Steinackerstrasse 28, Kloten, 8302, Switzerland","Steinackerstrasse 28, Kloten, 8302, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:35.422516,success
+114,"Steinackerstrasse 47    ,Kloten,8302,CHE","Steinackerstrasse 47,CHE","Steinackerstrasse 47, Kloten, 8302, Switzerland","Steinackerstrasse 47, Kloten, 8302, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:35.422516,success
+115,"Steinackerstrasse 56    ,Kloten,8302,CHE","Steinackerstrasse 56,CHE","Steinackerstrasse 56, Kloten, 8302, Switzerland","Steinackerstrasse 56, Kloten, 8302, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:35.422516,success
+116,"Victor von Bruns-Strasse 21    ,Neuhausen,8212,CHE","1 Albert Quay Ballintemple_x000D_
+ _x000D_
+ _x000D_,Cork,T12X8N6,IRL","Victor von Bruns-Strasse 21, Neuhausen am Rheinfall, Schaffhausen, 8212, Switzerland","1 Albert Quay, Ballintemple, Cork, T12X8N6, Ireland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:55.867015,success
+117,"Basserdorf (Zurich), Switzerland (Office #1)-Grindelstrasse 19-510256 GF, BF-Basserdorf (Zurich)-8303 510256,Basserdorf (Zurich),8303,CHE","Claridenstrasse 41
+8002 Zurich
+%1,Zurich,8002,CHE","Grindelstrasse 19, Bassersdorf, Zurich, 8303, Switzerland","Claridenstrasse 41, Zurich, Zurich, 8002, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:55.867015,success
+118,"Basserdorf (Zurich), Switzerland (Office #2)-Grindelstrasse 19-510253 Basserdorf (Zurich)-8303 510253,Basserdorf (Zurich),8303,CHE","Claridenstrasse 41
+8002 Zurich
+%1,Zurich,8002,CHE","Grindelstrasse 19, Bassersdorf, Zurich, 8303, Switzerland","Claridenstrasse 41, Zurich, Zurich, 8002, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:55.867015,success
+119,"Bern (Zollikofen,) Switzerland-Office-Stampflistrasse 13-5407-T GF, Basement-Zollikofen-3052 5407-T,Zollikofen,3052,CHE","Talstrasse 3-5, Münchenbuchsee, 3053, Bern, Switzerland.,3053,CHE","Stampflistrasse 13, Zollikofen, Bern, 3052, Switzerland","Talstrasse 3-5, Münchenbuchsee, Bern, 3053, Switzerland",DIFFERENT_BUT_NEARBY,49,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:55.867015,success
+120,"Brig, Switzerland-Furkastrasse 19-Furkastrasse 19-4451-T Ground Floor-Brig-3900 4451-T,Brig,3900,CHE","Briggs and Forrester
+%1,GBR","Furkastrasse 19, Brig, Valais, 3900, Switzerland","Briggs and Forrester, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:39:55.867015,success
+121,"Dietikon, Switzerland -Lerzenstrasse 14-200646N Floor 2-Dietikon-8953 200646N,Dietikon,8953,CHE","3rd Floor Connaught House_x000D_
+1 Burlington Road_x000D_
+ _x000D_,1 Burlington Road,Dublin,D04C5Y6,IRL","Lerzenstrasse 14, Floor 2, Dietikon, 8953, Switzerland","3rd Floor, Connaught House, 1 Burlington Road, Dublin, D04C5Y6, Ireland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:21.775418,success
+122,"2 rue de L'industrie    ,Bulle,1630,CHE","2 rue de L'industrie,1630,CHE","2 Rue de l'Industrie, Bulle, 1630, Switzerland","2 Rue de l'Industrie, Bulle, 1630, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:21.775418,success
+123,"BATIMENTS GIGAPLEX RUE DES MOULIERES 12,Meyrin,1217,CHE","Route des Moulières 12 
+CH-1217 Meyrin 
+
+Switzerland,CHE","Bâtiments Gigaplex, Rue des Moulières 12, Meyrin, 1217, Switzerland","Route des Moulières 12, Meyrin, 1217, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:21.775418,success
+124,"Vulkanstr. 106    ,Zürich,8010,CHE","1020 Wien Obere Donaustrasse 95 
+INGA SUCK, WIEN
+Austria,WIEN,INGA SUCK,,AUT","Vulkanstrasse 106, Zürich, 8010, Switzerland","Obere Donaustrasse 95, 1020 Wien, Austria",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:21.775418,success
+125,"Route de Pré-Bois 20    ,Meyrin,1217,CHE","ICC Building-Bloc-A
+20 Route de Pre-Bois
+1215 GENEVE
+Switzerland,GENEVE,1215,CHE","Route de Pré-Bois 20, Meyrin, 1217, Switzerland","ICC Building-Bloc-A, 20 Route de Pré-Bois, Genève, 1215, Switzerland",DIFFERENT_BUT_NEARBY,49,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:21.775418,success
+126,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:40.859753,success
+127,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein, 4332, Switzerland","Schaffhauserstrasse, Stein, 4332, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:40.859753,success
+128,"Rothausstrasse 61,Muttenz,4132,CHE","Suurstoffi 14_x000D_
+ _x000D_
+ _x000D_,Rotkreuz,6343,CHE","Rothausstrasse 61, Muttenz, 4132, Switzerland","Suurstoffi 14, Rotkreuz, 6343, Switzerland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:40.859753,success
+129,"Chemin de la Mairie 24,Perly,1258,CHE","The Capitol Building
+Oldbury
+
+Bracknell
+Berkshire
+RG12 8FZ
+%1,Bracknell,RG12 8FZ,GBR","Chemin de la Mairie 24, Perly, 1258, Switzerland","The Capitol Building, Oldbury, Bracknell, Berkshire, RG12 8FZ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:40.859753,success
+130,"Neumühlequai 6,Zürich,8001,CHE","The Capitol Building
+Oldbury
+
+Bracknell
+Berkshire
+RG12 8FZ
+%1,Bracknell,RG12 8FZ,GBR","Neumühlequai 6, Zürich, 8001, Switzerland","The Capitol Building, Oldbury, Bracknell, Berkshire, RG12 8FZ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:40:40.859753,success
+131,"Industrie Nord 1  ,Werthenstein,6105,CHE","Zl Paris Nord II, 33 rue des Vanesses,93420,FRA","Industrie Nord 1, Werthenstein, Lucerne, 6105, Switzerland","Zl Paris Nord II, 33 Rue des Vanesses, Drancy, Île-de-France, 93420, France",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:00.360174,success
+132,"Bösch 21    ,Hünenberg,6331,CHE","_x000D_
+EIKENBOSCH 24_x000D_
+Noord-Brabant_x000D_,EIKENBOSCH 24,BERKEL-ENSCHOT,5056 GB,NLD","Bösch 21, Hünenberg, Zug, 6331, Switzerland","Eikenbosch 24, Berkel-Enschot, Noord-Brabant, 5056 GB, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:00.360174,success
+133,"Obere Ey 4    ,Dulliken,4657,CHE","Obere Ey 4,CHE","Obere Ey 4, Dulliken, Solothurn, 4657, Switzerland","Obere Ey 4, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:00.360174,success
+134,"Grubenstrauss 11-3322    ,Bern,CHE","Grubenstrauss 11-3322,CHE","Grubenstrasse 11-3322, Bern, Bern, Switzerland","Grubenstrasse 11-3322, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:00.360174,success
+135,"Steinackerstrasse 28    ,Kloten,8302,CHE","Steinackerstrasse 28,CHE","Steinackerstrasse 28, Kloten, Zurich, 8302, Switzerland","Steinackerstrasse 28, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:00.360174,success
+136,"Steinackerstrasse 45    ,Kloten,8302,CHE","Steinackerstrasse 45,CHE","Steinackerstrasse 45, Kloten, 8302, Zurich, Switzerland","Steinackerstrasse 45, Kloten, 8302, Zurich, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:18.903352,success
+137,"Steinackerstrasse 47    ,Kloten,8302,CHE","Steinackerstrasse 47,CHE","Steinackerstrasse 47, Kloten, 8302, Zurich, Switzerland","Steinackerstrasse 47, Kloten, 8302, Zurich, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:18.903352,success
+138,"Steinackerstrasse 56    ,Kloten,8302,CHE","Steinackerstrasse 56,CHE","Steinackerstrasse 56, Kloten, 8302, Zurich, Switzerland","Steinackerstrasse 56, Kloten, 8302, Zurich, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:18.903352,success
+139,"6, route du Grand Lancy    ,Geneva,CHE","DY1057A1 Merry Hill 4266, Unit 46 The Merry Hill Centre, Brierley Hill, West Midlands DY5 1QX  Store Tel: 01384 76761 DY5 1QX %1,DY5 1QX,GBR","6 Route du Grand Lancy, Geneva, Switzerland","Unit 46 The Merry Hill Centre, Brierley Hill, West Midlands, DY5 1QX, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:18.903352,success
+140,"Egerkingen, Switzerland-Winkelstrasse 2-25503-T Egerkingen-4622 25503-T,Egerkingen,4622,CHE","_x000D_ T Hofveld 6d_x000D_ _x000D_,T Hofveld 6d,GROOT-BIJGAARDEN,1702,BEL","Winkelstrasse 2, Egerkingen, 4622, Solothurn, Switzerland","T Hofveld 6d, Groot-Bijgaarden, 1702, Flemish Brabant, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:18.904319,success
+141,"Nafels, Switzerland-4b Industriestrasse -200247N Nafels-8752 200247N,Nafels,8752,CHE","61 Southwark Street_x000D_
+ _x000D_
+ _x000D_,London,SE1 0HL,GBR","4b Industriestrasse, Nafels, 8752, Glarus, Switzerland","61 Southwark Street, London, SE1 0HL, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:39.208864,success
+142,"Neuhausen, Switzerland-Victor von Bruns-Strasse 21-27619-T 2nd-4th Floor, 4th Floor Terrace, 1st-2nd Basement-Schaffhausen, Neuhausen-8212 27619-T,Schaffhausen, Neuhausen,8212,CHE","Ground, 2nd, 4th and 5th Floor, North House, St Edwards Way
+ Romford
+ RM1 3PP
+%1,Romford,RM1 3PP,GBR","Victor von Bruns-Strasse 21, Neuhausen, 8212, Schaffhausen, Switzerland","North House, St Edwards Way, Romford, RM1 3PP, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:39.208864,success
+143,"Satigny, Switzerland-Rue du Pre-de-la-Fontaine 8-200729N Basement / 2nd floor-Satigny-1242 200729N,Satigny,1242,CHE","16, Rue des Sablières1242 Satigny CH,1242,CHE","Rue du Pre-de-la-Fontaine 8, Satigny, 1242, Geneva, Switzerland","16 Rue des Sablières, Satigny, 1242, Geneva, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:39.208864,success
+144,"Rothausstrasse 61,Muttenz,4132,CHE","Flughafenstrasse, Basel,4030,CHE","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland","Flughafenstrasse, Basel, 4030, Basel-Stadt, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:39.208864,success
+145,"Flughaffenstrasse,Basel,4030,CHE","Flughafenstrasse, Basel,4030,CHE","Flughafenstrasse, Basel, 4030, Basel-Stadt, Switzerland","Flughafenstrasse, Basel, 4030, Basel-Stadt, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:39.208864,success
+146,"Centralbahnstrasse 4,Basel,4051,CHE","Flughafenstrasse, Basel,4030,CHE","Centralbahnstrasse 4, Basel, Basel-Stadt, 4051, Switzerland","Flughafenstrasse, Basel, Basel-Stadt, 4030, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:57.409141,success
+147,"Basel,4030,CHE","Flughafenstrasse, Basel,4030,CHE","Basel, Basel-Stadt, 4030, Switzerland","Flughafenstrasse, Basel, Basel-Stadt, 4030, Switzerland",PROBABLY_SAME_LOCATION,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:57.409141,success
+148,"Switzerland Other Location,Switzerland Other Location,CHE","Robert-Koch-Straße 1,22851,GER","Switzerland Other Location, Switzerland","Robert-Koch-Straße 1, Norderstedt, Schleswig-Holstein, 22851, Germany",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:57.409141,success
+149,"Es-che, Zurich    ,Zurich,CHE","Refinitiv Zurich, Dufourstrasse 43,0,CHE","Escher-Wyss-Platz, Zurich, Zurich, 8005, Switzerland","Dufourstrasse 43, Zurich, Zurich, 8008, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:57.409141,success
+150,"Suurstoffi 18    ,Rotkreuz,6343,CHE","Suurstoffi 18,6343,SWZ","Suurstoffi 18, Rotkreuz, Zug, 6343, Switzerland","Suurstoffi 18, Rotkreuz, Zug, 6343, Switzerland",IDENTICAL_LOCATION,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:41:57.409141,success
+151,"Route Suisse, 8A Room 19, ETOY, 1163, CHE",CH,"Route Suisse 8A, Room 19, Etoy, Vaud, 1163, Switzerland",Switzerland,NO_MATCH,5,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:15.310754,success
+152,"Route Suisse, 8A Room 19 Room #19, ETOY, 1163, CHE","Credit Suisse Saudi Arabia, King Fahad Road 12361-6858, P.O.Box 5000, Riyadh, Saudi Arabia, SAU, SAU","Route Suisse 8A, Room 19, Etoy, Vaud, 1163, Switzerland","Credit Suisse Saudi Arabia, King Fahad Road, P.O.Box 5000, Riyadh, Riyadh Province, 12361-6858, Saudi Arabia",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:15.310754,success
+153,"Rte de Saint-Julien 7/9, Carouge GE, 1227, CHE","Route de Saint Julien 7/9, 1227, CHE","Route de Saint-Julien 7/9, Carouge, Geneva, 1227, Switzerland","Route de Saint-Julien 7/9, Carouge, Geneva, 1227, Switzerland",IDENTICAL,98,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:15.310754,success
+154,"24 AVENUE DE PROVENCE, 1007, Lausanne, CHE","Avenue de Provence 10-12, CHE","24 Avenue de Provence, Lausanne, Vaud, 1007, Switzerland","Avenue de Provence 10-12, Lausanne, Vaud, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:15.310754,success
+155,"Rudolf Dieselstr. 25, Winterthur, 8404, CHE","Rudolf Dieselstr. 25, CHE","Rudolf Dieselstrasse 25, Winterthur, Zurich, 8404, Switzerland","Rudolf Dieselstrasse 25, Winterthur, Zurich, 8404, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:15.310754,success
+156,"Steinackerstrasse 45    ,Kloten,8302,CHE","Steinackerstrasse 45,CHE","Steinackerstrasse 45, Kloten, 8302, Zurich, Switzerland","Steinackerstrasse 45, Kloten, Zurich, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:35.688440,success
+157,"6, route du Grand Lancy    ,Geneva,CHE","17 Rue de Lausanne,1201,CHE","6 Route du Grand Lancy, Geneva, 1205, Geneva, Switzerland","17 Rue de Lausanne, Geneva, 1201, Geneva, Switzerland",DIFFERENT,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:35.688440,success
+158,"Lamone (Manno), Switzerland-Via Pra d'Ia 1-Centro MVA One-200560N Office 2.1, Warehouse -1.1-Lamone-6814 200560N,Lamone,6814,CHE","3rd Floor Connaught House_x000D_
+1 Burlington Road_x000D_
+ _x000D_,1 Burlington Road,Dublin,D04C5Y6,IRL","Via Pra d'Ia 1, Centro MVA One, Office 2.1, Warehouse -1.1, Lamone, 6814, Ticino, Switzerland","3rd Floor Connaught House, 1 Burlington Road, Dublin, D04 C5Y6, Dublin, Ireland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:35.688440,success
+159,"Mont-sur-Lausanne,  Switzerland-En Budronn E7-200603N 1st Basement-Mont-sur-Lausanne-1052 200603N,Mont-sur-Lausanne,1052,CHE","Avenue Paul Pastur 41
+
+6032 MONT-SUR-MARCHIENNE
+%1,MONT-SUR-MARCHIENNE,6032,BEL","En Budronn E7, 1st Basement, Mont-sur-Lausanne, 1052, Vaud, Switzerland","Avenue Paul Pastur 41, Mont-sur-Marchienne, 6032, Hainaut, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:35.688440,success
+160,"Mont-sur-Lausanne, Switzerland-Branch-En Budron E7-200604N Ground Floor, Floor 1, 2 & Basement-Mont-sur-Lausanne-1052 200604N,Mont-sur-Lausanne,1052,CHE","Avenue Paul Pastur 41
+
+6032 MONT-SUR-MARCHIENNE
+%1,MONT-SUR-MARCHIENNE,6032,BEL","En Budron E7, Ground Floor, Floor 1, 2 & Basement, Mont-sur-Lausanne, 1052, Vaud, Switzerland","Avenue Paul Pastur 41, Mont-sur-Marchienne, 6032, Hainaut, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:35.688440,success
+161,"Mont-sur-Lausanne, Switzerland-IREF-En Budronn E7-200658N Ground floor-Mont-sur-Lausanne-1052 200658N,Mont-sur-Lausanne,1052,CHE","Avenue Paul Pastur 41
+
+6032 MONT-SUR-MARCHIENNE
+%1,MONT-SUR-MARCHIENNE,6032,BEL","En Budronn E7, Ground Floor, Mont-sur-Lausanne, 1052, Vaud, Switzerland","Avenue Paul Pastur 41, Mont-sur-Marchienne, 6032, Hainaut, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:57.558784,success
+162,"Pfaffikon, Switzerland-Bahnweg 11-31582-T Schwyz-Basement to Floor 5-Pfaffikon-8808 31582-T,Pfaffikon,8808,CHE","_x000D_
+T Hofveld 6d_x000D_
+ _x000D_,T Hofveld 6d,GROOT-BIJGAARDEN,1702,BEL","Bahnweg 11, Basement to Floor 5, Pfaffikon, 8808, Schwyz, Switzerland","T Hofveld 6d, Groot-Bijgaarden, 1702, Flemish Brabant, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:57.558784,success
+163,"Flughaffenstrasse,Basel,4030,CHE","Flughafenstrasse, Basel,4030,CHE","Flughafenstrasse, Basel, 4030, Basel-Stadt, Switzerland","Flughafenstrasse, Basel, 4030, Basel-Stadt, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:57.558784,success
+164,"Hochstrasse 201    ,Schaffhausen,CHE","Robert-Koch-Straße 1,22851,GER","Hochstrasse 201, Schaffhausen, 8200, Schaffhausen, Switzerland","Robert-Koch-Straße 1, Norderstedt, 22851, Schleswig-Holstein, Germany",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:57.558784,success
+165,"Eimattstrasse 3,Oberdorf BL,4436,CHE","22 Mattenstrasse_x000D_
+ _x000D_
+ _x000D_,Basel,4058,CHE","Eimattstrasse 3, Oberdorf, 4436, Basel-Landschaft, Switzerland","Mattenstrasse 22, Basel, 4058, Basel-Stadt, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:42:57.558784,success
+166,"Es-che, Zurich    ,Zurich,CHE","Hardturmstrasse 181
+3rd Floor
+Zurich, CHE 8005
+Switzerland
+%1,DEU","Escher-Wyss-Platz, Zurich, Zurich, Switzerland","Hardturmstrasse 181, 3rd Floor, Zurich, Zurich, 8005, Switzerland",DIFFERENT,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:15.149265,success
+167,"Rybna 14/682, Prague Stock Exchange    ,Prague,CHE","15000,CZE","Rybna 14/682, Prague Stock Exchange, Prague, Czech Republic","Prague, 15000, Czech Republic",POSSIBLY_RELATED,50,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:15.149265,success
+168,"Gubelstrasse 36,Zug,6300,CHE",,,,NO_MATCH,0,One or both addresses are empty,validation_check,2025-08-22T10:43:15.149265,empty_address
+169,"Bösch 21    ,Hünenberg,6331,CHE","61 Southwark Street, 
+London
+
+London
+SE1 0HL
+United Kingdom,London,SE1 0HL,GBR","Bösch 21, Hünenberg, 6331, Switzerland","61 Southwark Street, London, SE1 0HL, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:15.149265,success
+170,"Rothausstrasse 61,Muttenz,4132,CHE","61 Southwark Street, 
+London
+
+London
+SE1 0HL
+United Kingdom,London,SE1 0HL,GBR","Rothausstrasse 61, Muttenz, 4132, Switzerland","61 Southwark Street, London, SE1 0HL, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:15.149265,success
+171,"Route des Avouillons 32    ,Gland,CHE","Route Des Avouillons 32_x000D_
+ _x000D_
+ _x000D_,Gland,1196,CHE","Route des Avouillons 32, Gland, Vaud, 1196, Switzerland","Route des Avouillons 32, Gland, Vaud, 1196, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:34.606858,success
+172,"Vulkanstr. 106    ,Zürich,8010,CHE","Vulkanstrasse 106
+8048 Zürich
+%1,Zürich,8048,CHE","Vulkanstrasse 106, Zürich, Zurich, 8010, Switzerland","Vulkanstrasse 106, Zürich, Zurich, 8048, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:34.606858,success
+173,"Route des Avouillons 32    ,Gland,CHE","Route des Avouillons,1196,CHE","Route des Avouillons 32, Gland, Vaud, 1196, Switzerland","Route des Avouillons, Gland, Vaud, 1196, Switzerland",VERY_LIKELY_MATCH,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:34.606858,success
+174,"Theaterstrasse 15C    ,Winterthur,CHE","Colisée Gardens, 8-14 Avenue de l'Arche 
+92400  COURBEVOIE
+France,COURBEVOIE,92400,FRA","Theaterstrasse 15C, Winterthur, Zurich, 8400, Switzerland","8-14 Avenue de l'Arche, Courbevoie, Île-de-France, 92400, France",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:34.606858,success
+175,"Route de Pré-Bois 20    ,Meyrin,1217,CHE","ICC Building-Bloc-A
+20 Route de Pre-Bois
+1215 GENEVE
+Switzerland,GENEVE,1215,CHE","Route de Pré-Bois 20, Meyrin, Geneva, 1217, Switzerland","Route de Pré-Bois 20, Geneva, Geneva, 1215, Switzerland",PROBABLE_MATCH,75,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:34.606858,success
+176,"Icc Centre    ,Geneva,CHE","ICC Building-Bloc-A
+20 Route de Pre-Bois
+1215 GENEVE
+Switzerland,GENEVE,1215,CHE","ICC Centre, Geneva, Geneva, Switzerland","ICC Building Bloc A, 20 Route de Pre-Bois, 1215 Geneva, Geneva, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:53.681344,success
+177,"Citer De L'Ouest 2    ,Neuchatel,CHE","Zone d'activites Ouest Park,FRA","Citer De L'Ouest 2, Neuchatel, Neuchatel, Switzerland","Zone d'activites Ouest Park, France",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:53.681344,success
+178,"Klybeckstrasse 191    ,Basel,4057,CHE","_x000D_
+Von Geusaustraat 191_x000D_
+ _x000D_,Von Geusaustraat 191,Voorburg,2274 RJ,NLD","Klybeckstrasse 191, Basel, 4057, Basel-Stadt, Switzerland","Von Geusaustraat 191, Voorburg, 2274 RJ, South Holland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:53.681344,success
+179,"Rothausstrasse 61,Muttenz,4132,CHE","61 Southwark Street_x000D_
+ _x000D_
+ _x000D_,London,SE1 0HL,GBR","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland","61 Southwark Street, London, SE1 0HL, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:53.681344,success
+180,"Rotboden 1    ,Niederbipp,4704,CHE","61 Southwark Street, 
+London
+
+London
+SE1 0HL
+United Kingdom,London,SE1 0HL,GBR","Rotboden 1, Niederbipp, 4704, Bern, Switzerland","61 Southwark Street, London, SE1 0HL, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:43:53.681344,success
+181,"BATIMENTS GIGAPLEX RUE DES MOULIERES 12,Meyrin,1217,CHE","Route des Moulières 12 
+CH-1217 Meyrin 
+
+Switzerland,CHE","Batiments Gigaplex Rue des Moulières 12, Meyrin, 1217, Switzerland","Route des Moulières 12, Meyrin, 1217, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:12.185730,success
+182,"BATIMENTS GIGAPLEX RUE DES MOULIERES 12,Meyrin,1217,CHE","Route des Moulières 6, 1217 Meyrin IRM,CHE","Batiments Gigaplex Rue des Moulières 12, Meyrin, 1217, Switzerland","Route des Moulières 6, Meyrin, 1217, Switzerland",POSSIBLY_RELATED,60,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:12.185730,success
+183,"Hohenrainstrasse 24,Pratteln,4133,CHE","1551 S WASHINGTON AVE_x000D_
+_x000D_
+_x000D_,Piscataway,08854,USA","Hohenrainstrasse 24, Pratteln, 4133, Switzerland","1551 South Washington Avenue, Piscataway, New Jersey, 08854, United States",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:12.185730,success
+184,"Paulstrasse 12,Winterthur,8400,CHE","Vulkanstrasse 106
+8048 Zürich
+%1,Zürich,8048,CHE","Paulstrasse 12, Winterthur, 8400, Switzerland","Vulkanstrasse 106, Zürich, 8048, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:12.185730,success
+185,"Winterthur,CHE","Colisée Gardens, 8-14 Avenue de l'Arche 
+92400  COURBEVOIE
+France,COURBEVOIE,92400,FRA","Winterthur, Switzerland","Colisée Gardens, 8-14 Avenue de l'Arche, Courbevoie, 92400, France",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:12.185730,success
+186,"Schliener,CHE","Belgium,BEL","Schliener, Switzerland",Belgium,NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:30.655909,success
+187,"Chemin de la Mairie 24,Perly,1258,CHE","Chemin de la Mairie 24,1213,CHE","Chemin de la Mairie 24, Perly, 1258, Switzerland","Chemin de la Mairie 24, 1213, Switzerland",POSSIBLY_RELATED,50,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:30.655909,success
+188,"Zurcherstrasse 59/61    ,Thalwil,CHE","_x000D_
+ _x000D_
+Weesperstraat 61_x000D_,AMSTERDAM,1018 VN,NLD","Zurcherstrasse 59/61, Thalwil, Switzerland","Weesperstraat 61, Amsterdam, 1018 VN, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:30.655909,success
+189,"Klybeckstrasse 191    ,Basel,4057,CHE","Uferstrasse 70. 4057,CHE","Klybeckstrasse 191, Basel, 4057, Switzerland","Uferstrasse 70, Basel, 4057, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:30.655909,success
+190,"Fabrikstrasse 2 4056 Basel  ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","Fabrikstrasse 2, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:30.655909,success
+191,"Neumühlequai 6,Zürich,8001,CHE","Boeing Avenue 8
+1119 BW SCHIPHOL-RIJK
+Netherlands,SCHIPHOL-RIJK,1119 BW,NLD","Neumühlequai 6, Zürich, 8001, Zurich, Switzerland","Boeing Avenue 8, Schiphol-Rijk, 1119 BW, North Holland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:49.319932,success
+192,"Hohenrainstrasse 24,Pratteln,4133,CHE","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa,Tokyo,JPN","Hohenrainstrasse 24, Pratteln, 4133, Basel-Landschaft, Switzerland","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa, Tokyo, Japan",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:49.319932,success
+193,"Rte des Avouillons 32,Gland,1196,CHE","Route Des Avouillons 32_x000D_
+ _x000D_
+ _x000D_,Gland,1196,CHE","Route des Avouillons 32, Gland, 1196, Vaud, Switzerland","Route des Avouillons 32, Gland, 1196, Vaud, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:49.319932,success
+194,"Lindbergh-Allee 1     ,Glattpark,8152,CHE","LINDBERGH ROAD, IPSWICH 
+SUFFOLK
+SUFFOLK
+IP3 9FA
+%1,SUFFOLK,IP3 9FA,GBR","Lindbergh-Allee 1, Glattpark, 8152, Zurich, Switzerland","Lindbergh Road, Ipswich, Suffolk, IP3 9FA, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:49.319932,success
+195,"Beethovenstrasse 19    ,Zürich,8002,CHE","_x000D_
+ _x000D_
+Herikerbergweg 29 Apollo Build 1101cn_x000D_,AMSTERDAM,1101 CN,NLD","Beethovenstrasse 19, Zürich, 8002, Zurich, Switzerland","Herikerbergweg 29, Apollo Building, 1101 CN, Amsterdam, North Holland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:44:49.319932,success
+196,"Richtistrasse 7     ,Wallisellen,8304,CHE","7 Clifford Street_x000D_
+ _x000D_
+ _x000D_,London,W1S 2FT,GBR","Richtistrasse 7, Wallisellen, 8304, Zurich, Switzerland","7 Clifford Street, London, W1S 2FT, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:07.343423,success
+197,"Route de Thonon 153    ,Vésenaz,1222,CHE","_x000D_
+98 Rue de la Fusée_x000D_
+ _x000D_,98 Rue de la Fusée,Brussels,1130,BEL","Route de Thonon 153, Vésenaz, 1222, Geneva, Switzerland","98 Rue de la Fusée, Brussels, 1130, Brussels-Capital, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:07.344423,success
+198,"Freiburgstrasse 251,Bern,3018,CHE","5th, 8th and 14th Floor, Brunel House_x000D_
+2 Fitzalan Road_x000D_
+ _x000D_,2 Fitzalan Road,Cardiff,CF24 0EB,GBR","Freiburgstrasse 251, Bern, 3018, Bern, Switzerland","2 Fitzalan Road, Cardiff, CF24 0EB, Wales, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:07.344423,success
+199,"Industriestrasse 16,Rafz,8197,CHE","Industriestrasse 16 Zur01 Propco Gmbh_x000D_
+ _x000D_
+ _x000D_,Rafz,8197,CHE","Industriestrasse 16, Rafz, 8197, Zurich, Switzerland","Industriestrasse 16, Rafz, 8197, Zurich, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:07.344423,success
+200,"17 rue de Lausanne     ,Genève,1201,CHE","17 Rue de Lausanne,1201,CHE","17 Rue de Lausanne, Genève, 1201, Geneva, Switzerland","17 Rue de Lausanne, Genève, 1201, Geneva, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:07.344423,success
+201,"Hohenrainstrasse, 4133 Pratteln, Schweiz    ,Pratteln,4133,CHE","_x000D_
+Herengracht 436_x000D_
+NLRLG001_x000D_,Herengracht 436,Amsterdam,1017 BZ,NLD","Hohenrainstrasse, Pratteln, Basel-Landschaft, 4133, Switzerland","Herengracht 436, Amsterdam, North Holland, 1017 BZ, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:29.208858,success
+202,"Klybeckerstrasse 191, Basel 4057    ,Basel,4057,CHE","Klybeckstrasse 141
+4057 Basel
+%1,Basel,4057,CHE","Klybeckstrasse 191, Basel, Basel-Stadt, 4057, Switzerland","Klybeckstrasse 141, Basel, Basel-Stadt, 4057, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:29.208858,success
+203,"Klybeckstrasse 191    ,Basel,4057,CHE","Translation & Innovation Hub (I-HUB) 84 Wood Lane_x000D_
+ _x000D_
+ _x000D_,London,W12 0BZ,GBR","Klybeckstrasse 191, Basel, Basel-Stadt, 4057, Switzerland","84 Wood Lane, London, Greater London, W12 0BZ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:29.208858,success
+204,"Hohenrainstrasse    ,Pratteln,4133,CHE","_x000D_
+Herengracht 436_x000D_
+NLRLG001_x000D_,Herengracht 436,Amsterdam,1017 BZ,NLD","Hohenrainstrasse, Pratteln, Basel-Landschaft, 4133, Switzerland","Herengracht 436, Amsterdam, North Holland, 1017 BZ, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:29.208858,success
+205,"c/o Thomson Reuters 22 Mattenstrasse 4058 Basel, Switzerland,NULL,CHE","22 Mattenstrasse
+4058 Basel
+Switzerland,Basel,4058,CHE","22 Mattenstrasse, Basel, Basel-Stadt, 4058, Switzerland","22 Mattenstrasse, Basel, Basel-Stadt, 4058, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:29.208858,success
+206,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:48.174820,success
+207,"Rothausstrasse 61,Pratteln,4133,CHE","61 Southwark Street_x000D_
+ _x000D_
+ _x000D_,London,SE1 0HL,GBR","Rothausstrasse 61, Pratteln, 4133, Switzerland","61 Southwark Street, London, SE1 0HL, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:48.174820,success
+208,"Rothausstrasse 61    ,Muttenz,4132,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Muttenz, 4132, Switzerland","Rothausstrasse 61, Muttenz, 4132, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:48.174820,success
+209,"Klybeckstrasse,Basel,4057,CHE","Klybeckstr. 141, P 15, WKL-1358
+4057 Basel
+%1,Basel,4057,CHE","Klybeckstrasse, Basel, 4057, Switzerland","Klybeckstrasse 141, Basel, 4057, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:48.174820,success
+210,"Rothausstrasse 61,Muttenz,4132,CHE","61 Southwark Street_x000D_
+ _x000D_
+ _x000D_,London,SE1 0HL,GBR","Rothausstrasse 61, Muttenz, 4132, Switzerland","61 Southwark Street, London, SE1 0HL, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:45:48.174820,success
+211,"Syngenta Crop Protection AG Werk Rosental Schwarzwaldallee 215,Basel,4058,CHE","Syngenta Compton House_x000D_
+ _x000D_
+ _x000D_,GUILDFORD,GU3 1LR,GBR","Syngenta Crop Protection AG Werk Rosental Schwarzwaldallee 215, Basel, 4058, Switzerland","Syngenta Compton House, Guildford, GU3 1LR, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:07.750936,success
+212,"Letzipark Baslerstrasse 50  ,Zurich,8048,CHE","Battery Park, Bristol Road_x000D_
+ _x000D_
+ _x000D_,Birmingham,B29 6SR,GBR","Letzipark Baslerstrasse 50, Zurich, 8048, Switzerland","Battery Park, Bristol Road, Birmingham, B29 6SR, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:07.750936,success
+213,"Rue de Bains 33    ,Genève,1211,CHE","17 Rue de Lausanne,1201,CHE","Rue de Bains 33, Geneva, 1211, Switzerland","17 Rue de Lausanne, Geneva, 1201, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:07.750936,success
+214,"Baar,6340,CHE","Sherard Building, Edmund Halley Road_x000D_
+ _x000D_
+ _x000D_,Littlemore,OX4 4DQ,GBR","Baar, 6340, Switzerland","Sherard Building, Edmund Halley Road, Littlemore, OX4 4DQ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:07.750936,success
+215,"Switzerland Home Location,Switzerland Home Location,CHE","Nurses Home, Great Ormond Street,_x000D_
+Guildford street_x000D_
+ _x000D_,Guildford street,London,WC1N 1EH,GBR","Switzerland Home Location, Switzerland","Nurses Home, Great Ormond Street, Guildford Street, London, WC1N 1EH, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:07.750936,success
+216,"Switzerland Other Location,Switzerland Other Location,CHE","Unit E5  Calmount Park  Calmount Road  Ballymount_x000D_
+ _x000D_
+ _x000D_,Dublin 12,POSTAL,IRL","Switzerland Other Location, Switzerland, CHE","Unit E5, Calmount Park, Calmount Road, Ballymount, Dublin 12, Ireland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:27.971959,success
+217,"Klybeckstrasse,Basel,4057,CHE","Klybeckstr. 141, P 15, WKL-1358
+4057 Basel
+%1,Basel,4057,CHE","Klybeckstrasse, Basel, 4057, Switzerland","Klybeckstrasse 141, P 15, WKL-1358, 4057 Basel, Switzerland",VERY_LIKELY_MATCH,90,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:27.971959,success
+218,"Rothausstrasse 61,Muttenz,4132,CHE","61 Southwark Street_x000D_
+ _x000D_
+ _x000D_,London,SE1 0HL,GBR","Rothausstrasse 61, Muttenz, 4132, Switzerland","61 Southwark Street, London, SE1 0HL, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:27.971959,success
+219,"Fabrikstrasse 2 4056 Basel  ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","Fabrikstrasse 2, 4056 Basel, Switzerland","Lichtstrasse 35, 4056 Basel, Switzerland",DIFFERENT_BUT_NEARBY,45,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:27.971959,success
+220,"Hohenrainstrasse 24,Pratteln,4133,CHE","KY0004A1 Ceres UAX, Anstruther Road, Ceres, Cupar, Fife KY15 5NH
+KY15 5NH
+%1,KY15 5NH,GBR","Hohenrainstrasse 24, Pratteln, 4133, Switzerland","KY0004A1 Ceres UAX, Anstruther Road, Ceres, Cupar, Fife, KY15 5NH, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:27.971959,success
+221,"Petersplatz 1,Basel,4001,CHE","Radmarsh Road_x000D_
+ _x000D_
+ _x000D_,Nottingham,NG7 2GJ,GBR","Petersplatz 1, Basel, Basel-Stadt, 4001, Switzerland","Radmarsh Road, Nottingham, Nottinghamshire, NG7 2GJ, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:46.382972,success
+222,"Gloriastrasse 35,Zürich,8092,CHE","Stationstrasse 33, Bruttisellen,8306,CHE","Gloriastrasse 35, Zürich, Zürich, 8092, Switzerland","Stationstrasse 33, Bruttisellen, Zürich, 8306, Switzerland",NO_MATCH,10,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:46.384123,success
+223,"as Serv Prov for Snap Switzerland GmbH​ 22 Mattenstrasse Switzerland,Basel,4058,CHE","22 Mattenstrasse_x000D_
+ _x000D_
+ _x000D_,Basel,4058,CHE","22 Mattenstrasse, Basel, Basel-Stadt, 4058, Switzerland","22 Mattenstrasse, Basel, Basel-Stadt, 4058, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:46.384123,success
+224,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, Basel-Stadt, 4056, Switzerland","Lichtstrasse 35, Basel, Basel-Stadt, 4056, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:46.384123,success
+225,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein, Aargau, 4332, Switzerland","Schaffhauserstrasse, Stein, Aargau, 4332, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:46:46.384123,success
+226,"Attisholzstrasse 11    ,Luterbach,4542,CHE","Austraße 11
+6250 Kundl
+%1,Kundl,6250,AUT","Attisholzstrasse 11, Luterbach, Solothurn, 4542, Switzerland","Austraße 11, Kundl, Tyrol, 6250, Austria",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:04.594268,success
+227,"Schaffhauserstrasse    ,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse, Stein, Aargau, 4332, Switzerland","Schaffhauserstrasse, Stein, Aargau, 4332, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:04.594268,success
+228,"Rothausstrasse 61    ,Muttenz,4132,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Muttenz, Basel-Landschaft, 4132, Switzerland","Rothausstrasse 61, Muttenz, Basel-Landschaft, 4132, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:04.594268,success
+229,"Schaffhauserstrasse 101    ,Stein,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein, Aargau, 4332, Switzerland","Schaffhauserstrasse, Stein, Aargau, 4332, Switzerland",POSSIBLY_RELATED,60,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:04.594268,success
+230,"Switzerland Other Location,Switzerland Other Location,CHE","Harry Potter on Location Kings Cross 9 ¾  London,N1 9AP,GBR","Switzerland Other Location, Switzerland","Kings Cross Station, London, N1 9AP, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:04.594268,success
+231,"Geneva - General Office    ,NULL,CHE","Rue Gilles de Roberval_x000D_
+ZI du Bois Vert Ploermel_x000D_
+ _x000D_,ZI du Bois Vert Ploermel,Ploërmel,56800,FRA","Geneva General Office, Geneva, Switzerland","Rue Gilles de Roberval, ZI du Bois Vert Ploermel, Ploërmel, Brittany, 56800, France",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:22.565653,success
+232,"153 ROUTE DE THONON 1245 COLLONGE BELLERIVE     ,Geneva,1222,CHE","153 Route De Thonon, _x000D_
+1245 Collonge-Bellerive,_x000D_
+Geneva_x000D_
+
+1245","153 Route de Thonon, Collonge-Bellerive, Geneva, 1222, Switzerland","153 Route de Thonon, Collonge-Bellerive, Geneva, 1245, Switzerland",VERY_LIKELY_SAME,90,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:22.565653,success
+233,"as Serv Prov for Snap Switzerland GmbH​ 22 Mattenstrasse Switzerland,Basel,4058,CHE","22 Mattenstrasse_x000D_
+ _x000D_
+ _x000D_,Basel,4058,CHE","22 Mattenstrasse, Basel, 4058, Switzerland","22 Mattenstrasse, Basel, 4058, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:22.565653,success
+234,"Grabenstrasse 2,Baar,6340,CHE","3400 CARLISLE ST_x000D_
+ _x000D_
+ _x000D_,Dallas,75204,USA","Grabenstrasse 2, Baar, 6340, Switzerland","3400 Carlisle Street, Dallas, Texas, 75204, United States",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:22.565653,success
+235,"Chavannes-de-Bogis,1279,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Chavannes-de-Bogis, 1279, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:22.565653,success
+236,"Lugano,6900,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Lugano, Ticino, 6900, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:39.485265,success
+237,"Monthey,1870,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Monthey, Valais, 1870, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:39.485265,success
+238,"Sion,1951,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Sion, Valais, 1951, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:39.485265,success
+239,"Vezia,6943,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Vezia, Ticino, 6943, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:39.485265,success
+240,"Yverdon,1400,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Yverdon-les-Bains, Vaud, 1400, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:39.485265,success
+241,"Baden,5400,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Baden, 5400, Aargau, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:57.366467,success
+242,"Balerna,6828,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Balerna, 6828, Ticino, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:57.366467,success
+243,"Bellinzona,6500,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Bellinzona, 6500, Ticino, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:57.366467,success
+244,"Bern,3011,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Bern, 3011, Canton of Bern, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:57.366467,success
+245,"Rothausstrasse 61,Pratteln,4133,CHE",tbc,"Rothausstrasse 61, Pratteln, 4133, Basel-Landschaft, Switzerland",tbc,NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:47:57.366467,success
+246,"Dufourstrasse 43     ,Zurich,8008,CHE","Refinitiv Zurich, Dufourstrasse 43,0,CHE","Dufourstrasse 43, Zurich, 8008, Switzerland","Dufourstrasse 43, Zurich, 8008, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:16.890086,success
+247,"Rütitrasse 12,Schlieren,8952,CHE","Westfield Business Park
+Long Rd
+Paignton
+TQ4 7AU
+%1,Paignton,TQ4 7AU,GBR","Rütistrasse 12, Schlieren, 8952, Switzerland","Westfield Business Park, Long Road, Paignton, TQ4 7AU, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:16.890086,success
+248,"Claridenstrasse 41/43    ,Zurich,CHE","Claridenstrasse 41
+8002 Zurich
+%1,Zurich,8002,CHE","Claridenstrasse 41/43, Zurich, 8002, Switzerland","Claridenstrasse 41, Zurich, 8002, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:16.890086,success
+249,"Hohenrainstrasse 24,Pratteln,4133,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Hohenrainstrasse 24, Pratteln, 4133, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:16.890086,success
+250,"Via Ferrera 105,Ascona,6612,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Via Ferrera 105, Ascona, 6612, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:16.890086,success
+251,"Greifengasse 22,Basel,4005,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Greifengasse 22, Basel, Basel-Stadt, 4005, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:35.214830,success
+252,"Marktgasse 10,Bern,3011,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Marktgasse 10, Bern, Bern, 3011, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:35.214830,success
+253,"Zentralstrasse 40,Biel,2501,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Zentralstrasse 40, Biel, Bern, 2501, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:35.214830,success
+254,"Rue Pichard 3,Lausanne,1031,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Rue Pichard 3, Lausanne, Vaud, 1031, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:35.214830,success
+255,"Champs-Montants 2,Marin-Epagnier,2074,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Champs-Montants 2, Marin-Epagnier, Neuchâtel, 2074, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:35.214830,success
+256,"Fronwagplatz 1,Schaffhausen,8201,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Fronwagplatz 1, Schaffhausen, 8201, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:52.463329,success
+257,"Delemont,2800,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Delemont, 2800, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:52.463329,success
+258,"Zurich,8048,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Zurich, 8048, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:52.463329,success
+259,"Aarau,5000,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Aarau, 5000, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:52.463329,success
+260,"Affoltern am Albis,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Affoltern am Albis, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:48:52.463329,success
+261,"Basel,3678,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Basel, 3678, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:13.035802,success
+262,"Basel,4005,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Basel, 4005, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:13.035802,success
+263,"Chur,7000,CHE","Meteor Court
+Barnett Way
+Barnwood
+
+Gloucester
+GL4 3GG
+%1,Gloucester,GL4 3GG,GBR","Chur, 7000, Switzerland","Meteor Court, Barnett Way, Barnwood, Gloucester, GL4 3GG, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:13.035802,success
+264,"Frauenfeld,8500,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Frauenfeld, 8500, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:13.035802,success
+265,"Fribourg,1700,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Fribourg, 1700, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:13.035802,success
+266,"Haag (Rheintal),9469,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Haag, Rheintal, 9469, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:30.762413,success
+267,"Heerbrugg,9435,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Heerbrugg, 9435, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:30.762413,success
+268,"Kreuzlingen,8280,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Kreuzlingen, 8280, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:30.762413,success
+269,"La Chaux-de Fonds,2300,CHE","Meteor Court
+Barnett Way
+Barnwood
+
+Gloucester
+GL4 3GG
+%1,Gloucester,GL4 3GG,GBR","La Chaux-de-Fonds, 2300, Switzerland","Meteor Court, Barnett Way, Barnwood, Gloucester, GL4 3GG, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:30.762413,success
+270,"Locarno,6600,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Locarno, 6600, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:30.762413,success
+271,"Luzern,6002,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Luzern, 6002, Lucerne, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:47.079598,success
+272,"Marin-Epagnier,2074,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Marin-Epagnier, 2074, Neuchâtel, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:47.079598,success
+273,"Nyon,1260,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Nyon, 1260, Vaud, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:47.079598,success
+274,"Rickenbach,9532,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Rickenbach, 9532, Thurgau, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:47.079598,success
+275,"lbach,6438,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Ibach, 6438, Schwyz, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:49:47.079598,success
+276,"Solothurn,4500,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Solothurn, 4500, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:04.002180,success
+277,"Spreitenbach,8957,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Spreitenbach, 8957, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:04.002180,success
+278,"Thun,3601,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Thun, 3601, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:04.002180,success
+279,"Vesenaz,1222,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Vesenaz, 1222, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:04.002180,success
+280,"Wattwil,9630,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Wattwil, 9630, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:04.002180,success
+281,"Winterthur,8400,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Winterthur, 8400, Zurich, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:21.611864,success
+282,"Wohlen,5610,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Wohlen, 5610, Aargau, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:21.611864,success
+283,"Swing Building, 3rd and 4th floor Richtistrasse 7  ,Wallisellen,8304,CHE","1 Tower Place
+London
+EC3R 5BU
+%1,London,EC3R 5BU,GBR","Swing Building, 3rd and 4th floor, Richtistrasse 7, Wallisellen, 8304, Zurich, Switzerland","1 Tower Place, London, EC3R 5BU, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:21.611864,success
+284,"Neumühlequai 6,Zürich,8001,CHE","20 Canada Square
+Canary Wharf
+London
+E!$ 5LH
+United Kingdom,GBR","Neumühlequai 6, Zurich, 8001, Zurich, Switzerland","20 Canada Square, Canary Wharf, London, E14 5LH, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:21.611864,success
+285,"Alfred Escher-Strasse 34    ,NULL,8002,CHE","Alfred Escher-Strasse 34,8002,CHE","Alfred Escher-Strasse 34, Zurich, 8002, Zurich, Switzerland","Alfred Escher-Strasse 34, Zurich, 8002, Zurich, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:21.611864,success
+286,"S&P    ,NULL,CHE","S&P Global, Phoenix Paragon Plaza, UGB 30, LBS Road, Kurla,400070,IND","S&P, Zurich, Switzerland","S&P Global, Phoenix Paragon Plaza, UGB 30, LBS Road, Kurla, Mumbai, Maharashtra, 400070, India",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:40.944502,success
+287,"Zurich,8001,CHE","8005,CHE","Zurich, 8001, Switzerland","Zurich, 8005, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:40.944502,success
+288,"Biasca,6710,CHE","Old Salisbury Lane Romsey SO51 0ZN %1,Romsey,SO51 0ZN,GBR","Biasca, 6710, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:40.944502,success
+289,"Emmen,6032,CHE","Old Salisbury Lane Romsey SO51 0ZN %1,Romsey,SO51 0ZN,GBR","Emmen, 6032, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:40.944502,success
+290,"Hinwil,8340,CHE","Old Salisbury Lane Romsey SO51 0ZN %1,Romsey,SO51 0ZN,GBR","Hinwil, 8340, Switzerland","Old Salisbury Lane, Romsey, Hampshire, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:40.944502,success
+291,"Langenthal,4900,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Langenthal, 4900, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:57.661635,success
+292,"Liestal,4410,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Liestal, 4410, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:57.661635,success
+293,"Morges,1110,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Morges, 1110, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:57.661635,success
+294,"Pfaffikon,8808,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Pfaffikon, 8808, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:57.661635,success
+295,"Rapperswil,8640,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Rapperswil, 8640, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:50:57.661635,success
+296,"Sant-Antonino,6592,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Sant'Antonino, 6592, Ticino, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:14.376047,success
+297,"Sargans,7320,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Sargans, 7320, St. Gallen, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:14.376047,success
+298,"Schaffhausen,8201,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Schaffhausen, 8201, Schaffhausen, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:14.376047,success
+299,"Schattdorf,6467,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Schattdorf, 6467, Uri, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:14.376047,success
+300,"Schonbuhl,3321,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Schönbühl, 3321, Bern, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:14.376047,success
+301,"Sierre,3960,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Sierre, 3960, Valais, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:32.220071,success
+302,"St. Gallen,9000,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","St. Gallen, 9000, St. Gallen, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:32.220071,success
+303,"Vevey,1800,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Vevey, 1800, Vaud, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:32.220071,success
+304,"Zug,6300,CHE","Old Salisbury Lane
+Romsey
+SO51 0ZN
+%1,Romsey,SO51 0ZN,GBR","Zug, 6300, Zug, Switzerland","Old Salisbury Lane, Romsey, SO51 0ZN, Hampshire, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:32.220071,success
+305,"Tessinerplatz 5,Zürich,8027,CHE","1 Tower Place
+London
+EC3R 5BU
+%1,London,EC3R 5BU,GBR","Tessinerplatz 5, Zürich, 8027, Zürich, Switzerland","1 Tower Place, London, EC3R 5BU, Greater London, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:32.220071,success
+306,"Hohenrainstrasse 24,Pratteln,4133,CHE","Woodlands Estate   Manton Lane   Bedford
+Bedford
+MK41 7LW
+%1,Bedford,MK41 7LW,GBR","Hohenrainstrasse 24, Pratteln, Basel-Landschaft, 4133, Switzerland","Woodlands Estate, Manton Lane, Bedford, Bedfordshire, MK41 7LW, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:49.113069,success
+307,"Chemin de la Mairie 24,Perly,1258,CHE","Chemin de la Mairie 24,1213,CHE","Chemin de la Mairie 24, Perly, Geneva, 1258, Switzerland","Chemin de la Mairie 24, Petit-Lancy, Geneva, 1213, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:49.113069,success
+308,"Schärenmoosstrasse 99,    ,Zürich,CHE","8005,CHE","Schärenmoosstrasse 99, Zürich, Zürich, 8052, Switzerland","Zürich, Zürich, 8005, Switzerland",POSSIBLE_MATCH,50,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:49.113069,success
+309,"Geneva,1258,CHE","20 Canada Square 
+Canary Wharf
+London 
+E!$ 5LH
+United Kingdom,GBR","Geneva, Geneva, 1258, Switzerland","20 Canada Square, Canary Wharf, London, E14 5LH, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:49.113069,success
+310,"Josefstrasse 218    ,Zurich,8005,CHE","218 West Yard Road,USA","Josefstrasse 218, Zürich, Zürich, 8005, Switzerland","218 West Yard Road, USA",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:51:49.113069,success
+311,"Syngenta MÃ¼nchwilen    ,MÃ¼nchwilen AG,4333,CHE","Syngenta Compton House_x000D_
+ _x000D_
+ _x000D_,GUILDFORD,GU3 1LR,GBR","Syngenta, Münchwilen, Aargau, 4333, Switzerland","Syngenta Compton House, Guildford, Surrey, GU3 1LR, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:07.518523,success
+312,"Syngenta Crop Protection AG Werk Rosental Schwarzwaldallee 215,Basel,4058,CHE","Syngenta Compton House_x000D_
+ _x000D_
+ _x000D_,GUILDFORD,GU3 1LR,GBR","Syngenta Crop Protection AG Werk Rosental, Schwarzwaldallee 215, Basel, 4058, Switzerland","Syngenta Compton House, Guildford, Surrey, GU3 1LR, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:07.518523,success
+313,"Lindbergh-Allee 1    ,Glattpark,CHE","400013,IND","Lindbergh-Allee 1, Glattpark, Opfikon, Zurich, Switzerland","Mumbai, Maharashtra, 400013, India",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:07.518523,success
+314,"Riedbachstrasse 150    ,Bern,3027,CHE","_x000D_
+Stationsstraat 100_x000D_
+ _x000D_,Stationsstraat 100,MECHELEN,2800,BEL","Riedbachstrasse 150, Bern, 3027, Switzerland","Stationsstraat 100, Mechelen, Antwerp, 2800, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:07.518523,success
+315,"Opfikon,8152,CHE","400013,IND","Opfikon, Zurich, 8152, Switzerland","Mumbai, Maharashtra, 400013, India",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:07.518523,success
+316,"Opfikon Ch Lindbergh-allee 1    ,Opfikon,8152,CHE","8152,CHE","Lindbergh-Allee 1, Opfikon, 8152, Switzerland","Opfikon, 8152, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:25.138856,success
+317,"Beethovenstrasse 33,Zürich,8002,CHE",,,,NO_MATCH,0,One or both addresses are empty,validation_check,2025-08-22T10:52:25.138856,empty_address
+318,"Beethovenstrasse 33    ,Zurich,8002,CHE","8002,CHE","Beethovenstrasse 33, Zürich, 8002, Switzerland","Zürich, 8002, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:25.138856,success
+319,"Rothausstrasse 61,Muttenz,4132,CHE","_x000D_
+ _x000D_
+Waarderweg 39_x000D_,Haarlem,2031 BN,NLD","Rothausstrasse 61, Muttenz, 4132, Switzerland","Waarderweg 39, Haarlem, 2031 BN, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:25.138856,success
+320,",NULL,CHE","_x000D_
+ _x000D_
+Vollenhovermeer 2_x000D_,OSS,5347 JV,NLD",Switzerland,"Vollenhovermeer 2, Oss, 5347 JV, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:25.138856,success
+321,"Hohenrainstrasse 24,Pratteln,4133,CHE","Vollenhovermeer 2,OSS,5347 JV,NLD","Hohenrainstrasse 24, Pratteln, 4133, Basel-Landschaft, Switzerland","Vollenhovermeer 2, Oss, 5347 JV, North Brabant, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:45.686911,success
+322,"Route de Pré-Bois 20    ,Meyrin,1217,CHE","ICC Building-Bloc-A
+20 Route de Pre-Bois
+1215 GENEVE
+Switzerland,GENEVE,1215,CHE","Route de Pré-Bois 20, Meyrin, 1217, Geneva, Switzerland","Route de Pré-Bois 20, Genève, 1215, Geneva, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:45.686911,success
+323,"Rothausstrasse 61,Muttenz,4132,CHE","Lichtstrasse 35,Basel,4056,CHE","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:45.686911,success
+324,"3 Place des Bergues,Genève,1201,CHE","21 Moorfields,London,EC2M 6TX,GBR","3 Place des Bergues, Genève, 1201, Geneva, Switzerland","21 Moorfields, London, EC2M 6TX, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:45.686911,success
+325,"Hardstrasse 201 Prime Tower,Zürich,8005,CHE","Hardstrasse 201,8005,CHE","Hardstrasse 201, Prime Tower, Zürich, 8005, Zurich, Switzerland","Hardstrasse 201, Zürich, 8005, Zurich, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:52:45.686911,success
+326,"Wurmisweg 576,Kaiseraugst,4303,CHE","45 WATERVIEW BLVD_x000D_
+ _x000D_
+ _x000D_,PARISPPANY,07054,USA","Wurmisweg 576, Kaiseraugst, 4303, Switzerland","45 Waterview Boulevard, Parsippany, New Jersey, 07054, USA",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:04.127235,success
+327,"Industrie Nord 1  ,Werthenstein,6105,CHE","Industriepark 30 - Zone A
+2220 Heist-op-den-Berg
+%1,Heist-op-den-Berg,2220,BEL","Industrie Nord 1, Werthenstein, 6105, Switzerland","Industriepark 30 - Zone A, Heist-op-den-Berg, 2220, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:04.127235,success
+328,"Josefstrasse 218    ,Zurich,8005,CHE","218 West Yard Road,USA","Josefstrasse 218, Zurich, 8005, Switzerland","218 West Yard Road, USA",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:04.127235,success
+329,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein AG, 4332, Switzerland","Schaffhauserstrasse, Stein, 4332, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:04.127235,success
+330,"Uraniastrasse 9,Zürich,8001,CHE","Uraniastr. 9,8001,CHE","Uraniastrasse 9, Zurich, 8001, Switzerland","Uraniastrasse 9, Zurich, 8001, Switzerland",IDENTICAL_MATCH,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:04.127235,success
+331,"Schaffhauserstrasse    ,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse, Stein, Aargau, 4332, Switzerland","Schaffhauserstrasse, Stein, Aargau, 4332, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:22.485999,success
+332,"Chollerstrasse 4    ,Zug,6300,CHE","6300,CHE","Chollerstrasse 4, Zug, Zug, 6300, Switzerland","Zug, Zug, 6300, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:22.485999,success
+333,"Zug Ch [Tm][Pt] Chollerstasse 4    ,Zug,6300,CHE","6300,CHE","Chollerstrasse 4, Zug, Zug, 6300, Switzerland","Zug, Zug, 6300, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:22.485999,success
+334,"Beethovenstrasse 33    ,Zurich,8002,CHE","8002,CHE","Beethovenstrasse 33, Zurich, Zurich, 8002, Switzerland","Zurich, Zurich, 8002, Switzerland",PROBABLE_MATCH,70,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:22.485999,success
+335,"Wurmisweg 576,Kaiseraugst,4303,CHE","_x000D_
+ _x000D_
+Vollenhovermeer 2_x000D_,OSS,5347 JV,NLD","Wurmisweg 576, Kaiseraugst, Aargau, 4303, Switzerland","Vollenhovermeer 2, Oss, North Brabant, 5347 JV, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:22.485999,success
+336,"Industrie Nord 1  ,Werthenstein,6105,CHE","MSD Ireland (Carlow) Dublin Road Carlow_x000D_ _x000D_ _x000D_,CARLOW,R93KF74,IRL","Industrie Nord 1, Werthenstein, 6105, Lucerne, Switzerland","MSD Ireland (Carlow), Dublin Road, Carlow, R93 KF74, County Carlow, Ireland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:40.334981,success
+337,"Rothausstrasse 61,Muttenz,4132,CHE","Lichtstrasse 35_x000D_ _x000D_ _x000D_,Basel,4056,CHE","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:40.334981,success
+338,"Rosentalstrasse 67    ,Basel,4058,CHE","Rosentalstrasse 67, 4058 Basel,CH","Rosentalstrasse 67, Basel, 4058, Basel-Stadt, Switzerland","Rosentalstrasse 67, Basel, 4058, Basel-Stadt, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:40.334981,success
+339,"Rothausstrasse 61,Muttenz,4132,CHE","Lichtstrasse 35_x000D_ _x000D_ _x000D_,Basel,4056,CHE","Rothausstrasse 61, Muttenz, 4132, Basel-Landschaft, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:40.334981,success
+340,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_ _x000D_ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:40.334981,success
+341,"Brandschenkestrass 110,Zürich,8002,CHE","Strahlenbergerstrasse 110-112
+63067 Offenbach
+%1,Offenbach,63067,DEU","Brandschenkestrasse 110, Zürich, 8002, Switzerland","Strahlenbergerstrasse 110-112, Offenbach, 63067, Germany",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:59.860712,success
+342,"Lautengartenstrasse 6    ,Basel,4052,CHE","Lautengartenstrasse 6_x000D_
+_x000D_
+_x000D_,Basel,4052,CHE","Lautengartenstrasse 6, Basel, 4052, Switzerland","Lautengartenstrasse 6, Basel, 4052, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:59.860712,success
+343,"16 Quai General Guisan    ,Genève,1204,CHE","Refinitiv Geneva, 153 Route De Thonon,0,CHE","16 Quai General Guisan, Genève, 1204, Switzerland","153 Route De Thonon, Genève, 0, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:59.860712,success
+344,"Fabrikstrasse 2 4056 Basel  ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","Fabrikstrasse 2, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",POSSIBLY_RELATED,50,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:59.860712,success
+345,"Aeschengraben 27,Basel,4051,CHE","Boeing Avenue 8
+1119 BW SCHIPHOL-RIJK
+Netherlands,SCHIPHOL-RIJK,1119 BW,NLD","Aeschengraben 27, Basel, 4051, Switzerland","Boeing Avenue 8, Schiphol-Rijk, 1119 BW, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:53:59.860712,success
+346,"Rothausstrasse 61,Pratteln,4133,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Pratteln, Basel-Landschaft, 4133, Switzerland","Rothausstrasse 61, Muttenz, Basel-Landschaft, 4132, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:18.617345,success
+347,"Route de Thonon 153    ,Vésenaz,1222,CHE","158 Route De Thonon, _x000D_
+1245 Collonge-Bellerive,Geneva_x000D_
+1245","Route de Thonon 153, Vésenaz, Geneva, 1222, Switzerland","Route de Thonon 158, Collonge-Bellerive, Geneva, 1245, Switzerland",DIFFERENT,10,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:18.617345,success
+348,"Chemin de la Mairie 24,Perly,1258,CHE","Chemin de la Mairie 24,1213,CHE","Chemin de la Mairie 24, Perly, Geneva, 1258, Switzerland","Chemin de la Mairie 24, Petit-Lancy, Geneva, 1213, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:18.617345,success
+349,"Neumühlequai 6,Zürich,8001,CHE","Boeing Avenue 8
+1119 BW SCHIPHOL-RIJK
+Netherlands,SCHIPHOL-RIJK,1119 BW,NLD","Neumühlequai 6, Zürich, Zurich, 8001, Switzerland","Boeing Avenue 8, Schiphol-Rijk, North Holland, 1119 BW, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:18.617345,success
+350,"Hohenrainstrasse 24,Pratteln,4133,CHE","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa,Tokyo,JPN","Hohenrainstrasse 24, Pratteln, Basel-Landschaft, 4133, Switzerland","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa, Tokyo, Japan",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:18.617345,success
+351,"Industriestrasse 16,Rafz,8197,CHE","Industriestrasse 16 Zur01 Propco Gmbh_x000D_
+ _x000D_
+ _x000D_,Rafz,8197,CHE","Industriestrasse 16, Rafz, 8197, Switzerland","Industriestrasse 16, Rafz, 8197, Switzerland",IDENTICAL,98,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:36.773193,success
+352,"Flughaffenstrasse,Basel,4030,CHE","1955 AVIATION AVE_x000D_
+ _x000D_
+ _x000D_,West Chicago,60185,USA","Flughafenstrasse, Basel, 4030, Switzerland","1955 Aviation Avenue, West Chicago, Illinois, 60185, United States",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:36.773193,success
+353,"Schlossbergplatz 7,Baden,5400,CHE","Freilagerplatz 7
+4142 MUENCHENSTEIN
+Switzerland,MUENCHENSTEIN,4142,CHE","Schlossbergplatz 7, Baden, 5400, Switzerland","Freilagerplatz 7, Münchenstein, 4142, Switzerland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:36.773193,success
+354,"Avenue de la Gare 27,Délemont,2800,CHE","Rue de la Gare 3
+
+4950 WAIMES
+%1,WAIMES,4950,BEL","Avenue de la Gare 27, Delémont, 2800, Switzerland","Rue de la Gare 3, Waimes, 4950, Belgium",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:36.773193,success
+355,"Piazza Grande 2,Locarno,6600,CHE","P.zza Gae Aulenti 6 - Milano,20154,ITA","Piazza Grande 2, Locarno, 6600, Switzerland","Piazza Gae Aulenti 6, Milan, 20154, Italy",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:36.773193,success
+356,"Via S. Gottardo 36,Vezia,6943,CHE","Via Galeno 36,20126,ITA","Via San Gottardo 36, Vezia, Ticino, 6943, Switzerland","Via Galeno 36, Milan, Lombardy, 20126, Italy",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:57.299157,success
+357,"Rue du Lac 40,Yverdon,1400,CHE","371 Rue du Professeur Blayac_x000D_
+ _x000D_
+ _x000D_,Montpellier,34080,FRA","Rue du Lac 40, Yverdon-les-Bains, Vaud, 1400, Switzerland","371 Rue du Professeur Blayac, Montpellier, Hérault, 34080, France",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:57.299157,success
+358,"Andreasstrasse 5,Zürich,8050,CHE","5 ST ANDREWS CROSS PLYMOUTH  United Kingdom
+PL1 1AB
+%1,PL1 1AB,GBR","Andreasstrasse 5, Zürich, Zurich, 8050, Switzerland","5 St Andrews Cross, Plymouth, Devon, PL1 1AB, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:57.299157,success
+359,"Beethovenstrasse 19 Postfach,Zürich,8002,CHE","State Street,
+Beethovenstrasse 19 
+Postfach 
+8027 Zurich 
+Switzerland,8027,CHE","Beethovenstrasse 19, Postfach, Zürich, Zurich, 8002, Switzerland","Beethovenstrasse 19, Postfach, Zürich, Zurich, 8027, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:57.299157,success
+360,"Rotkreuz,6343,CHE","_x000D_
+Vollenhovermeer 2_x000D_
+ _x000D_,Vollenhovermeer 2,Oss,5347 JV,NLD","Rotkreuz, Zug, 6343, Switzerland","Vollenhovermeer 2, Oss, North Brabant, 5347 JV, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:54:57.299157,success
+361,"Zürich,8050,CHE","Netherlands,NLD","Zürich, 8050, Switzerland",Netherlands,NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:13.675001,success
+362,"Rue de Bains 33    ,Genève,1211,CHE","17 Rue de Lausanne,1201,CHE","33 Rue de Bains, Genève, 1211, Switzerland","17 Rue de Lausanne, Genève, 1201, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:13.675001,success
+363,"Route d'Oron 79    ,Lausanne,1010,CHE","19-21 Route D'arlon_x000D_
+ _x000D_
+ _x000D_,Strassen,8009,LUX","79 Route d'Oron, Lausanne, 1010, Switzerland","19-21 Route d'Arlon, Strassen, 8009, Luxembourg",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:13.675001,success
+364,"Rue de Gruyeres 106    ,Bulle,1630,CHE","2 rue de L'industrie,1630,CHE","106 Rue de Gruyeres, Bulle, 1630, Switzerland","2 Rue de L'industrie, Bulle, 1630, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:13.675001,success
+365,"Dammstrasse 19    ,Zug,6300,CHE","22 Mattenstrasse_x000D_
+ _x000D_
+ _x000D_,Basel,4058,CHE","19 Dammstrasse, Zug, 6300, Switzerland","22 Mattenstrasse, Basel, 4058, Switzerland",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:13.675001,success
+366,"Fabrikstrasse 2    ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","Fabrikstrasse 2, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:32.946258,success
+367,"Klybeckstrasse 191    ,Basel,4057,CHE","Klybeckstrasse 141
+4057 Basel
+%1,Basel,4057,CHE","Klybeckstrasse 191, Basel, 4057, Switzerland","Klybeckstrasse 141, Basel, 4057, Switzerland",DIFFERENT,10,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:32.946258,success
+368,"Schaffhauserstrasse 101    ,Stein,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein, 4332, Switzerland","Schaffhauserstrasse, Stein, 4332, Switzerland",DIFFERENT,15,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:32.946258,success
+369,",NULL,CHE","CW0017A1 Church Minshall SAX, Muslin Row, Church Minshull, Nantwich, Cheshire CW5 6DY
+CW5 6DY
+%1,CW5 6DY,GBR","Unknown, Switzerland","CW0017A1 Church Minshall SAX, Muslin Row, Church Minshull, Nantwich, Cheshire, CW5 6DY, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:32.946258,success
+370,"Rothausstrasse 61,Muttenz,4132,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Rothausstrasse 61, Muttenz, 4132, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",DIFFERENT,20,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:32.946258,success
+371,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:51.370755,success
+372,"Fabrikstrasse 2 4056 Basel  ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","Fabrikstrasse 2, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:51.370755,success
+373,"Schaffhauserstrasse 101    ,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein, 4332, Switzerland","Schaffhauserstrasse, Stein, 4332, Switzerland",POSSIBLY_RELATED,50,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:51.370755,success
+374,"Rothausstrasse 61,Pratteln,4133,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Pratteln, 4133, Switzerland","Rothausstrasse 61, Muttenz, 4132, Switzerland",DIFFERENT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:51.370755,success
+375,"Hohenrainstrasse 24,Pratteln,4133,CHE","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa,Tokyo,JPN","Hohenrainstrasse 24, Pratteln, 4133, Switzerland","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa, Tokyo, Japan",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:55:51.370755,success
+376,"Flughaffenstrasse,Basel,4030,CHE","1955 AVIATION AVE_x000D_
+ _x000D_
+ _x000D_,West Chicago,60185,USA","Flughafenstrasse, Basel, 4030, Switzerland","1955 Aviation Avenue, West Chicago, Illinois, 60185, USA",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:11.328509,success
+377,"Via Serafino Balestra 31 6600 Locarno  ,Locarno,CHE","Via S. Balestra 31, LOC-002
+6601 Locarno
+%1,Locarno,6601,CHE","Via Serafino Balestra 31, Locarno, 6600, Switzerland","Via Serafino Balestra 31, Locarno, 6601, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:11.328509,success
+378,"Rue de Bains 33    ,Genève,1211,CHE","17 Rue de Lausanne,1201,CHE","Rue des Bains 33, Geneva, 1211, Switzerland","17 Rue de Lausanne, Geneva, 1201, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:11.328509,success
+379,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:11.328509,success
+380,"Fabrikstrasse 2 4056 Basel  ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","Fabrikstrasse 2, Basel, 4056, Switzerland","Lichtstrasse 35, Basel, 4056, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:11.328509,success
+381,"Schaffhauserstrasse 101    ,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein, 4332, Aargau, Switzerland","Schaffhauserstrasse, Stein, 4332, Aargau, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:29.829191,success
+382,"Hohenrainstrasse 24,Pratteln,4133,CHE","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa,Tokyo,JPN","Hohenrainstrasse 24, Pratteln, 4133, Basel-Landschaft, Switzerland","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa, Tokyo, Japan",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:29.829191,success
+383,"Wurmisweg 576,Kaiseraugst,4303,CHE","45 WATERVIEW BLVD_x000D_
+ _x000D_
+ _x000D_,PARISPPANY,07054,USA","Wurmisweg 576, Kaiseraugst, 4303, Aargau, Switzerland","45 Waterview Boulevard, Parsippany, 07054, New Jersey, United States",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:29.829191,success
+384,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",IDENTICAL,100,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:29.829191,success
+385,"Fabrikstrasse 2 4056 Basel  ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","Fabrikstrasse 2, Basel, 4056, Basel-Stadt, Switzerland","Lichtstrasse 35, Basel, 4056, Basel-Stadt, Switzerland",DIFFERENT_BUT_NEARBY,30,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:29.829191,success
+386,"Eichenweg 1,Liestal,4410,CHE","_x000D_
+ _x000D_
+Haaksbergweg 16_x000D_,AMSTERDAM,1101 BX,NLD","Eichenweg 1, Liestal, 4410, Basel-Landschaft, Switzerland","Haaksbergweg 16, Amsterdam, 1101 BX, North Holland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:49.397774,success
+387,"Hohenrainstrasse 24,Pratteln,4133,CHE","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa,Tokyo,JPN","Hohenrainstrasse 24, Pratteln, 4133, Basel-Landschaft, Switzerland","2-2-24 Higashi Shinagawa, Tennozu Central Tower, Shinagawa, Tokyo, Japan",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:49.397774,success
+388,"Aeschenplatz 6    ,Basel,CHE","50 Bank Street
+LONDON
+E14 5NT
+United Kingdom,LONDON,E14 5NT,GBR","Aeschenplatz 6, Basel, 4051, Basel-Stadt, Switzerland","50 Bank Street, London, E14 5NT, England, United Kingdom",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:49.397774,success
+389,"3 Place des Bergues,Genève,1201,CHE","_x000D_
+ _x000D_
+Admiraliteitskade 62_x000D_,Rotterdam,3063 ED,NLD","3 Place des Bergues, Geneva, 1201, Geneva, Switzerland","Admiraliteitskade 62, Rotterdam, 3063 ED, South Holland, Netherlands",NO_MATCH,0,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:49.397774,success
+390,"Route de Thonon 153    ,Vésenaz,1222,CHE","Refinitiv Geneva, 153 Route De Thonon,0,CHE","Route de Thonon 153, Vésenaz, 1222, Geneva, Switzerland","153 Route de Thonon, Geneva, 1222, Geneva, Switzerland",IDENTICAL,95,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:49.397774,success
+391,"Schärenmoosstrasse 99,    ,Zürich,CHE","CH-8052,CHE","Schärenmoosstrasse 99, Zürich, Zürich, Switzerland","8052, Zürich, Zürich, Switzerland",VERY_LIKELY_SAME,85,Batch comparison and standardization completed,azure_openai_batch_with_standardization,2025-08-22T10:56:56.038953,success

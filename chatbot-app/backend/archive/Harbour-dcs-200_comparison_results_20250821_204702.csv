@@ -1,0 +1,215 @@
+id,original_address_1,original_address_2,standardized_address_1,standardized_address_2,match_level,confidence_score,analysis,method_used,timestamp,status
+1,"Rue de Bains 33    ,Genève,1211,CHE","17 Rue de Lausanne,1201,CHE","33 Rue de Bains, Genève, 1211, CHE","17 Rue de Lausanne, Genève, 1201, CHE",LOW,30,"Different street numbers, different street names, and different postal codes indicate these are different addresses within the same city.",azure_openai_batch_with_standardization,2025-08-21T20:47:15.822359,success
+2,"Rue Saint-Martin 26    ,Lausanne,1005,CHE","EPFL, INNOVATION PARK, BUILDING F_x000D_
+ _x000D_
+ _x000D_,Lausanne,1015,CHE","26 Rue Saint-Martin, Lausanne, 1005, CHE","EPFL Innovation Park, Building F, Lausanne, 1015, CHE",MEDIUM,50,"Different street names and postal codes, but both addresses are in Lausanne. They are likely different locations within the same city.",azure_openai_batch_with_standardization,2025-08-21T20:47:15.822359,success
+3,"Steinbühlweg 69,Allschwil,4123,CHE","Langhurstwood Road_x000D_
+ _x000D_
+ _x000D_,Horsham,RH12 4QD,GBR","69 Steinbühlweg, Allschwil, 4123, CHE","Langhurstwood Road, Horsham, RH12 4QD, GBR",NO_MATCH,0,"Completely different countries, cities, and street names. These are entirely different addresses.",azure_openai_batch_with_standardization,2025-08-21T20:47:15.822359,success
+4,"Hauptstrasse 4    ,Sisseln,4334,CHE","45 WATERVIEW BLVD_x000D_
+ _x000D_
+ _x000D_,PARISPPANY,07054,USA","4 Hauptstrasse, Sisseln, 4334, CHE","45 Waterview Blvd, Parsippany, 07054, USA",NO_MATCH,0,"Completely different countries, cities, and street names. These are entirely different addresses.",azure_openai_batch_with_standardization,2025-08-21T20:47:15.822359,success
+5,"Hardstrasse 201 Prime Tower,Zürich,8005,CHE","Hardstrasse 201,8005,CHE","201 Hardstrasse, Prime Tower, Zürich, 8005, CHE","201 Hardstrasse, Zürich, 8005, CHE",EXACT,95,"Same street number, street name, city, and postal code. The only difference is the inclusion of 'Prime Tower' in one address, indicating the same location.",azure_openai_batch_with_standardization,2025-08-21T20:47:15.822359,success
+6,"Schwarzenburgstrasse 160    ,Liebefeld,3097,CHE","_x000D_
+Blarenberglaan 2_x000D_
+ _x000D_,Blarenberglaan 2,MECHELEN,2800,BEL","Schwarzenburgstrasse 160, Liebefeld, 3097, CHE","Blarenberglaan 2, Mechelen, 2800, BEL",NO_MATCH,0,"The addresses are in completely different countries (CHE vs BEL), different cities, and different street names and numbers.",azure_openai_batch_with_standardization,2025-08-21T20:47:34.579065,success
+7,"Route de Champ Colin 2    ,Nyon,1260,CHE","Route de la Maison-Carrée 31,CHE","Route de Champ Colin 2, Nyon, 1260, CHE","Route de la Maison-Carrée 31, CHE",NO_MATCH,10,"Different street names and numbers, and the second address lacks city and postal code information.",azure_openai_batch_with_standardization,2025-08-21T20:47:34.579065,success
+8,"Route de l Aeroport 31    ,Geneva,1215,CHE","Route de Saint Julien 7/9,1227,CHE","Route de l'Aeroport 31, Geneva, 1215, CHE","Route de Saint Julien 7/9, 1227, CHE",LOW,30,"Different street names and numbers, and different postal codes, though both are in Geneva, CHE.",azure_openai_batch_with_standardization,2025-08-21T20:47:34.579065,success
+9,"Rue de Pre-Bois 14    ,Meyrin,CHE","14 Cullum Street London, GB EC3M 7JJ
+
+%1,GBR","Rue de Pre-Bois 14, Meyrin, CHE","14 Cullum Street, London, EC3M 7JJ, GBR",NO_MATCH,0,"The addresses are in completely different countries (CHE vs GBR), different cities, and different street names and numbers.",azure_openai_batch_with_standardization,2025-08-21T20:47:34.579065,success
+10,"12 ave des Morgines    ,Petit-Lancy,1213,CHE","_x000D_
+Blarenberglaan 2_x000D_
+ _x000D_,Blarenberglaan 2,MECHELEN,2800,BEL","12 Avenue des Morgines, Petit-Lancy, 1213, CHE","Blarenberglaan 2, Mechelen, 2800, BEL",NO_MATCH,0,"The addresses are in completely different countries (CHE vs BEL), different cities, and different street names and numbers.",azure_openai_batch_with_standardization,2025-08-21T20:47:34.579065,success
+11,"Neue Winterthurerstr. 99    ,Wallisellen,8304,CHE","Van-der-Smissen-Str. 9, Hamburg,22767,DEU","Neue Winterthurerstrasse 99, Wallisellen, 8304, CHE","Van-der-Smissen-Strasse 9, Hamburg, 22767, DEU",NO_MATCH,0,"Different street names, street numbers, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:47:48.910002,success
+12,"Industriestrasse 54    ,Glattbrugg,8152,CHE","_x000D_
+Blarenberglaan 2_x000D_
+ _x000D_,Blarenberglaan 2,MECHELEN,2800,BEL","Industriestrasse 54, Glattbrugg, 8152, CHE","Blarenberglaan 2, Mechelen, 2800, BEL",NO_MATCH,0,"Different street names, street numbers, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:47:48.910002,success
+13,"Bern    ,Bern,3018,CHE","3008,CHE","Bern, Bern, 3018, CHE","Bern, Bern, 3008, CHE",LOW,30,"Same city and country, different postal codes. Likely nearby but not the same address.",azure_openai_batch_with_standardization,2025-08-21T20:47:48.910002,success
+14,"Ericss    ,NULL,CHE","Ericsson Software Campus_x000D_
+Cornmaddy_x000D_
+ _x000D_,Cornmaddy,Athlone,POSTAL,IRL","Ericss, CHE","Ericsson Software Campus, Cornmaddy, Athlone, POSTAL, IRL",NO_MATCH,0,"Different street names, cities, and countries. No valid comparison can be made.",azure_openai_batch_with_standardization,2025-08-21T20:47:48.910002,success
+15,"as Serv Prov for Snap Switzerland GmbH​ 22 Mattenstrasse Switzerland,Basel,4058,CHE","22 Mattenstrasse_x000D_
+ _x000D_
+ _x000D_,Basel,4058,CHE","22 Mattenstrasse, Basel, 4058, CHE","22 Mattenstrasse, Basel, 4058, CHE",EXACT,95,"Identical street name, street number, city, and postal code. Only minor formatting differences.",azure_openai_batch_with_standardization,2025-08-21T20:47:48.910002,success
+16,"Gloriastrasse 35,Zürich,8092,CHE","35 Kingsland, London","35 Gloriastrasse, Zürich, 8092, CHE","35 Kingsland, London, GBR",NO_MATCH,0,"Different street names, cities, and countries. No components match.",azure_openai_batch_with_standardization,2025-08-21T20:48:01.311368,success
+17,"Bärengasse 29,Zürich,8001,CHE","Hardstrasse 201,8005,CHE","29 Bärengasse, Zürich, 8001, CHE","201 Hardstrasse, Zürich, 8005, CHE",LOW,30,"Same city and country, but different street names and numbers.",azure_openai_batch_with_standardization,2025-08-21T20:48:01.311877,success
+18,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","35 Lichtstrasse, Basel, 4056, CHE","35 Lichtstrasse, Basel, 4056, CHE",EXACT,100,Identical addresses after standardization. Only minor formatting differences.,azure_openai_batch_with_standardization,2025-08-21T20:48:01.311877,success
+19,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","101 Schaffhauserstrasse, Stein AG, 4332, CHE","Schaffhauserstrasse, Stein, 4332, CHE",HIGH,85,"Same street name and city, but street number is missing in the second address. Likely the same location.",azure_openai_batch_with_standardization,2025-08-21T20:48:01.311877,success
+20,"Rothausstrasse 61,Muttenz,4132,CHE","Malpas Road_x000D_
+61 Malpas Road_x000D_
+ _x000D_,61 Malpas Road,London,E8 1NA,GBR","61 Rothausstrasse, Muttenz, 4132, CHE","61 Malpas Road, London, E8 1NA, GBR",NO_MATCH,0,"Different street names, cities, and countries. No components match.",azure_openai_batch_with_standardization,2025-08-21T20:48:01.311877,success
+21,"Lichtstrasse 35,Basel,4056,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Lichtstrasse 35, Basel, 4056, CHE","Lichtstrasse 35, Basel, 4056, CHE",EXACT,100,Both addresses are identical after removing extraneous characters and standardizing formatting.,azure_openai_batch_with_standardization,2025-08-21T20:48:13.598490,success
+22,"Rothausstrasse 61,Pratteln,4133,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Pratteln, 4133, CHE","Rothausstrasse 61, Muttenz, 4132, CHE",LOW,45,"Street names and numbers match, but cities and postal codes differ, indicating different locations within the same region.",azure_openai_batch_with_standardization,2025-08-21T20:48:13.598490,success
+23,"Hohenrainstrasse 24,Pratteln,4133,CHE","KY0004A1 Ceres UAX, Anstruther Road, Ceres, Cupar, Fife KY15 5NH
+KY15 5NH
+%1,KY15 5NH,GBR","Hohenrainstrasse 24, Pratteln, 4133, CHE","Anstruther Road, Ceres, Cupar, Fife, KY15 5NH, GBR",NO_MATCH,0,"Addresses are completely different in terms of street names, cities, postal codes, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:13.598490,success
+24,"Neuhofstrasse 30/32/34,Baar,6340,CHE","9400 Oxford Business Park, COWLEY_x000D_
+ _x000D_
+ _x000D_,OXFORD,OX4 2HN,GBR","Neuhofstrasse 30/32/34, Baar, 6340, CHE","9400 Oxford Business Park, Cowley, Oxford, OX4 2HN, GBR",NO_MATCH,0,"Addresses are completely different in terms of street names, cities, postal codes, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:13.598490,success
+25,"Zug,6300,CHE",,,,NO_MATCH,0,One or both addresses are empty,validation_check,2025-08-21T20:48:13.598490,empty_address
+26,"Bösch 21    ,Hünenberg,6331,CHE","_x000D_
+ _x000D_
+Van Asch Van Wijckstraat 55h_x000D_,AMERSFOORT,3811,NLD","Bösch 21, Hünenberg, 6331, CHE","Van Asch Van Wijckstraat 55h, Amersfoort, 3811, NLD",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:30.879527,success
+27,"Rothausstrasse 61,Muttenz,4132,CHE","Hullenbergweg 85
+1101 AMSTERDAM
+Netherlands,AMSTERDAM,1101,NLD","Rothausstrasse 61, Muttenz, 4132, CHE","Hullenbergweg 85, Amsterdam, 1101, NLD",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:30.879527,success
+28,"Hohenrainstrasse 24,Pratteln,4133,CHE","_x000D_
+ _x000D_
+Hullenbergweg 85_x000D_,AMSTERDAM,1101,NLD","Hohenrainstrasse 24, Pratteln, 4133, CHE","Hullenbergweg 85, Amsterdam, 1101, NLD",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:30.879527,success
+29,"Aeschengraben 27,Basel,4051,CHE","Willem Einthovenstraat 13
+2342 BH Oegstgeest
+Netherlands,Oegstgeest,2342 BH,NLD","Aeschengraben 27, Basel, 4051, CHE","Willem Einthovenstraat 13, Oegstgeest, 2342 BH, NLD",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:30.879527,success
+30,"25CS    ,Zurich,CHE","GOLDMAN SACHS, One Centenary Way_x000D_
+ _x000D_
+ _x000D_,BIRMINGHAM,B3 3HJ,GBR","25CS, Zurich, CHE","One Centenary Way, Birmingham, B3 3HJ, GBR",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:30.879527,success
+31,"7RDC    ,Geneva,CHE","8 Mint Walk_x000D_
+ _x000D_
+ _x000D_,Croydon,CR0 1AE,GBR","7 Rue de la Confédération, Geneva, CHE","8 Mint Walk, Croydon, CR0 1AE, GBR",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:44.549579,success
+32,"7RDC    ,Geneva,CHE","GOLDMAN SACHS, One Centenary Way_x000D_
+ _x000D_
+ _x000D_,BIRMINGHAM,B3 3HJ,GBR","7 Rue de la Confédération, Geneva, CHE","One Centenary Way, Birmingham, B3 3HJ, GBR",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:44.549579,success
+33,"Ru de la Confederation 7 PO Box 3666; 1211 Geneva 3. Switzerland  ,Geneva,1211,CHE","Rue de la Confederation 8
+
+1211 Geneve
+%1,Geneve,1211,CHE","7 Rue de la Confédération, Geneva, 1211, CHE","8 Rue de la Confédération, Geneva, 1211, CHE",MEDIUM,70,"Same street name and city, different street numbers. Likely nearby addresses.",azure_openai_batch_with_standardization,2025-08-21T20:48:44.549579,success
+34,"Claridenstrasse 25 8021 Zurich, Switzerland  ,Zurich,8021,CHE","GOLDMAN SACHS, One Centenary Way_x000D_
+ _x000D_
+ _x000D_,BIRMINGHAM,B3 3HJ,GBR","25 Claridenstrasse, Zurich, 8021, CHE","One Centenary Way, Birmingham, B3 3HJ, GBR",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:48:44.549579,success
+35,"Rothausstrasse 61,Muttenz,4132,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","61 Rothausstrasse, Muttenz, 4132, CHE","35 Lichtstrasse, Basel, 4056, CHE",LOW,30,"Different street numbers, street names, and cities. Same country.",azure_openai_batch_with_standardization,2025-08-21T20:48:44.549579,success
+36,"Brandschenkestrass 110,Zürich,8002,CHE","Strahlenbergerstrasse 110-112
+63067 Offenbach
+%1,Offenbach,63067,DEU","Brandschenkestrasse 110, Zürich, 8002, CHE","Strahlenbergerstrasse 110-112, Offenbach, 63067, DEU",NO_MATCH,0,"Different street names, cities, and countries. Completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:48:59.097175,success
+37,"Neuhofstrasse 4,Baar,6340,CHE","_x000D_
+ _x000D_
+Oostpolder 4_x000D_,EEMSHAVEN,9979 XT,NLD","Neuhofstrasse 4, Baar, 6340, CHE","Oostpolder 4, Eemshaven, 9979 XT, NLD",NO_MATCH,0,"Different street names, cities, and countries. Completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:48:59.098605,success
+38,"Gloriastrasse 35,Zürich,8092,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Gloriastrasse 35, Zürich, 8092, CHE","Lichtstrasse 35, Basel, 4056, CHE",NO_MATCH,0,Different street names and cities. Completely different locations.,azure_openai_batch_with_standardization,2025-08-21T20:48:59.098605,success
+39,"Gubelstrasse 36,Zug,6300,CHE","_x000D_
+Fokkerweg 300_x000D_
+ _x000D_,Fokkerweg 300,Oude meer,1438 AN,NLD","Gubelstrasse 36, Zug, 6300, CHE","Fokkerweg 300, Oude Meer, 1438 AN, NLD",NO_MATCH,0,"Different street names, cities, and countries. Completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:48:59.098605,success
+40,"CH-ZRH-130    ,Zurich,8002,CHE","_x000D_
+Insulindelaan 130_x000D_
+Noord-Brabant_x000D_,Insulindelaan 130,EINDHOVEN,5613 BT,NLD","CH-ZRH-130, Zurich, 8002, CHE","Insulindelaan 130, Eindhoven, 5613 BT, NLD",NO_MATCH,0,"Different street names, cities, and countries. Completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:48:59.098605,success
+41,"CH-ZRH-BAER25    ,Zurich,8001,CHE","19/20 Cornhill, Lincoln
+LN5 7HD
+%1,LN5 7HD,GBR","25 Baerengasse, Zurich, 8001, CHE","19/20 Cornhill, Lincoln, LN5 7HD, GBR",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:49:12.887806,success
+42,"CH-ZRH-BRA150    ,Zurich,8002,CHE","_x000D_
+Kesterenlaan 150_x000D_
+Noord-Brabant_x000D_,Kesterenlaan 150,BREDA,4822 WK,NLD","150 Brandschenkestrasse, Zurich, 8002, CHE","150 Kesterenlaan, Breda, 4822 WK, NLD",NO_MATCH,0,"Different street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:49:12.887806,success
+43,"CH-ZRH-ERST1    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln
+LN5 7HD
+%1,LN5 7HD,GBR","1 Erstrasse, Zurich, 8004, CHE","19/20 Cornhill, Lincoln, LN5 7HD, GBR",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:49:12.887806,success
+44,"CH-ZRH-EURA1    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln
+LN5 7HD
+%1,LN5 7HD,GBR","1 Europaallee, Zurich, 8004, CHE","19/20 Cornhill, Lincoln, LN5 7HD, GBR",NO_MATCH,0,"Different street numbers, street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:49:12.887806,success
+45,"CH-ZRH-EURF    ,Zurich,8004,CHE","19/20 Cornhill, Lincoln
+LN5 7HD
+%1,LN5 7HD,GBR","Europaallee, Zurich, 8004, CHE","19/20 Cornhill, Lincoln, LN5 7HD, GBR",NO_MATCH,0,"Different street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:49:12.887806,success
+46,"CH-ZRH-EURG    ,Zurich,8004,CHE","Herculesweg 8
+4338 PL Middelburg
+Netherlands,Middelburg,4338PL,NLD","Zurich, 8004, CHE","Herculesweg 8, Middelburg, 4338PL, NLD",NO_MATCH,0,The addresses are in completely different countries and cities. No components match.,azure_openai_batch_with_standardization,2025-08-21T20:49:26.074315,success
+47,"CH-ZRH-KAL1    ,Zurich,8045,CHE","19/20 Cornhill, Lincoln
+LN5 7HD
+%1,LN5 7HD,GBR","Zurich, 8045, CHE","19/20 Cornhill, Lincoln, LN5 7HD, GBR",NO_MATCH,0,The addresses are in different countries and cities. No components match.,azure_openai_batch_with_standardization,2025-08-21T20:49:26.074315,success
+48,"Talstrasse 1-9,Münchenbuchsee,3053,CHE","Vulkanstrasse 106
+8048 Zürich
+%1,Zürich,8048,CHE","Talstrasse 1-9, Münchenbuchsee, 3053, CHE","Vulkanstrasse 106, Zürich, 8048, CHE",NO_MATCH,0,The addresses are in different cities within the same country. No components match.,azure_openai_batch_with_standardization,2025-08-21T20:49:26.074315,success
+49,"Rothausstrasse 61,Muttenz,4132,CHE","Lichtstrasse 35_x000D_
+ _x000D_
+ _x000D_,Basel,4056,CHE","Rothausstrasse 61, Muttenz, 4132, CHE","Lichtstrasse 35, Basel, 4056, CHE",NO_MATCH,0,The addresses are in different cities within the same country. No components match.,azure_openai_batch_with_standardization,2025-08-21T20:49:26.074315,success
+50,"Movarco Building, 3rd Floor, Route Jo-Siffert 4    ,Givisiez,1762,CHE","Movarco Building, 3rd Floor, Route Jo-Siffert 4,1762,CHE","Movarco Building, 3rd Floor, Route Jo-Siffert 4, Givisiez, 1762, CHE","Movarco Building, 3rd Floor, Route Jo-Siffert 4, Givisiez, 1762, CHE",EXACT,100,"The addresses are identical in all components including street name, building, floor, city, and postal code.",azure_openai_batch_with_standardization,2025-08-21T20:49:26.074315,success
+51,"1st floor Javastrasse 2 (HBS)    ,Volketswil,8604,CHE","1st floor Javastrasse 2 (HBS),8003,CHE","1st Floor, Javastrasse 2, Volketswil, 8604, CHE","1st Floor, Javastrasse 2, 8003, CHE",LOW,35,"The street name and building details match, but the postal codes are different, indicating different locations within the same country.",azure_openai_batch_with_standardization,2025-08-21T20:49:38.620811,success
+52,"Gubelstrasse 24 Park Tower  ,Zug,6300,CHE","Baarerstrasse 96 Zug
+%1,GBR","Gubelstrasse 24, Park Tower, Zug, 6300, CHE","Baarerstrasse 96, Zug, GBR",NO_MATCH,0,"The street names and numbers are different, and the countries are different, indicating completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:49:38.620811,success
+53,"Via Penate 4    ,Mendriso,6987,CHE","_x000D_
+Blarenberglaan 2_x000D_
+ _x000D_,Blarenberglaan 2,MECHELEN,2800,BEL","Via Penate 4, Mendriso, 6987, CHE","Blarenberglaan 2, Mechelen, 2800, BEL",NO_MATCH,0,"The addresses are in different countries with different street names and numbers, indicating completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:49:38.620811,success
+54,"Neue Winterthurerstr. 99    ,Wallisellen,8304,CHE","Van-der-Smissen-Str. 9, Hamburg,22767,DEU","Neue Winterthurerstr. 99, Wallisellen, 8304, CHE","Van-der-Smissen-Str. 9, Hamburg, 22767, DEU",NO_MATCH,0,"The addresses are in different countries with different street names and numbers, indicating completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:49:38.620811,success
+55,"Klausstrasse 4, 8008 Zurich    ,Zurich,8008,CHE","Klausstrasse 4, 8008 Zurich, Switzerland,8008,SWZ","Klausstrasse 4, Zurich, 8008, CHE","Klausstrasse 4, Zurich, 8008, CHE",EXACT,100,"The addresses are identical in terms of street name, number, city, and postal code. The country code 'SWZ' is a minor variation of 'CHE' (Switzerland).",azure_openai_batch_with_standardization,2025-08-21T20:49:38.620811,success
+56,"Uraniastrasse 9    ,Zurich,8002,CHE","Uraniastr. 9,8001,CHE","Uraniastrasse 9, Zurich, 8002, CHE","Uraniastrasse 9, Zurich, 8001, CHE",LOW,30,Different postal codes (8002 vs 8001) indicate different locations within Zurich.,azure_openai_batch_with_standardization,2025-08-21T20:49:52.611205,success
+57,"Uraniastrasse 9,Zürich,8001,CHE","Uraniastr. 9,8001,CHE","Uraniastrasse 9, Zurich, 8001, CHE","Uraniastrasse 9, Zurich, 8001, CHE",EXACT,95,Identical address with minor formatting differences (Uraniastrasse vs Uraniastr.).,azure_openai_batch_with_standardization,2025-08-21T20:49:52.611205,success
+58,"Quai de la Poste 2    ,Genève,1204,CHE","_x000D_
+ _x000D_
+Oval Tower De Entree 195_x000D_,Amsterdam,1101 HE,NLD","Quai de la Poste 2, Genève, 1204, CHE","Oval Tower De Entree 195, Amsterdam, 1101 HE, NLD",NO_MATCH,0,Completely different addresses in different countries (Switzerland vs Netherlands).,azure_openai_batch_with_standardization,2025-08-21T20:49:52.611205,success
+59,"Geneva, Place Des Bergues 3, Rue Kleberg 8-12    ,Geneva,1201,CHE","Place des Bergues 3, Rue Kleberg 8-12,CH-1201,CHE","Place Des Bergues 3, Rue Kleberg 8-12, Geneva, 1201, CHE","Place Des Bergues 3, Rue Kleberg 8-12, Geneva, 1201, CHE",EXACT,95,Identical address with minor formatting differences (Geneva vs CH-1201).,azure_openai_batch_with_standardization,2025-08-21T20:49:52.611205,success
+60,"29 Route De l'Aroport Case Postale 216,Le Grand-Saconnex,1218,CHE","81 route de Florissant, CH 
+1206 Geneva
+%1,Geneva,1206,CHE","29 Route De l'Aroport Case Postale 216, Le Grand-Saconnex, 1218, CHE","81 Route de Florissant, Geneva, 1206, CHE",NO_MATCH,0,"Different street numbers, street names, and postal codes indicate completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:49:52.611205,success
+61,"V Parku 2325/16, 14800 Prague 3rd & 4th floor,Prague,8005,CHE","V Parku 2326/18,148 00,CZE","V Parku 2325/16, Prague, 14800, CHE","V Parku 2326/18, Prague, 14800, CZE",NO_MATCH,20,Different street numbers and different country codes indicate different addresses.,azure_openai_batch_with_standardization,2025-08-21T20:50:09.827019,success
+62,"29 Route De l'Aeroport    ,Geneva,1215,CHE","Route de Saint Julien 7/9,1227,CHE","29 Route De l'Aeroport, Geneva, 1215, CHE","Route de Saint Julien 7/9, Geneva, 1227, CHE",LOW,30,"Different street names and postal codes indicate different addresses, but both are in Geneva.",azure_openai_batch_with_standardization,2025-08-21T20:50:09.827019,success
+63,"Bärengasse 29,Zürich,8001,CHE","Hardstrasse 201,8005,CHE","Bärengasse 29, Zürich, 8001, CHE","Hardstrasse 201, Zürich, 8005, CHE",LOW,30,"Different street names and postal codes indicate different addresses, but both are in Zürich.",azure_openai_batch_with_standardization,2025-08-21T20:50:09.827019,success
+64,"Picassoplatz 8    ,Basel,4051,CHE","Rosentalstrasse 67, 4058 Basel,CH","Picassoplatz 8, Basel, 4051, CHE","Rosentalstrasse 67, Basel, 4058, CHE",LOW,30,"Different street names and postal codes indicate different addresses, but both are in Basel.",azure_openai_batch_with_standardization,2025-08-21T20:50:09.827019,success
+65,"Route d'Oron 79    ,Lausanne,1010,CHE","Route d'Ohain 3
+
+1380 LASNE
+%1,LASNE,1380,BEL","Route d'Oron 79, Lausanne, 1010, CHE","Route d'Ohain 3, Lasne, 1380, BEL",NO_MATCH,0,"Different street names, cities, and countries indicate completely different addresses.",azure_openai_batch_with_standardization,2025-08-21T20:50:09.827019,success
+66,"Wurmisweg 576,Kaiseraugst,4303,CHE","45 WATERVIEW BLVD_x000D_ _x000D_ _x000D_,PARISPPANY,07054,USA","Wurmisweg 576, Kaiseraugst, 4303, CHE","45 Waterview Blvd, Parsippany, 07054, USA",NO_MATCH,0,"The addresses have different street names, street numbers, cities, postal codes, and countries. They are completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:50:25.027497,success
+67,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_ _x000D_ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, Stein AG, 4332, CHE","Schaffhauserstrasse, Stein, 4332, CHE",MEDIUM,70,"The addresses have the same street name, city, and postal code but different street numbers. They are likely the same location with some uncertainty due to the missing street number in the second address.",azure_openai_batch_with_standardization,2025-08-21T20:50:25.027497,success
+68,"Rte des Avouillons 32,Gland,1196,CHE","Route Des Avouillons 32_x000D_ _x000D_ _x000D_,Gland,1196,CHE","Route des Avouillons 32, Gland, 1196, CHE","Route des Avouillons 32, Gland, 1196, CHE",EXACT,95,The addresses are identical except for minor formatting differences in the street name. They are the same location.,azure_openai_batch_with_standardization,2025-08-21T20:50:25.027497,success
+69,"Klybeckstrasse,Basel,4057,CHE","Klybeckstr. 141, P 15, WKL-1358 4057 Basel %1,Basel,4057,CHE","Klybeckstrasse, Basel, 4057, CHE","Klybeckstrasse 141, Basel, 4057, CHE",LOW,50,"The addresses have the same street name, city, and postal code but different street numbers. They are possibly related but not the same exact location.",azure_openai_batch_with_standardization,2025-08-21T20:50:25.027497,success
+70,"Rothausstrasse 61,Muttenz,4132,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Muttenz, 4132, CHE","Rothausstrasse 61, Muttenz, 4132, CHE",EXACT,100,The addresses are identical. They are the same location.,azure_openai_batch_with_standardization,2025-08-21T20:50:25.027497,success
+71,"Attisholzstrasse 11    ,Luterbach,4542,CHE","Austraße 11
+6250 Kundl
+%1,Kundl,6250,AUT","Attisholzstrasse 11, Luterbach, 4542, CHE","Austraße 11, Kundl, 6250, AUT",NO_MATCH,0,"Different street names, cities, and countries.",azure_openai_batch_with_standardization,2025-08-21T20:50:37.081381,success
+72,"Rothausstrasse 61,Pratteln,4133,CHE","Rothausstrasse 61, 4132 Muttenz,CH","Rothausstrasse 61, Pratteln, 4133, CHE","Rothausstrasse 61, Muttenz, 4132, CHE",MEDIUM,50,"Same street name and number, different cities and postal codes.",azure_openai_batch_with_standardization,2025-08-21T20:50:37.081381,success
+73,"Flughaffenstrasse,Basel,4030,CHE",tbc,"Flughafenstrasse, Basel, 4030, CHE",tbc,NO_MATCH,0,Second address is incomplete and cannot be compared.,azure_openai_batch_with_standardization,2025-08-21T20:50:37.081381,success
+74,"Rue de la Tour de l’île 4    ,Genève,1204,CHE","Rue De La Tour-de-l'ile 4_x000D_
+ _x000D_
+ _x000D_,Genf,1204,CHE","Rue de la Tour de l’île 4, Genève, 1204, CHE","Rue de la Tour de l’île 4, Genève, 1204, CHE",EXACT,100,Identical addresses with minor formatting differences.,azure_openai_batch_with_standardization,2025-08-21T20:50:37.081381,success
+75,"Geneva,1219,CHE","FAO: AP
+ 101 Knightsbridge
+London
+SW1X 7RN
+%1,SW1X 7RN,GBR","Geneva, 1219, CHE","101 Knightsbridge, London, SW1X 7RN, GBR",NO_MATCH,0,Different cities and countries.,azure_openai_batch_with_standardization,2025-08-21T20:50:37.081381,success
+76,"Rue des Moulieres 1242    ,Geneva,CHE","Route des Moulières 6, 1217 Meyrin IRM,CHE","Rue des Moulieres 1242, Geneva, CHE","Route des Moulières 6, Meyrin, 1217, CHE",LOW,30,"Different street numbers and names, and different cities. Low likelihood of being the same address.",azure_openai_batch_with_standardization,2025-08-21T20:50:53.435146,success
+77,"Route de la Maison, Caree 1242    ,Satigny,CHE","Route de la Maison-Carrée 31,CHE","Route de la Maison-Carrée 1242, Satigny, CHE","Route de la Maison-Carrée 31, CHE",MEDIUM,50,"Different street numbers, same street name but different cities. Possible relation but not the same address.",azure_openai_batch_with_standardization,2025-08-21T20:50:53.435146,success
+78,"24 AVENUE DE PROVENCE, 1007     ,Lausanne,CHE","Avenue de Provence 10-12,CHE","Avenue de Provence 24, Lausanne, 1007, CHE","Avenue de Provence 10-12, CHE",LOW,30,"Different street numbers, same street name but missing city information in the second address. Low likelihood of being the same address.",azure_openai_batch_with_standardization,2025-08-21T20:50:53.435146,success
+79,"Uferstrasse 70. 4057    ,Basel,CHE","Uferstrasse 70. 4057,CHE","Uferstrasse 70, Basel, 4057, CHE","Uferstrasse 70, 4057, CHE",EXACT,95,"Identical street number and name, same postal code. Minor formatting differences. High likelihood of being the same address.",azure_openai_batch_with_standardization,2025-08-21T20:50:53.435146,success
+80,"Rudolf Dieselstr. 25    ,Winterthur,8404,CHE","Rudolf Dieselstr. 25,CHE","Rudolf Dieselstr. 25, Winterthur, 8404, CHE","Rudolf Dieselstr. 25, CHE",HIGH,85,"Identical street number and name, missing city and postal code in the second address. High likelihood of being the same address.",azure_openai_batch_with_standardization,2025-08-21T20:50:53.435146,success
+81,"Route de la Maison-carrée 31    ,Satigny,1242,CHE","Route de la Maison-Carrée 31,CHE","Route de la Maison-Carrée 31, Satigny, 1242, CHE","Route de la Maison-Carrée 31, CHE",HIGH,85,"Both addresses have the same street name and number. The first address includes the city and postal code, while the second does not. Given the high similarity and minor differences, they are very likely the same location.",azure_openai_batch_with_standardization,2025-08-21T20:51:07.969691,success
+82,"Obere Ey 4    ,Dulliken,4657,CHE","Obere Ey 4,CHE","Obere Ey 4, Dulliken, 4657, CHE","Obere Ey 4, CHE",HIGH,85,"Both addresses have the same street name and number. The first address includes the city and postal code, while the second does not. Given the high similarity and minor differences, they are very likely the same location.",azure_openai_batch_with_standardization,2025-08-21T20:51:07.969691,success
+83,"Rue des Moulieres 1242    ,Geneva,CHE","Route des Moulières 6, 1217 Meyrin IRM,CHE","Rue des Moulieres 1242, Geneva, CHE","Route des Moulières 6, 1217 Meyrin IRM, CHE",NO_MATCH,20,"The street names and numbers are different, and the cities are also different. These addresses are completely different locations.",azure_openai_batch_with_standardization,2025-08-21T20:51:07.969691,success
+84,"Route de la Maison, Caree 1242    ,Satigny,CHE","Route de la Maison-Carrée 31,CHE","Route de la Maison-Carrée 1242, Satigny, CHE","Route de la Maison-Carrée 31, CHE",LOW,30,"The street names are similar but not identical, and the street numbers are different. The city is the same. These addresses are different but nearby locations.",azure_openai_batch_with_standardization,2025-08-21T20:51:07.969691,success
+85,"Grubenstrauss 11-3322    ,Bern,CHE","Grubenstrauss 11-3322,CHE","Grubenstrauss 11-3322, Bern, CHE","Grubenstrauss 11-3322, CHE",HIGH,85,"Both addresses have the same street name and number. The first address includes the city, while the second does not. Given the high similarity and minor differences, they are very likely the same location.",azure_openai_batch_with_standardization,2025-08-21T20:51:07.969691,success
+86,"Attisholzstrasse 11    ,Luterbach,4542,CHE","Austraße 11
+6250 Kundl
+%1,Kundl,6250,AUT","Attisholzstrasse 11, Luterbach, 4542, CHE","Austraße 11, Kundl, 6250, AUT",NO_MATCH,0,"Different countries (CHE vs AUT), different cities (Luterbach vs Kundl), different street names (Attisholzstrasse vs Austraße).",azure_openai_batch_with_standardization,2025-08-21T20:51:23.525527,success
+87,"Hauptstrasse 4    ,Sisseln AG,4334,CHE","45 WATERVIEW BLVD_x000D_
+ _x000D_
+ _x000D_,PARISPPANY,07054,USA","Hauptstrasse 4, Sisseln AG, 4334, CHE","45 Waterview Blvd, Parsippany, 07054, USA",NO_MATCH,0,"Different countries (CHE vs USA), different cities (Sisseln AG vs Parsippany), different street names (Hauptstrasse vs Waterview Blvd).",azure_openai_batch_with_standardization,2025-08-21T20:51:23.525527,success
+88,",NULL,CHE",,,,NO_MATCH,0,One or both addresses are empty,validation_check,2025-08-21T20:51:23.529968,empty_address
+89,"Via Penate 4    ,Mendriso,6987,CHE","_x000D_
+Blarenberglaan 2_x000D_
+ _x000D_,Blarenberglaan 2,MECHELEN,2800,BEL","Via Penate 4, Mendriso, 6987, CHE","Blarenberglaan 2, Mechelen, 2800, BEL",NO_MATCH,0,"Different countries (CHE vs BEL), different cities (Mendriso vs Mechelen), different street names (Via Penate vs Blarenberglaan).",azure_openai_batch_with_standardization,2025-08-21T20:51:23.529968,success
+90,"Hofwisenstrasse 56    ,Zurich,8153,CHE","Steinackerstrasse 56,CHE","Hofwisenstrasse 56, Zurich, 8153, CHE","Steinackerstrasse 56, CHE",LOW,30,"Same country (CHE), different street names (Hofwisenstrasse vs Steinackerstrasse), missing city information in second address.",azure_openai_batch_with_standardization,2025-08-21T20:51:23.529968,success
+91,"Balzzimmermannstrasse 7    ,Zurich,8058,CHE",,,,NO_MATCH,0,One or both addresses are empty,validation_check,2025-08-21T20:51:36.924574,empty_address
+92,"Gubelstrasse 24 Park Tower  ,Zug,6300,CHE","Baarerstrasse 96 Zug
+%1,GBR","Gubelstrasse 24, Park Tower, Zug, 6300, CHE","Baarerstrasse 96, Zug, GBR",NO_MATCH,0,Different street names and different countries (CHE vs GBR).,azure_openai_batch_with_standardization,2025-08-21T20:51:36.924574,success
+93,"Freiburgerstrasse 251    ,Bern,CHE","3008,CHE","Freiburgerstrasse 251, Bern, CHE","Bern, 3008, CHE",LOW,50,"Same city and country, but different street names and postal codes. Likely different addresses.",azure_openai_batch_with_standardization,2025-08-21T20:51:36.924574,success
+94,"Raemistrasse 101    ,Zurich,8092,CHE","Freetrade Exchange, 4th Floor_x000D_
+37 Peter Street_x000D_
+ _x000D_,37 Peter Street,Manchester,M2 5GB,GBR","Raemistrasse 101, Zurich, 8092, CHE","Freetrade Exchange, 4th Floor, 37 Peter Street, Manchester, M2 5GB, GBR",NO_MATCH,0,Completely different addresses in different countries (CHE vs GBR).,azure_openai_batch_with_standardization,2025-08-21T20:51:36.924574,success
+95,"Rue de Bains 33    ,Genève,1211,CHE","17 Rue de Lausanne,1201,CHE","Rue de Bains 33, Genève, 1211, CHE","Rue de Lausanne 17, Genève, 1201, CHE",LOW,30,"Different street names and numbers, but same city and country. Likely different addresses.",azure_openai_batch_with_standardization,2025-08-21T20:51:36.924574,success
+96,"Fabrikstrasse 2 4056 Basel  ,Basel,4056,CHE","Lichtstrasse 35
+4056 Basel
+Switzerland,Basel,4056,CHE","Fabrikstrasse 2, 4056 Basel, CHE","Lichtstrasse 35, 4056 Basel, CHE",LOW,30,"Different street names and numbers, same city and postal code.",azure_openai_batch_with_standardization,2025-08-21T20:51:52.028790,success
+97,"Route De La Pierre 22    ,Ecublens,1024,CHE","Route de la Maison-Carrée 31,CHE","Route De La Pierre 22, 1024 Ecublens, CHE","Route de la Maison-Carrée 31, CHE",NO_MATCH,0,"Different street names and numbers, incomplete address for second address.",azure_openai_batch_with_standardization,2025-08-21T20:51:52.028790,success
+98,"Europastrasse 31    ,Glattbrugg,8152,CHE","31 PINE ST STE 205_x000D_
+ _x000D_
+ _x000D_,Norfolk,02056,USA","Europastrasse 31, 8152 Glattbrugg, CHE","31 Pine St Ste 205, 02056 Norfolk, USA",NO_MATCH,0,"Completely different countries, cities, and street names.",azure_openai_batch_with_standardization,2025-08-21T20:51:52.028790,success
+99,"Klybeckstrasse,Basel,4057,CHE","Klybeckstr. 141, P 15, WKL-1358
+4057 Basel
+%1,Basel,4057,CHE","Klybeckstrasse, 4057 Basel, CHE","Klybeckstrasse 141, 4057 Basel, CHE",HIGH,85,"Same street name and city, different street numbers, but likely the same general location.",azure_openai_batch_with_standardization,2025-08-21T20:51:52.028790,success
+100,"Schaffhauserstr. 101,Stein AG,4332,CHE","Schaffhauserstrasse_x000D_
+ _x000D_
+ _x000D_,Stein,4332,CHE","Schaffhauserstrasse 101, 4332 Stein AG, CHE","Schaffhauserstrasse, 4332 Stein, CHE",MEDIUM,70,"Same street name and city, different street numbers, but likely the same general location.",azure_openai_batch_with_standardization,2025-08-21T20:51:52.028790,success

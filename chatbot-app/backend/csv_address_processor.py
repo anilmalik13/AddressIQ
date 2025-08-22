@@ -1930,8 +1930,8 @@ Return JSON with: overall_score, match_level, likely_same_address, confidence, e
                     row_metadata.append(row_data)
                 
                 try:
-                    # Use efficient batch comparison - process multiple pairs in one API call!
-                    batch_results = compare_multiple_addresses(address_pairs, batch_size=len(address_pairs))
+                    # Use efficient batch comparison with optimal batch size from config
+                    batch_results = compare_multiple_addresses(address_pairs, batch_size=batch_size)
                     
                     # Process batch results
                     for i, comparison_result in enumerate(batch_results):
