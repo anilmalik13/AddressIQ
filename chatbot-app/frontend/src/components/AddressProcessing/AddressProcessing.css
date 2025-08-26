@@ -66,10 +66,11 @@
 
 
 .address-processing-card h1 {
-    color: #495057 !important;
+    color: #666 !important;
     margin-bottom: 8px;
     font-size: 28px;
     font-weight: 700;
+    text-align: center;
 }
 
 .address-processing-card p {
