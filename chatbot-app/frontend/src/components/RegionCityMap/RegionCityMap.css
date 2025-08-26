@@ -4,6 +4,19 @@
     height: 100vh;
 }
   
+.map-view-header {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 20px 0;
+}
+
+.map-view-header h1 {
+    color: #666 !important;
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 700;
+}
+  
 .dropdown-container {
     padding: 1rem;
     background-color: #f8f9fa;
