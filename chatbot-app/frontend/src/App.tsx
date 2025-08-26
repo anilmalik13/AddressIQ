@@ -196,11 +196,7 @@ const App: React.FC = () => {
                     </main>
                 </div>
 
-                {/* Footer */}
-                <footer className="footer" role="contentinfo">
-                    <div className="footer__left">© {new Date().getFullYear()} CBRE, Inc. | v 1.0.0</div>
-                    <div className="footer__right">CBRE</div>
-                </footer>
+                {/* Footer removed as per requirement */}
             </div>
         </Provider>
     );
