@@ -106,6 +106,40 @@ export const downloadFile = async (filename: string) => {
     }
 };
 
+// Preview processed file rows for display in UI
+export const previewResultFile = async (
+    filename: string,
+    pageOrLimit: number = 1,
+    pageSize?: number
+): Promise<{columns: string[]; rows: any[]; rowCount: number; filename: string; page?: number; pageSize?: number; totalRows?: number}> => {
+    try {
+        const params: any = {};
+        if (pageSize != null) {
+            params.page = pageOrLimit;
+            params.page_size = pageSize;
+        } else {
+            // backward compat: send as limit
+            params.limit = pageOrLimit;
+        }
+        const response = await api.get(`/preview/${encodeURIComponent(filename)}`, { params });
+        return {
+            columns: response.data.columns || [],
+            rows: response.data.rows || [],
+            rowCount: response.data.rowCount ?? (response.data.rows?.length || 0),
+            filename: response.data.filename || filename,
+            page: response.data.page,
+            pageSize: response.data.pageSize,
+            totalRows: response.data.totalRows,
+        };
+    } catch (error: any) {
+        console.error('Error previewing file:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Failed to load preview data');
+    }
+};
+
 // Get list of uploaded files
 export const getUploadedFiles = async () => {
     try {

@@ -13,6 +13,8 @@ from csv_address_processor import CSVAddressProcessor  # direct import for in-pr
 import uuid
 import re
 import sys
+import json
+# no external encoding detector here; rely on utf-8 replacement for preview
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -255,6 +257,87 @@ def download_processed_file(filename):
         
     except Exception as e:
         return jsonify({'error': f'Download failed: {str(e)}'}), 500
+
+@app.route('/api/preview/<filename>', methods=['GET'])
+def preview_output_file(filename):
+    """Return a small JSON preview of an outbound file (CSV or Excel).
+    Query params:
+      - limit: DEPRECATED alias of page_size
+      - page: 1-based page index (default 1)
+      - page_size: number of rows per page (default 100, max 500)
+    """
+    try:
+        file_path = OUTBOUND_FOLDER / filename
+        if not file_path.exists() or not file_path.is_file():
+            return jsonify({'error': 'File not found'}), 404
+
+        # Parse pagination params
+        try:
+            page = int(request.args.get('page', '1'))
+        except Exception:
+            page = 1
+        try:
+            page_size = int(request.args.get('page_size', request.args.get('limit', '100')))
+        except Exception:
+            page_size = 100
+        page = max(1, page)
+        page_size = max(1, min(page_size, 500))
+        start = (page - 1) * page_size
+
+        ext = file_path.suffix.lower()
+        df = None
+        total_rows = 0
+        if ext in ['.csv', '.txt']:
+            # Count rows in binary mode (encoding agnostic)
+            try:
+                with open(file_path, 'rb') as fb:
+                    total_rows = sum(1 for _ in fb) - 1  # minus header
+                    if total_rows < 0:
+                        total_rows = 0
+            except Exception:
+                total_rows = 0
+
+            # Read page using UTF-8 with replacement to avoid decode errors for preview
+            skip = range(1, 1 + start) if start > 0 else None
+            with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                df = pd.read_csv(
+                    f,
+                    sep=None,
+                    engine='python',
+                    skiprows=skip,
+                    nrows=page_size,
+                    on_bad_lines='skip',
+                    dtype=str
+                )
+        elif ext in ['.xlsx', '.xls']:
+            # Total rows: approximate by reading first column fully
+            try:
+                total_rows = int(pd.read_excel(str(file_path), usecols=[0]).shape[0])
+            except Exception:
+                total_rows = 0
+            skip = range(1, 1 + start) if start > 0 else None
+            df = pd.read_excel(str(file_path), nrows=page_size, skiprows=skip)
+        else:
+            return jsonify({'error': f'Unsupported file type: {ext}'}), 400
+
+        # Normalize columns to strings and replace NaN with None
+        df.columns = [str(c) for c in df.columns]
+        records = json.loads(df.where(pd.notnull(df), None).to_json(orient='records'))
+        if total_rows == 0:
+            # Fallback if we couldn't compute total rows; approximate with page info
+            total_rows = start + len(records)
+
+        return jsonify({
+            'filename': filename,
+            'columns': df.columns.tolist(),
+            'rowCount': len(records),
+            'rows': records,
+            'page': page,
+            'pageSize': page_size,
+            'totalRows': int(total_rows)
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Preview failed: {str(e)}'}), 500
 
 @app.route('/api/upload-excel', methods=['POST'])
 def upload_excel():

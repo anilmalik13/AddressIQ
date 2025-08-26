@@ -1853,8 +1853,13 @@ Return JSON with: overall_score, match_level, likely_same_address, confidence, e
             if ext in ['.xlsx', '.xls']:
                 df = pd.read_excel(str(input_path))
             else:
-                # Read the CSV file with automatic encoding detection for international characters
-                df = read_csv_with_encoding_detection(str(input_path))
+                # Read the CSV file with automatic encoding detection and robust parsing
+                try:
+                    df = read_csv_with_encoding_detection(str(input_path))
+                except Exception:
+                    # Fallback to a robust read that skips bad lines
+                    with open(input_path, 'r', encoding='utf-8', errors='replace') as f:
+                        df = pd.read_csv(f, sep=None, engine='python', on_bad_lines='skip', dtype=str)
             
             # Detect column structure
             columns = df.columns.tolist()
