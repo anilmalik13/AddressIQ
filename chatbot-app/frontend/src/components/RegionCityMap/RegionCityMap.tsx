@@ -200,6 +200,9 @@ const RegionCityMap: React.FC = () => {
 
   return (
     <div className="region-city-map-container">
+      <div className="map-view-header">
+        <h1>Map View</h1>
+      </div>
       <div className="dropdown-container">
         <select value={selectedRegion} onChange={handleRegionChange}>
           <option value="">Select Region</option>
