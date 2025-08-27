@@ -31,6 +31,14 @@ except ImportError as e:
     print(f"⚠️  Warning: Azure SQL Database service not available: {str(e)}")
     DATABASE_AVAILABLE = False
 
+# Import Database Connector service
+try:
+    from app.services.database_connector import DatabaseConnector
+    DATABASE_CONNECTOR_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  Warning: Database Connector service not available: {str(e)}")
+    DATABASE_CONNECTOR_AVAILABLE = False
+
 class CSVAddressProcessor:
     """
     A comprehensive address processor that can:
@@ -90,16 +98,33 @@ class CSVAddressProcessor:
         if DATABASE_AVAILABLE:
             try:
                 self.db_service = AzureSQLDatabaseService()
-                
-                # Print database stats on initialization
+            except Exception as e:
+                print(f"⚠️  Warning: Azure SQL Database service initialization failed: {str(e)}")
+                self.db_service = None
+        else:
+            self.db_service = None
+            
+        # Initialize database connector service
+        if DATABASE_CONNECTOR_AVAILABLE:
+            try:
+                self.db_connector = DatabaseConnector()
+            except Exception as e:
+                print(f"⚠️  Warning: Database Connector service initialization failed: {str(e)}")
+                self.db_connector = None
+        else:
+            self.db_connector = None
+        
+        # Print database stats on initialization if database service is available
+        if self.db_service:
+            try:
                 stats = self.db_service.get_database_stats()
                 print(f"💾 Azure SQL Database Stats: {stats['total_unique_addresses']} unique addresses, "
                       f"{stats['total_address_lookups']} total lookups, "
                       f"{stats['cache_hit_rate']:.1f}% cache hit rate")
             except Exception as e:
-                print(f"❌ Failed to initialize Azure SQL Database: {str(e)}")
-                self.db_service = None
-        else:
+                print(f"❌ Failed to get database stats: {str(e)}")
+        
+    def setup_directories(self):
             self.db_service = None
             print("⚠️  Running without database caching")
     
@@ -563,6 +588,144 @@ class CSVAddressProcessor:
                     results[original_index] = self.process_single_address_input(address, country, output_format)
         
         return results
+
+    def process_database_input(self, 
+                              db_type: str,
+                              connection_params: Dict[str, Any],
+                              query: str = None,
+                              table_name: str = None,
+                              address_columns: List[str] = None,
+                              limit: int = None,
+                              batch_size: int = 10,
+                              use_free_apis: bool = True) -> Dict[str, Any]:
+        """
+        Process addresses directly from database input
+        
+        Args:
+            db_type: Database type (sqlserver, mysql, postgresql, etc.)
+            connection_params: Database connection parameters
+            query: Custom SQL query (optional)
+            table_name: Table name to extract from (if no query provided)
+            address_columns: List of columns containing address data
+            limit: Limit number of records to process
+            batch_size: Batch size for processing
+            use_free_apis: Whether to use free APIs for enhancement
+            
+        Returns:
+            Dict with processing results and file paths
+        """
+        
+        if not DATABASE_CONNECTOR_AVAILABLE or not self.db_connector:
+            return {
+                'success': False,
+                'error': 'Database connector service not available'
+            }
+        
+        print(f"\n🗃️ Processing addresses from {db_type} database")
+        print("=" * 60)
+        
+        # Step 1: Extract data from database to CSV
+        print(f"📥 Extracting data from database...")
+        
+        extraction_result = self.db_connector.extract_data_to_csv(
+            db_type=db_type,
+            connection_params=connection_params,
+            query=query,
+            table_name=table_name,
+            address_columns=address_columns,
+            limit=limit
+        )
+        
+        if not extraction_result['success']:
+            return {
+                'success': False,
+                'error': f"Database extraction failed: {extraction_result['error']}"
+            }
+        
+        csv_file_path = extraction_result['csv_file_path']
+        
+        print(f"✅ Successfully extracted {extraction_result['records_extracted']} records")
+        print(f"📁 Saved to: {csv_file_path}")
+        print(f"🔍 Detected address columns: {extraction_result['detected_address_columns']}")
+        
+        # Step 2: Process the extracted CSV file
+        print(f"\n🏠 Processing extracted addresses...")
+        
+        try:
+            # Determine which address column to process
+            primary_address_column = None
+            if address_columns and len(address_columns) > 0:
+                # Use the first specified address column as primary
+                primary_address_column = address_columns[0]
+                print(f"📍 Using primary address column: {primary_address_column}")
+            elif extraction_result['detected_address_columns']:
+                # Use the first detected address column as primary
+                primary_address_column = extraction_result['detected_address_columns'][0]
+                print(f"📍 Using detected primary address column: {primary_address_column}")
+            
+            # Process the CSV file using existing functionality
+            processing_result = self.process_csv_file(
+                input_file=csv_file_path,
+                address_column=primary_address_column,  # Specify the primary column
+                batch_size=batch_size,
+                use_free_apis=use_free_apis
+            )
+            
+            return {
+                'success': True,
+                'database_extraction': extraction_result,
+                'address_processing': processing_result,
+                'input_csv_path': csv_file_path,
+                'output_csv_path': processing_result.get('output_file') if isinstance(processing_result, dict) else processing_result,
+                'records_processed': extraction_result['records_extracted'],
+                'database_type': db_type,
+                'processing_summary': processing_result
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f"Address processing failed: {str(e)}",
+                'database_extraction': extraction_result,
+                'input_csv_path': csv_file_path
+            }
+    
+    def get_supported_databases(self) -> List[str]:
+        """Get list of supported database types"""
+        if DATABASE_CONNECTOR_AVAILABLE and self.db_connector:
+            return self.db_connector.get_supported_databases()
+        else:
+            return []
+    
+    def test_database_connection(self, db_type: str, connection_params: Dict[str, Any]) -> Dict[str, Any]:
+        """Test database connection before processing"""
+        if not DATABASE_CONNECTOR_AVAILABLE or not self.db_connector:
+            return {
+                'success': False,
+                'error': 'Database connector service not available'
+            }
+        
+        return self.db_connector.test_connection(db_type, connection_params)
+    
+    def validate_database_params(self, db_type: str, connection_params: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate database connection parameters"""
+        if not DATABASE_CONNECTOR_AVAILABLE or not self.db_connector:
+            return {
+                'valid': False,
+                'errors': ['Database connector service not available']
+            }
+        
+        return self.db_connector.validate_connection_params(db_type, connection_params)
+    
+    def preview_database_table(self, db_type: str, connection_params: Dict[str, Any], table_name: str = None) -> Dict[str, Any]:
+        """Preview database table structure and sample data"""
+        if not DATABASE_CONNECTOR_AVAILABLE or not self.db_connector:
+            return {
+                'success': False,
+                'error': 'Database connector service not available'
+            }
+        
+        return self.db_connector.preview_table_structure(db_type, connection_params, table_name)
 
     def _format_output(self, result: Dict[str, Any], output_format: str) -> Dict[str, Any]:
         """Format the output based on the requested format"""
@@ -2183,6 +2346,11 @@ Examples:
         action='store_true',
         help='Process all comparison files in inbound directory'
     )
+    input_group.add_argument(
+        '--database',
+        action='store_true',
+        help='Process addresses from database (use with --db-* options)'
+    )
     
     # Directory management options
     parser.add_argument(
@@ -2222,6 +2390,34 @@ Examples:
         help='Enable address comparison mode for CSV files'
     )
     
+    # Database processing options
+    database_group = parser.add_argument_group('Database Processing')
+    database_group.add_argument(
+        '--db-type',
+        choices=['sqlserver', 'azure_sql', 'mysql', 'postgresql', 'oracle', 'sqlite'],
+        help='Database type (use with --database option)'
+    )
+    
+    # Connection string option (alternative to individual parameters)
+    database_group.add_argument('--db-connection-string', help='Database connection string (alternative to individual parameters)')
+    
+    # Individual connection parameters
+    database_group.add_argument('--db-server', help='Database server (SQL Server/Azure SQL)')
+    database_group.add_argument('--db-host', help='Database host (MySQL/PostgreSQL/Oracle)')
+    database_group.add_argument('--db-port', type=int, help='Database port')
+    database_group.add_argument('--db-name', help='Database name')
+    database_group.add_argument('--db-username', help='Database username')
+    database_group.add_argument('--db-password', help='Database password')
+    database_group.add_argument('--db-path', help='Database file path (SQLite only)')
+    
+    # Query options
+    database_group.add_argument('--db-query', help='Custom SQL query')
+    database_group.add_argument('--db-table', help='Table name (if no custom query)')
+    database_group.add_argument('--db-address-columns', help='Comma-separated address columns (recommended)')
+    database_group.add_argument('--db-limit', type=int, default=5, help='Limit records to process (default: 5 for safety)')
+    database_group.add_argument('--db-preview', action='store_true', help='Preview table structure and sample data')
+    database_group.add_argument('--list-db-types', action='store_true', help='List supported database types')
+    
     # Utility options
     parser.add_argument('--test-apis', action='store_true', help='Test free APIs and exit')
     parser.add_argument('--db-stats', action='store_true', help='Show database statistics and exit')
@@ -2230,6 +2426,18 @@ Examples:
     
     # Create processor instance with base directory if specified
     processor = CSVAddressProcessor(base_directory=args.base_dir)
+    
+    # List supported database types if requested
+    if args.list_db_types:
+        supported = processor.get_supported_databases()
+        print("📋 Supported Database Types:")
+        print("=" * 30)
+        if supported:
+            for db_type in supported:
+                print(f"  ✅ {db_type}")
+        else:
+            print("  ❌ No database drivers available")
+        return
     
     # Show database stats if requested
     if args.db_stats:
@@ -2294,6 +2502,155 @@ Examples:
                 
         except Exception as e:
             print(f"❌ Error comparing addresses: {e}")
+            sys.exit(1)
+        return
+    
+    # Handle database processing
+    if args.database:
+        if not args.db_type:
+            print("❌ --db-type is required when using --database option")
+            print("   Use --list-db-types to see supported database types")
+            sys.exit(1)
+        
+        # Build connection parameters
+        connection_params = {}
+        
+        # Check if connection string is provided
+        if args.db_connection_string:
+            connection_params['connection_string'] = args.db_connection_string
+            print(f"🔗 Using connection string for {args.db_type}")
+        else:
+            # Build from individual parameters
+            if args.db_type in ['sqlserver', 'azure_sql']:
+                if not args.db_server:
+                    print(f"❌ --db-server is required for {args.db_type} (or use --db-connection-string)")
+                    sys.exit(1)
+                connection_params['server'] = args.db_server
+                connection_params['database'] = args.db_name or 'master'
+                if args.db_username:
+                    connection_params['username'] = args.db_username
+                if args.db_password:
+                    connection_params['password'] = args.db_password
+                    
+            elif args.db_type in ['mysql', 'postgresql', 'oracle']:
+                if not args.db_host:
+                    print(f"❌ --db-host is required for {args.db_type} (or use --db-connection-string)")
+                    sys.exit(1)
+                connection_params['host'] = args.db_host
+                if args.db_port:
+                    connection_params['port'] = args.db_port
+                connection_params['database'] = args.db_name
+                if args.db_username:
+                    connection_params['username'] = args.db_username
+                if args.db_password:
+                    connection_params['password'] = args.db_password
+                    
+            elif args.db_type == 'sqlite':
+                if not args.db_path:
+                    print("❌ --db-path is required for SQLite (or use --db-connection-string)")
+                    sys.exit(1)
+                connection_params['database_path'] = args.db_path
+        
+        # Handle preview mode
+        if args.db_preview:
+            print("🔍 Previewing database table structure...")
+            preview_result = processor.preview_database_table(
+                args.db_type, 
+                connection_params, 
+                args.db_table
+            )
+            
+            if preview_result['success']:
+                if args.db_table:
+                    print(f"\n📋 Table: {preview_result['table_name']}")
+                    print(f"📊 Estimated rows: {preview_result.get('row_count_estimate', 'Unknown')}")
+                    
+                    print(f"\n📝 Columns ({len(preview_result['columns'])}):")
+                    for col in preview_result['columns']:
+                        print(f"   • {col['name']} ({col.get('type', 'unknown')})")
+                    
+                    if preview_result['detected_address_columns']:
+                        print(f"\n🎯 Detected address columns:")
+                        for col in preview_result['detected_address_columns']:
+                            print(f"   • {col}")
+                        print(f"\n💡 Suggestion: Use --db-address-columns '{','.join(preview_result['detected_address_columns'])}'")
+                    
+                    if preview_result['sample_data']:
+                        print(f"\n📄 Sample data (first {len(preview_result['sample_data'])} rows):")
+                        for i, row in enumerate(preview_result['sample_data'], 1):
+                            print(f"   Row {i}:")
+                            for key, value in list(row.items())[:3]:  # Show first 3 columns
+                                print(f"     {key}: {str(value)[:50]}{'...' if len(str(value)) > 50 else ''}")
+                            if len(row) > 3:
+                                print(f"     ... and {len(row) - 3} more columns")
+                            print()
+                else:
+                    print("\n📋 Available tables:")
+                    for table in preview_result.get('available_tables', []):
+                        print(f"   • {table}")
+                    print("\n💡 Use --db-table <table_name> --db-preview to see table structure")
+            else:
+                print(f"❌ Preview failed: {preview_result['error']}")
+            return
+        
+        # Parse address columns
+        address_columns = None
+        if args.db_address_columns:
+            address_columns = [col.strip() for col in args.db_address_columns.split(',')]
+        
+        # Validate that either query or table is provided
+        if not args.db_query and not args.db_table:
+            print("❌ Either --db-query or --db-table must be specified")
+            print("   Examples:")
+            print("     --db-table 'customers'")
+            print("     --db-query 'SELECT address, city FROM customers WHERE state=\"CA\"'")
+            sys.exit(1)
+        
+        # Safety check: ensure reasonable limit
+        limit = args.db_limit
+        if limit is None:
+            limit = 5  # Default safety limit
+            print(f"⚠️  No limit specified, using default safety limit of {limit} records")
+        elif limit > 10000:
+            print(f"⚠️  Large limit specified ({limit} records)")
+            response = input("   Continue? (y/N): ").strip().lower()
+            if response != 'y':
+                print("   Operation cancelled")
+                sys.exit(0)
+        
+        # Warn if no address columns specified
+        if not address_columns and not args.db_query:
+            print("⚠️  No address columns specified. AddressIQ will auto-detect address columns.")
+            print("   For better results, specify columns with --db-address-columns")
+            print("   Example: --db-address-columns 'full_address,city,state'")
+        
+        print("🗃️ Starting database address processing...")
+        print(f"   📊 Processing limit: {limit} records")
+        if address_columns:
+            print(f"   📍 Target columns: {', '.join(address_columns)}")
+        print()
+        try:
+            result = processor.process_database_input(
+                db_type=args.db_type,
+                connection_params=connection_params,
+                query=args.db_query,
+                table_name=args.db_table,
+                address_columns=address_columns,
+                limit=limit,  # Use validated limit
+                batch_size=args.batch_size,
+                use_free_apis=not args.no_free_apis
+            )
+            
+            if result['success']:
+                print("\n🎉 Database processing completed successfully!")
+                print(f"📊 Summary: {result['records_processed']} records processed")
+                print(f"📁 Output file: {result['output_csv_path']}")
+            else:
+                print(f"\n❌ Database processing failed: {result['error']}")
+                sys.exit(1)
+                
+        except Exception as e:
+            print(f"❌ Error in database processing: {e}")
             sys.exit(1)
         return
     
