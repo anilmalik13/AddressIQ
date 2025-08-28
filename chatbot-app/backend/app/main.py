@@ -470,6 +470,82 @@ def get_processing_status(processing_id):
     except Exception as e:
         return jsonify({'error': f'Failed to get status: {str(e)}'}), 500
 
+@app.route('/api/preview/<filename>', methods=['GET'])
+def preview_result_file(filename):
+    """Preview a processed outbound file (CSV/Excel) with basic pagination."""
+    try:
+        page = int(request.args.get('page') or 1)
+        page_size = int(request.args.get('page_size') or 50)
+        page = page if page > 0 else 1
+        page_size = page_size if page_size > 0 else 50
+
+        file_path = OUTBOUND_FOLDER / filename
+        if not file_path.exists():
+            return jsonify({'error': 'File not found'}), 404
+
+        ext = str(file_path.suffix).lower()
+        columns = []
+        rows = []
+
+        if ext == '.csv':
+            # Read header first to get columns (fast)
+            try:
+                header_df = pd.read_csv(file_path, nrows=0, encoding='utf-8')
+                columns = [str(c) for c in list(header_df.columns)]
+            except Exception:
+                try:
+                    header_df = pd.read_csv(file_path, nrows=0, encoding='latin1')
+                    columns = [str(c) for c in list(header_df.columns)]
+                except Exception:
+                    columns = []
+
+            # Use chunks to page through without loading entire file
+            chunk_size = page_size
+            target_index = page - 1
+            chunk_iter = None
+            try:
+                chunk_iter = pd.read_csv(file_path, chunksize=chunk_size, encoding='utf-8', on_bad_lines='skip')
+            except Exception:
+                chunk_iter = pd.read_csv(file_path, chunksize=chunk_size, encoding='latin1', on_bad_lines='skip')
+
+            current = 0
+            selected = None
+            for chunk in chunk_iter:
+                if current == target_index:
+                    selected = chunk
+                    break
+                current += 1
+
+            if selected is not None:
+                selected.columns = [str(c) for c in selected.columns]
+                if not columns:
+                    columns = [str(c) for c in list(selected.columns)]
+                rows = selected.fillna('').to_dict(orient='records')
+
+        elif ext in ('.xlsx', '.xls'):
+            # Excel: read header to get columns then read page using skiprows/nrows
+            try:
+                header_df = pd.read_excel(file_path, nrows=0)
+                columns = [str(c) for c in list(header_df.columns)]
+            except Exception:
+                columns = []
+
+            skiprows = range(1, (page - 1) * page_size + 1) if page > 1 else None
+            try:
+                df = pd.read_excel(file_path, skiprows=skiprows, nrows=page_size)
+                df.columns = [str(c) for c in df.columns]
+                if not columns:
+                    columns = [str(c) for c in list(df.columns)]
+                rows = df.fillna('').to_dict(orient='records')
+            except Exception:
+                rows = []
+        else:
+            return jsonify({'error': 'Unsupported file type'}), 400
+
+        return jsonify({'columns': columns, 'rows': rows}), 200
+    except Exception as e:
+        return jsonify({'error': f'Preview failed: {str(e)}'}), 500
+
 @app.route('/api/download/<filename>', methods=['GET'])
 def download_processed_file(filename):
     """Download processed file from outbound directory"""

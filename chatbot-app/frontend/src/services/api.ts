@@ -235,6 +235,25 @@ export const getDbProcessingStatus = async (processingId: string) => {
     return res.data;
 };
 
+// Preview a processed CSV/Excel file with pagination (backend supports both)
+export const previewResultFile = async (
+    filename: string,
+    page: number = 1,
+    page_size: number = 50
+): Promise<{ columns: string[]; rows: any[] }> => {
+    try {
+        const res = await api.get(`/preview/${filename}`, { params: { page, page_size } });
+        // Expecting { columns: string[], rows: any[] }
+        return { columns: res.data.columns || [], rows: res.data.rows || [] };
+    } catch (error: any) {
+        console.error('Error previewing result file:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Failed to preview result file');
+    }
+};
+
 // Get processing logs (shared endpoint)
 export const getProcessingLogs = async (processingId: string) => {
     const res = await api.get(`/processing-status/${processingId}/logs`);
