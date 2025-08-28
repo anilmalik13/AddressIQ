@@ -1,7 +1,11 @@
 import requests
 import json
 import os
-import chardet
+import importlib
+try:
+    chardet = importlib.import_module("chardet")
+except Exception:  # pragma: no cover
+    chardet = None
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -176,11 +180,15 @@ def read_csv_with_encoding_detection(file_path: str):
     
     # First, detect the encoding
     try:
-        with open(file_path, 'rb') as f:
-            raw_data = f.read()
-            encoding_result = chardet.detect(raw_data)
-            detected_encoding = encoding_result['encoding']
-            confidence = encoding_result['confidence']
+        if chardet is not None:
+            with open(file_path, 'rb') as f:
+                raw_data = f.read()
+                encoding_result = chardet.detect(raw_data)
+                detected_encoding = encoding_result['encoding']
+                confidence = encoding_result['confidence']
+        else:
+            detected_encoding = None
+            confidence = 0.0
         
         print(f"🔍 Detected encoding: {detected_encoding} (confidence: {confidence:.2f})")
     except Exception as e:
@@ -229,7 +237,14 @@ def read_csv_with_encoding_detection(file_path: str):
             continue
         try:
             print(f"🔄 Trying encoding: {encoding}")
-            df = pd.read_csv(file_path, encoding=encoding)
+            df = pd.read_csv(
+                file_path,
+                encoding=encoding,
+                sep=None,            # auto-detect delimiter
+                engine='python',     # enables sep=None and robust parsing
+                on_bad_lines='skip', # skip malformed rows instead of failing
+                dtype=str            # keep values as strings to avoid inference issues
+            )
             print(f"✅ Successfully read file with {encoding} encoding")
             print(f"📊 Loaded {len(df)} rows with {len(df.columns)} columns")
             return df
@@ -245,7 +260,13 @@ def read_csv_with_encoding_detection(file_path: str):
         print("🆘 Last resort: Reading with UTF-8 and replacing invalid characters")
         # Open file with error handling first, then pass to pandas
         with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
-            df = pd.read_csv(f)
+            df = pd.read_csv(
+                f,
+                sep=None,
+                engine='python',
+                on_bad_lines='skip',
+                dtype=str
+            )
         print(f"⚠️ Read file with UTF-8 and replaced invalid characters")
         print(f"📊 Loaded {len(df)} rows with {len(df.columns)} columns")
         return df
