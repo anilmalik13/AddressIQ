@@ -192,4 +192,58 @@ export const processPublicStandardize = async (addresses: string[], apiKey?: str
     }
 };
 
+// Database connect - frontend stubbed API
+// This will call backend endpoints when available. For now, we simulate success.
+export const submitDatabaseTask = async (payload: {
+    mode: 'compare' | 'format';
+    connectionString: string;
+    sourceType: 'table' | 'query';
+    tableName?: string; // optional database table name
+    // Table mode
+    uniqueId?: string; // optional primary key
+    columnNames?: string[]; // required names, at least one
+    // Query mode
+    query?: string;
+    action: 'format' | 'download';
+}): Promise<{ message: string; output_file?: string }> => {
+    try {
+        // Kick off DB job
+        const response = await api.post('/db/connect', {
+            mode: payload.mode,
+            connectionString: payload.connectionString,
+            sourceType: payload.sourceType,
+            tableName: payload.tableName,
+            uniqueId: payload.uniqueId,
+            columnNames: payload.columnNames,
+            query: payload.query,
+            // limit default 10 on backend
+            action: payload.action,
+        });
+        return response.data;
+    } catch (error: any) {
+        console.error('Error submitting database task:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Failed to submit database task');
+    }
+};
+
+// Poll DB processing status
+export const getDbProcessingStatus = async (processingId: string) => {
+    const res = await api.get(`/processing-status/${processingId}`);
+    return res.data;
+};
+
+// Get processing logs (shared endpoint)
+export const getProcessingLogs = async (processingId: string) => {
+    const res = await api.get(`/processing-status/${processingId}/logs`);
+    return res.data.logs as Array<{ ts: string; message: string; progress?: number }>;
+};
+
+// Download inbound file (reuses same download route)
+export const downloadInboundFile = async (filename: string) => {
+    return downloadFile(filename);
+};
+
 export default api;
