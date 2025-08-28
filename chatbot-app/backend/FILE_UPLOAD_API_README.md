@@ -1,18 +1,15 @@
 # File Upload API Documentation
 
 ## Overview
-The AddressIQ backend provides comprehensive file upload functionality to handle Excel (.xlsx, .xls) and CSV files containing address data. Files are uploaded to the `C:\uploaded_files` directory with timestamp-based naming to prevent conflicts. The system includes AI-powered address processing with graceful fallback to free geocoding APIs.
+The AddressIQ backend provides comprehensive file upload functionality to handle Excel (.xlsx, .xls) and CSV files containing address data. Files are uploaded to the application's `inbound/` directory under `chatbot-app/backend` with timestamp-based naming to prevent conflicts. Processed output is written to `outbound/`. The system includes AI-powered address processing with graceful fallback to free geocoding APIs.
 
 ## New API Endpoints
-
-### 1. Upload File
-- **Endpoint**: `POST /api/upload-excel`
 - **Content-Type**: `multipart/form-data`
-- **Parameters**: 
   - `file`: The file to upload (Excel or CSV format)
 - **Response**: 
   ```json
-  {
+  "message": "File uploaded successfully! Processing started.",
+  "processing_id": "proc_20250827_123456_1234",
     "message": "File uploaded successfully! File contains X rows with Y columns.",
     "file_path": "C:\\uploaded_files\\filename_20250811_143022.xlsx",
     "filename": "filename_20250811_143022.xlsx",
@@ -23,8 +20,6 @@ The AddressIQ backend provides comprehensive file upload functionality to handle
     }
   }
   ```
-
-### 2. Process Individual Address
 - **Endpoint**: `POST /api/process-address`
 - **Content-Type**: `application/json`
 - **Body**: 
@@ -32,21 +27,29 @@ The AddressIQ backend provides comprehensive file upload functionality to handle
   {
     "address": "123 Main St, New York, NY 10001"
   }
-  ```
+    "path": "inbound/addresses_20250811_143022.xlsx"
 - **Response**: 
   ```json
   {
     "processedAddress": "123 Main Street, New York, NY 10001-1234",
     "confidence": "high",
     "components": {
+- **Endpoint**: `GET /api/processing-status/<processing_id>`
+- **Response**: `{ status, progress, message, output_file? }`
+
+### 4. Get Processing Logs
+- **Endpoint**: `GET /api/processing-status/<processing_id>/logs`
+- **Response**: `{ logs: [{ ts, message, progress? }] }`
       "street_number": "123",
       "street_name": "Main Street",
-      "city": "New York",
+### 5. Get Coordinates (Placeholder)
       "state": "NY",
       "postal_code": "10001-1234",
-      "country": "United States",
-      "latitude": "40.7128",
-      "longitude": "-74.0060"
+### Upload/Output Directories
+- Inbound location: `<repo>/chatbot-app/backend/inbound`
+- Outbound location: `<repo>/chatbot-app/backend/outbound`
+- Files are automatically renamed with timestamps to prevent conflicts
+- Format: `{original_name}_{YYYYMMDD_HHMMSS}.{extension}`
     },
     "status": "success",
     "source": "azure_openai"

@@ -9,6 +9,7 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 ## Features
 
 - **Excel File Upload & Processing**: Upload Excel files containing address data for batch processing
+- **Database Connect (Table/Query)**: Fetch rows directly from SQL Server/Azure SQL using a connection string, then standardize and preview results with pagination; download processed CSV from outbound
 - **AI-Powered Address Standardization**: Advanced address parsing and standardization using Azure OpenAI
 - **Interactive Geographic Mapping**: Visual representation of addresses using Leaflet maps with regional filtering
 - **Real-time Address Processing**: Individual address standardization with confidence scoring
@@ -24,10 +25,11 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 ### Frontend (`/chatbot-app/frontend`)
 - **React 18** with TypeScript and modern hooks
 - **Redux Toolkit** with Redux Observable for state management
-- **Three Main Components**:
+- **Main Components**:
   - **File Upload**: Excel file processing with drag-and-drop functionality
   - **Address Processing**: Real-time individual address standardization
   - **Region City Map**: Interactive geographic visualization with Leaflet
+   - **Database Connect**: Table/Query mode to pull data from a database and run the same standardization pipeline with preview/download
 - **Responsive Design**: Cross-platform compatibility with tabbed navigation
 - **API Integration**: Axios-based service layer with proxy configuration
 
@@ -38,6 +40,7 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 - **RESTful API**: Clean endpoints for chat and address processing
 - **Configuration Management**: Flexible prompt and system configuration
 - **Data Processing**: CSV handling and batch address processing capabilities
+- **Database Ingest**: Endpoint to connect to SQL Server/Azure SQL, extract a safe preview set, and process to outbound
 
 ## Project Structure
 
@@ -162,6 +165,22 @@ AddressIQ/
    - Frontend: http://localhost:3003
    - Backend API: http://localhost:5001
 
+   ## Database Connect (current behavior)
+
+   - UI under Database Connect shows two source types: Table and SQL Query.
+   - Connection string is required. In Table mode, Table name is required. UniqueId is optional.
+   - One or more column_name fields are required. Only letters, numbers, and underscore (_) are allowed. Spaces/specials are rejected. If a comma is typed, a yellow tip suggests using the + button to add multiple fields.
+   - Compare tab is disabled (Soon). Format runs a single job at a time. After “Processing Complete,” the Format button stays disabled until you click Reset.
+   - On completion, the “Processed Results” table shows a paginated preview (sticky header, page controls). A “Download Processed Results” button downloads the outbound CSV. Only outbound (processed) files are downloadable.
+
+   ### Backend endpoints used by the UI
+
+   - POST `/api/db/connect` — Start a DB fetch+process job (table or query)
+   - GET `/api/processing-status/<id>` — Poll job status
+   - GET `/api/processing-status/<id>/logs` — Retrieve recent logs
+   - GET `/api/preview/<filename>` — Paginated preview of processed results
+   - GET `/api/download/<filename>` — Download processed (outbound) CSV
+
 ## Backend CLI (CSV processor) – current capabilities
 
 In addition to the web app, the backend includes a CLI for addressing CSVs and free-text addresses:
@@ -270,6 +289,8 @@ This project follows modern development practices:
 - **POST `/api/chat`**: Process address standardization requests through AI
   - Body: `{ "message": "address_text", "system_prompt": "optional_prompt", "prompt_type": "general|address" }`
   - Response: Standardized address data with confidence scores
+
+Additional (file + database): see the section above for file upload and database connect endpoints currently used by the UI.
 
 ### Frontend Routes
 - **File Upload Tab**: Excel file processing interface

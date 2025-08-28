@@ -19,9 +19,7 @@ The frontend is located in the `frontend/` directory of the AddressIQ project:
 
 ```
 AddressIQ/
-├── README.md
-├── QUICKSTART.md
-├── start-dev.sh
+ - **Database Connect**: Pull data directly from a database (Table/Query) and process with preview/download
 ├── frontend/                    # React TypeScript frontend
 │   ├── package.json
 │   ├── tsconfig.json
@@ -54,33 +52,45 @@ AddressIQ/
 │       │   │   └── addressProcessingSlice.ts
 │       │   └── epics/           # Redux Observable epics
 │       │       ├── index.ts
+│       │   └── DatabaseConnect/ # Database connect feature
+│       │       ├── DatabaseConnect.tsx
+│       │       ├── DatabaseConnect.css
+│       │       └── index.ts (optional)
 │       │       ├── fileUploadEpic.ts
 │       │       └── addressProcessingEpic.ts
 │       ├── services/            # Axios API configuration
+
+### DatabaseConnect Component
+- **Tab**: Database Connect (with disabled Compare and active Format)
+- **Files**: `src/components/DatabaseConnect/`
+- **Purpose**: Fetch a small set of rows from a database and run the standardization pipeline
+- **Table mode**:
+  - Required: Connection string, Table name, at least one column_name (letters/numbers/underscore only)
+  - Optional: UniqueId (primary key-like)
+  - Comma in a column shows a yellow tip to use + to add multiple fields
+- **Query mode**:
+  - Required: Connection string and SQL query
+- **Run**:
+  - Format triggers one job; after completion, Format stays disabled until Reset
+  - Shows paginated “Processed Results” preview and a “Download Processed Results” button
+  - Only outbound processed files are downloadable
 │       │   └── api.ts
 │       ├── hooks/               # Typed Redux hooks
 │       │   └── redux.ts
 │       └── types/               # TypeScript type definitions
 │           └── index.ts
-└── backend/                     # Python backend
-    ├── requirements.txt
-    ├── run.py
-    ├── example_address_standardization.py
     ├── ADDRESS_STANDARDIZATION_README.md
     └── app/
-        ├── main.py
-        ├── config/
         ├── models/
         └── services/
-```
-
-## Components
-
 ### FileUpload Component
 - **Tab**: `File Upload`
-- **Files**: `src/components/FileUpload/`
-- **Purpose**: Handles Excel/CSV file uploads (.xlsx, .xls, .csv)
-- **Features**:
+### Database Connect
+- **POST** `/api/db/connect` — start job
+- **GET** `/api/processing-status/<id>` — poll status
+- **GET** `/api/processing-status/<id>/logs` — recent logs
+- **GET** `/api/preview/<filename>` — preview processed results (paginated)
+- **GET** `/api/download/<filename>` — download processed CSV
   - File type validation for Excel and CSV formats
   - Upload progress tracking with real-time updates
   - Success/error feedback with detailed messages

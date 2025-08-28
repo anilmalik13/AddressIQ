@@ -1,8 +1,8 @@
-# Database Input Method for AddressIQ
+# Database Input Method for AddressIQ (Web + CLI)
 
 ## Overview
 
-AddressIQ now supports direct database connectivity as an input method, allowing you to process addresses directly from your existing databases without having to export data to CSV files first.
+AddressIQ supports direct database connectivity both via the web UI (Database Connect) and the CLI. You can process addresses directly from your databases without exporting to CSV first. The web UI currently targets SQL Server/Azure SQL using a connection string.
 
 ## Supported Database Types
 
@@ -27,6 +27,13 @@ python csv_address_processor.py --list-db-types
 | **2. Multiple Addresses** | Multiple addresses input | `--address "123 Main St" "456 Oak Ave"` |
 | **3. CSV/Excel Files** | Files in inbound directory | `--batch-process` |
 | **4. Database Connectivity** | ⭐ **NEW** - Direct database access | `--database --db-type mysql ...` |
+
+### Web UI (Database Connect)
+
+- Required (Table mode): Connection string, Table name, at least one column_name (letters/numbers/underscore only). UniqueId optional.
+- Required (Query mode): Connection string and SQL query.
+- After completion, a paginated preview is shown and a processed CSV can be downloaded. Only outbound files are downloadable.
+- Backend endpoints: `POST /api/db/connect`, `GET /api/processing-status/<id>`, `GET /api/processing-status/<id>/logs`, `GET /api/preview/<filename>`, `GET /api/download/<filename>`.
 
 ## Database Input Usage
 
