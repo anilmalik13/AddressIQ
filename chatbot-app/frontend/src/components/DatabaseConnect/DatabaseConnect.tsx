@@ -9,10 +9,12 @@ type SourceType = 'table' | 'query';
 interface ValidationErrors {
   connectionString?: string;
   query?: string;
-  columns?: { name?: string }[];
+  tableName?: string;
+  columns?: { name?: string; warning?: string }[];
 }
 
 const DEFAULT_PLACEHOLDER = 'Server=localhost;Database=AddressDB;User Id=app_user;Password=YourStrong!Passw0rd;TrustServerCertificate=True;';
+const COL_NAME_REGEX = /^[A-Za-z0-9_]+$/;
 
 const DatabaseConnect: React.FC = () => {
   // Top tabs: Compare | Format
@@ -67,8 +69,13 @@ const DatabaseConnect: React.FC = () => {
     if (!connString.trim()) return false;
     if (sourceType === 'query') return query.trim().length > 0;
     // table mode: require at least one column_name and all non-empty
-    return columns.length > 0 && columns.every((name) => name.trim().length > 0);
-  }, [connString, sourceType, query, columns]);
+    const tableOk = tableName.trim().length > 0;
+    const colsOk = columns.length > 0 && columns.every((name) => {
+      const trimmed = name.trim();
+      return trimmed.length > 0 && COL_NAME_REGEX.test(trimmed);
+    });
+    return tableOk && colsOk;
+  }, [connString, sourceType, query, columns, tableName]);
 
   const addColumnRow = useCallback(() => {
     setColumns(prev => [...prev, '']);
@@ -83,7 +90,17 @@ const DatabaseConnect: React.FC = () => {
     setErrors(prev => {
       const next = { ...prev } as ValidationErrors;
       const arr = [...(next.columns || Array(columns.length).fill({}))];
-      arr[index] = { ...(arr[index] || {}), name: value.trim() ? undefined : 'Required' };
+      const trimmed = value.trim();
+      const entry: { name?: string; warning?: string } = { ...(arr[index] || {}) };
+      if (!trimmed) {
+        entry.name = 'Required';
+      } else if (!COL_NAME_REGEX.test(trimmed)) {
+        entry.name = 'Only letters, numbers, and underscore (_) allowed. No spaces or special characters.';
+      } else {
+        entry.name = undefined;
+      }
+      entry.warning = trimmed.includes(',') ? 'Tip: To add multiple columns, use the + button next to this field.' : undefined;
+      arr[index] = entry;
       next.columns = arr;
       return next;
     });
@@ -120,13 +137,26 @@ const DatabaseConnect: React.FC = () => {
     if (sourceType === 'query') {
       if (!query.trim()) next.query = 'SQL query is required';
     } else {
-      next.columns = columns.map(name => ({ name: name.trim() ? undefined : 'Required' }));
+      if (!tableName.trim()) next.tableName = 'Table name is required';
+      next.columns = columns.map(name => {
+        const trimmed = name.trim();
+        const err: { name?: string; warning?: string } = {};
+        if (!trimmed) {
+          err.name = 'Required';
+        } else if (!COL_NAME_REGEX.test(trimmed)) {
+          err.name = 'Only letters, numbers, and underscore (_) allowed. No spaces or special characters.';
+        }
+        if (trimmed.includes(',')) {
+          err.warning = 'Tip: To add multiple columns, use the + button next to this field.';
+        }
+        return err;
+      });
     }
     setErrors(next);
     // return validity
-    const ok = !next.connectionString && (!next.query) && (!next.columns || next.columns.every(c => !c.name));
+    const ok = !next.connectionString && (!next.query) && (!next.tableName) && (!next.columns || next.columns.every(c => !c.name));
     return ok;
-  }, [connString, sourceType, query, columns]);
+  }, [connString, sourceType, query, columns, tableName]);
 
   const handleSubmit = useCallback(async (action: 'format') => {
   if (submittingAction || processingId) return;
@@ -259,7 +289,7 @@ const DatabaseConnect: React.FC = () => {
         <div className="upload-section">
           {/* Connection string */}
           <div className="input-row">
-            <label htmlFor="conn-str" className="input-label">Connection string</label>
+            <label htmlFor="conn-str" className="input-label">Connection string <span className="req">(required)</span></label>
             <input
               id="conn-str"
               className={`text-input ${errors.connectionString ? 'input-error' : ''}`}
@@ -301,10 +331,10 @@ const DatabaseConnect: React.FC = () => {
 
           {sourceType === 'table' && (
             <div className="table-config">
-              {/* Full width table name */}
+        {/* Full width table name */}
               <div className="column-row single">
                 <div className="column-field">
-                  <label htmlFor="tbl-name">Table name</label>
+          <label htmlFor="tbl-name">Table name <span className="req">(required)</span></label>
                   <input
                     id="tbl-name"
                     className="text-input"
@@ -314,6 +344,7 @@ const DatabaseConnect: React.FC = () => {
                     onChange={(e) => setTableName(e.target.value)}
                     disabled={!!submittingAction || !!processingId}
                   />
+                  {errors.tableName && <small className="error-text">{errors.tableName}</small>}
                   <small className="hint">Database table to read from.</small>
                 </div>
               </div>
@@ -372,6 +403,7 @@ const DatabaseConnect: React.FC = () => {
                       </button>
                     </div>
                     {errors.columns?.[idx]?.name && <small className="error-text">{errors.columns[idx]?.name}</small>}
+                    {errors.columns?.[idx]?.warning && <small className="warn-text">{errors.columns[idx]?.warning}</small>}
                   </div>
                 </div>
               ))}
