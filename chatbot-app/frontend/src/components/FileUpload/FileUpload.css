@@ -98,7 +98,7 @@
 }
 
 .upload-button {
-    background-color: #28a745;
+    background-color: #003f2d;
     color: white;
     border: none;
     padding: 12px 24px;
@@ -353,11 +353,13 @@
 .result h3 {
     margin: 0 0 10px 0;
     font-size: 18px;
+    text-align: center;
 }
 
 .result p {
     margin: 0;
     color: inherit;
+    text-align: center;
 }
 
 /* Output filename row: keep within grid and ellipsize */

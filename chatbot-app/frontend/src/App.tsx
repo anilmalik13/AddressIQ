@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Provider } from 'react-redux';
-import { store } from './store';
 import FileUpload from './components/FileUpload';
 import AddressProcessing from './components/AddressProcessing';
 import RegionCityMap from './components/RegionCityMap';
 import PublicAPI from './components/PublicAPI/PublicAPI';
 import CompareUpload from './components/CompareUpload/CompareUpload';
+import DatabaseConnect from './components/DatabaseConnect';
 import './App.css';
 
-type ActiveView = 'upload' | 'processing' | 'map' | 'publicapi' | 'compare';
+type ActiveView = 'upload' | 'compare' | 'processing' | 'map' | 'publicapi' | 'dbconnect';
 type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
@@ -42,14 +41,16 @@ const App: React.FC = () => {
         switch (activeView) {
             case 'upload':
                 return <FileUpload />;
+            case 'compare':
+                return <CompareUpload />;
             case 'processing':
                 return <AddressProcessing />;
             case 'map':
                 return <RegionCityMap />;
             case 'publicapi':
                 return <PublicAPI />;
-            case 'compare':
-                return <CompareUpload />;
+            case 'dbconnect':
+                return <DatabaseConnect />;
             default:
                 return <FileUpload />;
         }
@@ -64,6 +65,7 @@ const App: React.FC = () => {
             { key: 'processing', label: 'Address Processing', icon: 'process' },
             { key: 'map', label: 'Map View', icon: 'map' },
             { key: 'publicapi', label: 'Public API', icon: 'api' },
+            { key: 'dbconnect', label: 'Database connect', icon: 'db' },
         ],
         []
     );
@@ -108,14 +110,21 @@ const App: React.FC = () => {
                         <polyline points="20 17 14 11 20 5" />
                     </svg>
                 );
+            case 'db':
+                return (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                        <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+                        <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
+                    </svg>
+                );
             default:
                 return null;
         }
     };
 
     return (
-        <Provider store={store}>
-            <div className="app-shell">
+        <div className="app-shell">
                 {/* Top bar */}
                 <header className="topbar" role="banner" aria-label="Application header">
                     <button
@@ -198,7 +207,6 @@ const App: React.FC = () => {
 
                 {/* Footer removed as per requirement */}
             </div>
-        </Provider>
     );
 };
 
