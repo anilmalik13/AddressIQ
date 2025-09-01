@@ -1,5 +1,20 @@
 # AddressIQ Backend – CLI Usage Guide
 
+## Web API additions (Database Connect)
+
+Endpoints used by the Database Connect UI:
+
+- `POST /api/db/connect` — Start a DB fetch + process job. Payload: `{ mode: 'format', connectionString, sourceType: 'table'|'query', tableName?, uniqueId?, columnNames?, query?, limit? }`.
+- `GET /api/processing-status/<id>` — Poll current status and progress; includes recent logs and output_file on completion.
+- `GET /api/processing-status/<id>/logs` — Retrieve recent log entries only.
+- `GET /api/preview/<filename>` — Paginated preview of processed outbound file (CSV/Excel). Query: `page`, `page_size`.
+- `GET /api/download/<filename>` — Download processed CSV from `outbound/`.
+
+Notes:
+- Only outbound (processed) files are downloadable.
+- Preview returns `{ columns: string[], rows: any[] }`.
+- The job uses a safe default record limit (10) unless overridden.
+
 ## Quick start
 
 The AddressIQ processor supports CSV files, batch modes, address comparison, and direct address input.

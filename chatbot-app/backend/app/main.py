@@ -13,6 +13,9 @@ from csv_address_processor import CSVAddressProcessor  # direct import for in-pr
 import uuid
 import re
 import sys
+import json
+import pyodbc
+# no external encoding detector here; rely on utf-8 replacement for preview
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -113,6 +116,236 @@ def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def _safe_ident(name: str) -> str:
+    """Very conservative identifier quoting for SQL Server names (table/column).
+    Allows only letters, numbers, underscore, and dot for schema qualification.
+    Wraps parts in square brackets. Falls back to simple stripping if invalid.
+    """
+    if not isinstance(name, str):
+        return ''
+    parts = [p for p in name.split('.') if p]
+    safe_parts = []
+    for p in parts:
+        if re.match(r'^[A-Za-z0-9_]+$', p):
+            safe_parts.append(f'[{p}]')
+        else:
+            # Remove unsafe chars
+            cleaned = re.sub(r'[^A-Za-z0-9_]', '', p)
+            safe_parts.append(f'[{cleaned}]')
+    return '.'.join(safe_parts) if safe_parts else ''
+
+def _df_to_inbound_csv(df: pd.DataFrame, base_filename: str) -> str:
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    safe = re.sub(r'[^A-Za-z0-9_.-]', '_', base_filename or 'db_extract')
+    filename = f"{safe}_{ts}.csv"
+    file_path = INBOUND_FOLDER / filename
+    # normalize columns to strings
+    df.columns = [str(c) for c in df.columns]
+    df.to_csv(file_path, index=False, encoding='utf-8')
+    return filename
+
+# --- Connection string utilities -------------------------------------------------
+def _parse_kv_conn_str(conn_str: str) -> dict:
+    """Parse a semicolon-separated key=value string into a dict (preserves last occurrence).
+    Ignores empty segments and segments without '='. Trims whitespace around keys/values.
+    """
+    result = {}
+    if not isinstance(conn_str, str):
+        return result
+    for seg in conn_str.split(';'):
+        if not seg or '=' not in seg:
+            continue
+        k, v = seg.split('=', 1)
+        k = (k or '').strip()
+        v = (v or '').strip()
+        if k:
+            result[k] = v
+    return result
+
+def _first_present(d: dict, names: list) -> str:
+    """Return the first value found in dict for any of the provided names (case-insensitive)."""
+    lower_map = {k.lower(): v for k, v in d.items()}
+    for n in names:
+        v = lower_map.get(n.lower())
+        if isinstance(v, str) and v.strip() != '':
+            return v.strip()
+    return ''
+
+def _mask(s: str, keep: int = 1) -> str:
+    if not s:
+        return ''
+    if len(s) <= keep:
+        return '*' * len(s)
+    return s[:keep] + '*' * (len(s) - keep)
+
+def _build_sqlserver_odbc_conn_str(raw: str) -> (str, dict, list):
+    """Build a canonical SQL Server ODBC connection string and report diagnostics.
+    Returns (conn_str, attrs_dict, warnings).
+    """
+    attrs = _parse_kv_conn_str(raw)
+    warnings = []
+    server = _first_present(attrs, ['SERVER', 'Server', 'Data Source', 'Address', 'Addr', 'Network Address'])
+    database = _first_present(attrs, ['DATABASE', 'Database', 'Initial Catalog'])
+    uid = _first_present(attrs, ['UID', 'User ID', 'User Id', 'User', 'Username', 'UserName'])
+    pwd = _first_present(attrs, ['PWD', 'Password', 'Pwd'])
+    driver = _first_present(attrs, ['DRIVER', 'Driver']) or '{ODBC Driver 17 for SQL Server}'
+    encrypt = _first_present(attrs, ['Encrypt']) or 'yes'
+    tsc = _first_present(attrs, ['TrustServerCertificate']) or 'no'
+    auth = _first_present(attrs, ['Authentication'])
+    timeout = _first_present(attrs, ['Connection Timeout', 'Timeout'])
+
+    canon = {
+        'DRIVER': driver,
+        'SERVER': server,
+        'DATABASE': database,
+        'UID': uid,
+        'PWD': pwd,
+        'Encrypt': encrypt,
+        'TrustServerCertificate': tsc,
+    }
+    if auth:
+        canon['Authentication'] = auth
+    if timeout:
+        canon['Connection Timeout'] = timeout
+
+    missing = [k for k in ['SERVER', 'DATABASE', 'UID', 'PWD'] if not canon.get(k)]
+    if missing:
+        warnings.append(f"Missing required attributes: {', '.join(missing)}")
+
+    # Recompose connection string
+    parts = []
+    for k in ['DRIVER', 'SERVER', 'DATABASE', 'UID', 'PWD', 'Encrypt', 'TrustServerCertificate', 'Authentication', 'Connection Timeout']:
+        if k in canon and canon[k] != '':
+            parts.append(f"{k}={canon[k]}")
+    conn_out = ';'.join(parts)
+    return conn_out, canon, warnings
+
+def process_db_task(processing_id: str, payload: dict):
+    """Background task: fetch from DB (table/query), save to inbound, process to outbound."""
+    try:
+        conn_str = payload.get('connectionString') or ''
+        source_type = payload.get('sourceType')
+        unique_id = (payload.get('uniqueId') or '').strip()
+        # Normalize column names: support comma-separated entries
+        column_names = []
+        for entry in (payload.get('columnNames') or []):
+            for part in str(entry).split(','):
+                name = part.strip()
+                if name:
+                    column_names.append(name)
+        table_name = (payload.get('tableName') or '').strip()
+        query_text = payload.get('query') or ''
+        limit = int(payload.get('limit') or 10)
+
+        # Normalize/validate connection string
+        final_conn_str, canon, warns = _build_sqlserver_odbc_conn_str(conn_str)
+        masked_uid = _mask(canon.get('UID', ''), 2)
+        _update_status(
+            processing_id,
+            status='processing',
+            message='Connecting to database…',
+            progress=20,
+            log=f"DB connect using DRIVER={canon.get('DRIVER')}, SERVER={canon.get('SERVER')}, DATABASE={canon.get('DATABASE')}, UID={masked_uid}"
+        )
+        if warns:
+            _update_status(processing_id, log=f"ConnString warnings: {' | '.join(warns)}")
+            # If required attrs are missing, fail early with clear error
+            if any(w.startswith('Missing required attributes') for w in warns):
+                _update_status(processing_id, status='error', message='Invalid connection string', progress=100, error='; '.join(warns))
+                return
+
+        with pyodbc.connect(final_conn_str) as conn:
+            _update_status(processing_id, message='Fetching data from database…', progress=30, log=f'Source: {source_type}')
+            df = None
+            if source_type == 'table':
+                cols = []
+                if unique_id:
+                    cols.append(unique_id)
+                for c in column_names:
+                    if not c:
+                        continue
+                    if unique_id and c.strip().lower() == unique_id.strip().lower():
+                        continue
+                    cols.append(c)
+                # quote identifiers
+                safe_cols = ', '.join([_safe_ident(c) for c in cols]) if cols else '*'
+                safe_table = _safe_ident(table_name)
+                top_clause = f"TOP {limit} " if limit else ''
+                sql = f"SELECT {top_clause}{safe_cols} FROM {safe_table}"
+                _update_status(processing_id, log=f'Executing: {sql}')
+                df = pd.read_sql_query(sql, conn)
+            else:
+                # arbitrary SQL; use pandas to run, then trim to limit
+                _update_status(processing_id, log='Executing provided SQL query')
+                raw = pd.read_sql_query(query_text, conn)
+                df = raw.head(limit) if limit and limit > 0 else raw
+
+        if df is None or df.empty:
+            _update_status(processing_id, status='error', message='No data returned from database', progress=100, error='Empty dataset', log='Query returned zero rows')
+            return
+
+        _update_status(processing_id, message='Writing inbound CSV…', progress=50, log=f'Rows fetched: {len(df)}')
+        inbound_filename = _df_to_inbound_csv(df, 'db_extract')
+        _update_status(processing_id, filename=inbound_filename)
+
+        _update_status(processing_id, message='Processing inbound CSV…', progress=70, log='Invoking CSVAddressProcessor')
+        processor = CSVAddressProcessor(base_directory=str(BASE_DIR))
+        output_path = processor.process_csv_file(str(INBOUND_FOLDER / inbound_filename))
+
+        if output_path and os.path.exists(output_path):
+            _update_status(processing_id, status='completed', message='Database data processed successfully', progress=100, output_file=os.path.basename(output_path), output_path=output_path, finished_at=datetime.utcnow().isoformat() + 'Z', log=f'Output: {os.path.basename(output_path)}')
+        else:
+            _update_status(processing_id, status='error', message='Processing completed but no output file found', progress=100, error='No outbound output', log='Missing output file')
+    except Exception as e:
+        _update_status(processing_id, status='error', message='DB processing failed', progress=100, error=str(e), log=f'Exception: {e}')
+
+# Inbound preview removed per requirement change
+
+@app.route('/api/db/connect', methods=['POST'])
+def db_connect_and_process():
+    """Start a DB fetch+process job based on payload from UI (table or query)."""
+    try:
+        data = request.get_json() or {}
+        mode = data.get('mode')  # 'format' | 'compare' (compare disabled on UI)
+        source_type = data.get('sourceType')  # 'table' | 'query'
+        connection_string = data.get('connectionString')
+        if not connection_string or not source_type:
+            return jsonify({'error': 'connectionString and sourceType are required'}), 400
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        processing_id = f"db_{timestamp}_{uuid.uuid4().hex[:6]}"
+        processing_status[processing_id] = {
+            'status': 'queued',
+            'message': 'Request accepted',
+            'filename': None,
+            'progress': 10,
+            'output_file': None,
+            'error': None,
+            'started_at': datetime.utcnow().isoformat() + 'Z',
+            'updated_at': datetime.utcnow().isoformat() + 'Z',
+            'finished_at': None,
+            'logs': [{'ts': datetime.utcnow().isoformat() + 'Z', 'message': 'DB task queued', 'progress': 10}],
+            'steps': [
+                {'name': 'queued', 'label': 'Queued', 'target': 10},
+                {'name': 'connect', 'label': 'Connect DB', 'target': 20},
+                {'name': 'fetch', 'label': 'Fetch', 'target': 40},
+                {'name': 'write', 'label': 'Write inbound', 'target': 50},
+                {'name': 'standardize', 'label': 'Process', 'target': 80},
+                {'name': 'complete', 'label': 'Complete', 'target': 100},
+            ]
+        }
+
+        # enrich payload with default limit
+        data['limit'] = int(data.get('limit') or 10)
+
+        thread = threading.Thread(target=process_db_task, args=(processing_id, data))
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({'message': 'DB task started', 'processing_id': processing_id}), 200
+    except Exception as e:
+        return jsonify({'error': f'DB connect failed: {str(e)}'}), 500
 
 @app.route('/upload-excel', methods=['POST'])
 def upload_excel_redirect():
@@ -237,12 +470,88 @@ def get_processing_status(processing_id):
     except Exception as e:
         return jsonify({'error': f'Failed to get status: {str(e)}'}), 500
 
+@app.route('/api/preview/<filename>', methods=['GET'])
+def preview_result_file(filename):
+    """Preview a processed outbound file (CSV/Excel) with basic pagination."""
+    try:
+        page = int(request.args.get('page') or 1)
+        page_size = int(request.args.get('page_size') or 50)
+        page = page if page > 0 else 1
+        page_size = page_size if page_size > 0 else 50
+
+        file_path = OUTBOUND_FOLDER / filename
+        if not file_path.exists():
+            return jsonify({'error': 'File not found'}), 404
+
+        ext = str(file_path.suffix).lower()
+        columns = []
+        rows = []
+
+        if ext == '.csv':
+            # Read header first to get columns (fast)
+            try:
+                header_df = pd.read_csv(file_path, nrows=0, encoding='utf-8')
+                columns = [str(c) for c in list(header_df.columns)]
+            except Exception:
+                try:
+                    header_df = pd.read_csv(file_path, nrows=0, encoding='latin1')
+                    columns = [str(c) for c in list(header_df.columns)]
+                except Exception:
+                    columns = []
+
+            # Use chunks to page through without loading entire file
+            chunk_size = page_size
+            target_index = page - 1
+            chunk_iter = None
+            try:
+                chunk_iter = pd.read_csv(file_path, chunksize=chunk_size, encoding='utf-8', on_bad_lines='skip')
+            except Exception:
+                chunk_iter = pd.read_csv(file_path, chunksize=chunk_size, encoding='latin1', on_bad_lines='skip')
+
+            current = 0
+            selected = None
+            for chunk in chunk_iter:
+                if current == target_index:
+                    selected = chunk
+                    break
+                current += 1
+
+            if selected is not None:
+                selected.columns = [str(c) for c in selected.columns]
+                if not columns:
+                    columns = [str(c) for c in list(selected.columns)]
+                rows = selected.fillna('').to_dict(orient='records')
+
+        elif ext in ('.xlsx', '.xls'):
+            # Excel: read header to get columns then read page using skiprows/nrows
+            try:
+                header_df = pd.read_excel(file_path, nrows=0)
+                columns = [str(c) for c in list(header_df.columns)]
+            except Exception:
+                columns = []
+
+            skiprows = range(1, (page - 1) * page_size + 1) if page > 1 else None
+            try:
+                df = pd.read_excel(file_path, skiprows=skiprows, nrows=page_size)
+                df.columns = [str(c) for c in df.columns]
+                if not columns:
+                    columns = [str(c) for c in list(df.columns)]
+                rows = df.fillna('').to_dict(orient='records')
+            except Exception:
+                rows = []
+        else:
+            return jsonify({'error': 'Unsupported file type'}), 400
+
+        return jsonify({'columns': columns, 'rows': rows}), 200
+    except Exception as e:
+        return jsonify({'error': f'Preview failed: {str(e)}'}), 500
+
 @app.route('/api/download/<filename>', methods=['GET'])
 def download_processed_file(filename):
     """Download processed file from outbound directory"""
     try:
+        # Serve only outbound processed files
         file_path = OUTBOUND_FOLDER / filename
-        
         if not file_path.exists():
             return jsonify({'error': 'File not found'}), 404
         
@@ -255,6 +564,87 @@ def download_processed_file(filename):
         
     except Exception as e:
         return jsonify({'error': f'Download failed: {str(e)}'}), 500
+
+@app.route('/api/preview/<filename>', methods=['GET'])
+def preview_output_file(filename):
+    """Return a small JSON preview of an outbound file (CSV or Excel).
+    Query params:
+      - limit: DEPRECATED alias of page_size
+      - page: 1-based page index (default 1)
+      - page_size: number of rows per page (default 100, max 500)
+    """
+    try:
+        file_path = OUTBOUND_FOLDER / filename
+        if not file_path.exists() or not file_path.is_file():
+            return jsonify({'error': 'File not found'}), 404
+
+        # Parse pagination params
+        try:
+            page = int(request.args.get('page', '1'))
+        except Exception:
+            page = 1
+        try:
+            page_size = int(request.args.get('page_size', request.args.get('limit', '100')))
+        except Exception:
+            page_size = 100
+        page = max(1, page)
+        page_size = max(1, min(page_size, 500))
+        start = (page - 1) * page_size
+
+        ext = file_path.suffix.lower()
+        df = None
+        total_rows = 0
+        if ext in ['.csv', '.txt']:
+            # Count rows in binary mode (encoding agnostic)
+            try:
+                with open(file_path, 'rb') as fb:
+                    total_rows = sum(1 for _ in fb) - 1  # minus header
+                    if total_rows < 0:
+                        total_rows = 0
+            except Exception:
+                total_rows = 0
+
+            # Read page using UTF-8 with replacement to avoid decode errors for preview
+            skip = range(1, 1 + start) if start > 0 else None
+            with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                df = pd.read_csv(
+                    f,
+                    sep=None,
+                    engine='python',
+                    skiprows=skip,
+                    nrows=page_size,
+                    on_bad_lines='skip',
+                    dtype=str
+                )
+        elif ext in ['.xlsx', '.xls']:
+            # Total rows: approximate by reading first column fully
+            try:
+                total_rows = int(pd.read_excel(str(file_path), usecols=[0]).shape[0])
+            except Exception:
+                total_rows = 0
+            skip = range(1, 1 + start) if start > 0 else None
+            df = pd.read_excel(str(file_path), nrows=page_size, skiprows=skip)
+        else:
+            return jsonify({'error': f'Unsupported file type: {ext}'}), 400
+
+        # Normalize columns to strings and replace NaN with None
+        df.columns = [str(c) for c in df.columns]
+        records = json.loads(df.where(pd.notnull(df), None).to_json(orient='records'))
+        if total_rows == 0:
+            # Fallback if we couldn't compute total rows; approximate with page info
+            total_rows = start + len(records)
+
+        return jsonify({
+            'filename': filename,
+            'columns': df.columns.tolist(),
+            'rowCount': len(records),
+            'rows': records,
+            'page': page,
+            'pageSize': page_size,
+            'totalRows': int(total_rows)
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Preview failed: {str(e)}'}), 500
 
 @app.route('/api/upload-excel', methods=['POST'])
 def upload_excel():

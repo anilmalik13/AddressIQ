@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { uploadCompareFile, checkProcessingStatus, downloadFile } from '../../services/api';
+import { uploadCompareFile, checkProcessingStatus, downloadFile, previewResultFile } from '../../services/api';
 import '../FileUpload/FileUpload.css';
+import './CompareUpload.css';
 
 // Human-readable file size formatter to avoid showing 0.00 MB for small files
 function formatFileSize(bytes: number): string {
@@ -21,6 +22,9 @@ const CompareUpload: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{columns: string[]; rows: any[]; rowCount: number; page?: number; pageSize?: number; totalRows?: number} | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -107,6 +111,72 @@ const CompareUpload: React.FC = () => {
       downloadFile(processingStatus.output_file);
     }
   }, [processingStatus?.output_file]);
+
+  // Load preview after completion
+  useEffect(() => {
+    const load = async () => {
+      if (processingStatus?.status === 'completed' && processingStatus?.output_file) {
+        try {
+          const pv = await previewResultFile(processingStatus.output_file, page, pageSize);
+          setPreview({ columns: pv.columns, rows: pv.rows, rowCount: pv.rowCount, page: pv.page, pageSize: pv.pageSize, totalRows: pv.totalRows });
+        } catch (e: any) {
+          // Non-fatal if preview fails
+          setPreview(null);
+          console.warn('Preview failed:', e?.message || e);
+        }
+      } else {
+        setPreview(null);
+      }
+    };
+    load();
+  }, [processingStatus?.status, processingStatus?.output_file, page, pageSize]);
+
+  const hiddenColumns = new Set(['method_used', 'timestamp', 'status', 'id']);
+
+  const renderMatchLevel = (value: any) => {
+    const raw = (value ?? '').toString().trim();
+    const norm = raw.replace(/\s+/g, '_').replace(/-/g, '_').toUpperCase();
+    const good = new Set(['VERY_LIKELY_SAME', 'EXACT_MATCH', 'LIKELY_SAME', 'HIGH_MATCH', 'STRONG_MATCH']);
+    const mid = new Set(['DIFFERENT_BUT_NEARBY', 'POSSIBLE_MATCH', 'PARTIAL_MATCH', 'MEDIUM_MATCH', 'NEARBY']);
+    const bad = new Set(['NO_MATCH', 'LOW_CONFIDENCE_MATCH', 'MISMATCH', 'NONE']);
+    let cls = 'match-neutral';
+    if (good.has(norm)) cls = 'match-good';
+    else if (mid.has(norm)) cls = 'match-mid';
+    else if (bad.has(norm)) cls = 'match-bad';
+
+    const displayMap: Record<string, string> = {
+      NO_MATCH: 'NO MATCH',
+      DIFFERENT_BUT_NEARBY: 'DIFFERENT BUT NEARBY',
+      VERY_LIKELY_SAME: 'VERY LIKELY SAME',
+      LIKELY_SAME: 'LIKELY SAME',
+      POSSIBLE_MATCH: 'POSSIBLE MATCH',
+      EXACT_MATCH: 'EXACT MATCH',
+      PARTIAL_MATCH: 'PARTIAL MATCH',
+      LOW_CONFIDENCE_MATCH: 'LOW CONFIDENCE MATCH',
+    };
+    const display = displayMap[norm] || raw.replace(/_/g, ' ').toUpperCase();
+
+    return (
+      <span className={`pill ${cls}`} title={display}>
+        <span className="dot" />
+        <span className="match-label">{display}</span>
+      </span>
+    );
+  };
+
+  const renderConfidence = (value: any) => {
+    const n = typeof value === 'number' ? value : parseFloat(value);
+    const pct = isFinite(n) ? Math.max(0, Math.min(100, n)) : 0;
+    const color = pct >= 80 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#ef4444';
+    return (
+      <div className="confidence" title={`${pct}% confidence`}>
+        <div className="bar-bg">
+          <div className="bar-fill" style={{ width: `${pct}%`, background: color }} />
+        </div>
+        <span className="bar-label" style={{ color }}>{isNaN(pct) ? String(value ?? '-') : `${pct}%`}</span>
+      </div>
+    );
+  };
 
   const isProcessing = processingStatus && ['uploaded', 'processing'].includes(processingStatus.status);
   const isCompleted = processingStatus?.status === 'completed';
@@ -211,6 +281,83 @@ const CompareUpload: React.FC = () => {
                   </span>
                 </div>
               )}
+            </div>
+          )}
+
+          {isCompleted && preview && preview.rows?.length > 0 && (
+            <div className="preview-card">
+              <div className="preview-header">
+                <h3 className="preview-title">Result Preview</h3>
+              </div>
+              {/* pager moved below table */}
+              <div className="table-wrapper">
+                <table className="result-table">
+                  <thead>
+                    <tr>
+                      <th className="col-index" style={{ width: 80, minWidth: 60, maxWidth: 100 }}>
+                        <div className="th-wrap">#</div>
+                      </th>
+                      {preview.columns.filter(c => !hiddenColumns.has(String(c).toLowerCase())).map((c) => {
+                        const key = String(c);
+                        const labels: Record<string, string> = {
+                          original_address_1: 'Original Address 1',
+                          original_address_2: 'Original Address 2',
+                          standardized_address_1: 'Standardized Address 1',
+                          standardized_address_2: 'Standardized Address 2',
+                          match_level: 'Match Level',
+                          confidence_score: 'Confidence Score',
+                          analysis: 'Analysis',
+                        };
+                        const label = labels[key.toLowerCase()] || key;
+                        const narrow = ['match_level', 'confidence_score'].includes(key.toLowerCase());
+                        const style: React.CSSProperties = narrow ? { width: 180, minWidth: 180, maxWidth: 220 } : { width: 360, minWidth: 280 };
+                        return (
+                          <th key={key} style={style}><div className="th-wrap">{label}</div></th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.map((row, idx) => (
+                      <tr key={idx}>
+                        <td className="col-index" style={{ width: 80, minWidth: 60, maxWidth: 100 }}>
+                          <div className="cell-wrap">{(page - 1) * pageSize + idx + 1}</div>
+                        </td>
+                        {preview.columns.filter(c => !hiddenColumns.has(String(c).toLowerCase())).map((c) => {
+                          const key = String(c);
+                          const val = row[key];
+                          const keyLc = key.toLowerCase();
+                          const narrow = ['match_level', 'confidence_score'].includes(keyLc);
+                          const style: React.CSSProperties = narrow ? { width: 180, minWidth: 180, maxWidth: 220 } : { width: 360, minWidth: 280 };
+                          if (keyLc === 'match_level') return <td key={key} style={style}><div className="cell-wrap">{renderMatchLevel(val)}</div></td>;
+                          if (keyLc === 'confidence_score') return <td key={key} style={style}><div className="cell-wrap">{renderConfidence(val)}</div></td>;
+                          return <td key={key} style={style}><div className="cell-wrap" title={val}>{String(val ?? '')}</div></td>;
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="preview-footer">
+                <div className="pager">
+                  <div className="pager-left">
+                    <button className="pager-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Prev</button>
+                    <span className="pager-text">Page {page} of {Math.max(1, Math.ceil((preview.totalRows || 0) / pageSize))}</span>
+                    <button className="pager-btn" onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil((preview.totalRows || 0) / pageSize)}>Next</button>
+                  </div>
+                  <div className="pager-right">
+                    <label className="pager-label">Rows per page&nbsp;
+                      <select className="pager-select" value={pageSize} onChange={(e) => { setPage(1); setPageSize(parseInt(e.target.value, 10)); }}>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                        <option value={200}>200</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+                <div className="preview-note">Showing {preview.rowCount} rows • Total {preview.totalRows ?? (page * pageSize)} • Page {page}. Scroll horizontally to see more columns.</div>
+              </div>
             </div>
           )}
 
