@@ -195,6 +195,28 @@ class CSVAddressProcessor:
         
         print(f"✅ Archived {archived_count} files")
     
+    def archive_single_inbound_file(self, input_file_path: str) -> bool:
+        """Archive a single file if it's from the inbound directory"""
+        input_path = Path(input_file_path).resolve()  # Convert to absolute path
+        
+        # Check if file is from inbound directory
+        if input_path.parent == self.inbound_dir:
+            try:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                archive_filename = f"{input_path.stem}_{timestamp}{input_path.suffix}"
+                archive_path = self.archive_dir / archive_filename
+                
+                # Move file to archive
+                shutil.move(str(input_path), str(archive_path))
+                print(f"📦 Archived inbound file: {input_path.name} → {archive_filename}")
+                return True
+                
+            except Exception as e:
+                print(f"⚠️  Could not archive inbound file {input_path.name}: {e}")
+                return False
+        
+        return False  # File was not from inbound directory
+    
     def get_inbound_files(self) -> List[Path]:
         """Get all CSV files from inbound directory"""
         csv_files = list(self.inbound_dir.glob("*.csv"))
@@ -762,18 +784,39 @@ class CSVAddressProcessor:
     
     def detect_site_address_columns(self, df: pd.DataFrame) -> bool:
         """Check if the DataFrame has the specific site address column structure"""
-        expected_columns = list(self.site_address_columns.values())
-        available_columns = df.columns.tolist()
+        available_columns = [col.lower() for col in df.columns.tolist()]
         
-        # Check if all expected site address columns are present
-        missing_columns = [col for col in expected_columns if col not in available_columns]
+        # Check for various site address column patterns
+        address_line_patterns = [
+            'site_address_line1', 'site_address_line2', 'site_address_line3', 'site_address_line4',
+            'site_address_1', 'site_address_2', 'site_address_3', 'site_address_4',
+            'address_line1', 'address_line2', 'address_line3'
+        ]
         
-        if not missing_columns:
+        city_patterns = ['site_city', 'city']
+        state_patterns = ['site_state', 'state']
+        postcode_patterns = ['site_postcode', 'postcode', 'postal_code', 'zip_code']
+        country_patterns = ['site_country', 'country']
+        
+        # Check if we have at least one address line and some geographical components
+        has_address_line = any(pattern in available_columns for pattern in address_line_patterns)
+        has_city = any(pattern in available_columns for pattern in city_patterns)
+        has_state = any(pattern in available_columns for pattern in state_patterns)
+        has_postcode = any(pattern in available_columns for pattern in postcode_patterns)
+        has_country = any(pattern in available_columns for pattern in country_patterns)
+        
+        # Count how many geographic components we have
+        geo_components = sum([has_city, has_state, has_postcode, has_country])
+        
+        if has_address_line and geo_components >= 2:
             print(f"✅ Detected site address column structure!")
-            print(f"Found columns: {', '.join(expected_columns)}")
+            print(f"   Address lines: {has_address_line}")
+            print(f"   Geographic components found: {geo_components}/4 (city: {has_city}, state: {has_state}, postcode: {has_postcode}, country: {has_country})")
             return True
         else:
-            print(f"❌ Missing site address columns: {', '.join(missing_columns)}")
+            print(f"❌ Site address structure not detected")
+            print(f"   Address lines: {has_address_line}")
+            print(f"   Geographic components: {geo_components}/4 (need at least 2)")
             return False
     
     def detect_country_column(self, df: pd.DataFrame) -> str:
@@ -792,26 +835,63 @@ class CSVAddressProcessor:
         print("ℹ️  No country column detected - will use address-based detection")
         return None
     
+    def combine_address_columns(self, row: pd.Series, column_names: List[str]) -> str:
+        """Combine specified columns into a single address string - column name independent"""
+        address_parts = []
+        
+        for col_name in column_names:
+            if col_name in row and pd.notna(row[col_name]):
+                value = str(row[col_name]).strip()
+                # Skip empty values, NULL strings, and common placeholder values
+                if value and value.upper() not in ['NULL', 'N/A', 'NA', '', 'NONE']:
+                    address_parts.append(value)
+        
+        # Join all parts with commas and return
+        combined_address = ', '.join(address_parts)
+        return combined_address if combined_address.strip() else ""
+
     def combine_site_address_fields(self, row: pd.Series) -> str:
         """Combine separate site address fields into a single address string"""
         address_parts = []
         
-        # Add address lines
-        for addr_col in ['Site_Address_1', 'Site_Address_2', 'Site_Address_3']:
-            if addr_col in row and pd.notna(row[addr_col]) and str(row[addr_col]).strip():
+        # Add address lines - handle multiple naming conventions
+        address_line_columns = [
+            'Site_Address_Line1', 'Site_Address_line2', 'Site_Address_line3', 'Site_Address_Line4',  # Your current format
+            'Site_Address_1', 'Site_Address_2', 'Site_Address_3', 'Site_Address_4',  # Alternative format
+            'address_line1', 'address_line2', 'address_line3', 'address_line4'  # Generic format
+        ]
+        
+        for addr_col in address_line_columns:
+            if addr_col in row and pd.notna(row[addr_col]) and str(row[addr_col]).strip() and str(row[addr_col]).strip().upper() != 'NULL':
                 address_parts.append(str(row[addr_col]).strip())
         
-        # Add city
-        if 'City' in row and pd.notna(row['City']) and str(row['City']).strip():
-            address_parts.append(str(row['City']).strip())
+        # Add city - handle multiple naming conventions
+        city_columns = ['Site_City', 'City', 'city']
+        for city_col in city_columns:
+            if city_col in row and pd.notna(row[city_col]) and str(row[city_col]).strip() and str(row[city_col]).strip().upper() != 'NULL':
+                address_parts.append(str(row[city_col]).strip())
+                break  # Only add one city column
             
-        # Add state  
-        if 'State' in row and pd.notna(row['State']) and str(row['State']).strip():
-            address_parts.append(str(row['State']).strip())
+        # Add state - handle multiple naming conventions
+        state_columns = ['Site_State', 'State', 'state']
+        for state_col in state_columns:
+            if state_col in row and pd.notna(row[state_col]) and str(row[state_col]).strip() and str(row[state_col]).strip().upper() != 'NULL':
+                address_parts.append(str(row[state_col]).strip())
+                break  # Only add one state column
             
-        # Add postal code
-        if 'PostCode' in row and pd.notna(row['PostCode']) and str(row['PostCode']).strip():
-            address_parts.append(str(row['PostCode']).strip())
+        # Add postal code - handle multiple naming conventions
+        postcode_columns = ['Site_PostCode', 'PostCode', 'postal_code', 'zip_code']
+        for postcode_col in postcode_columns:
+            if postcode_col in row and pd.notna(row[postcode_col]) and str(row[postcode_col]).strip() and str(row[postcode_col]).strip().upper() != 'NULL':
+                address_parts.append(str(row[postcode_col]).strip())
+                break  # Only add one postcode column
+        
+        # Add country - handle multiple naming conventions
+        country_columns = ['Site_country', 'Country', 'country']
+        for country_col in country_columns:
+            if country_col in row and pd.notna(row[country_col]) and str(row[country_col]).strip() and str(row[country_col]).strip().upper() != 'NULL':
+                address_parts.append(str(row[country_col]).strip())
+                break  # Only add one country column
         
         # Join all parts with commas
         combined_address = ', '.join(address_parts)
@@ -1152,8 +1232,9 @@ class CSVAddressProcessor:
         return all_results
     
     def process_csv_file(self, input_file: str, output_file: str = None, 
-                        address_column: str = None, batch_size: int = 10, 
-                        use_free_apis: bool = True, enable_batch_processing: bool = True) -> str:
+                        address_column: str = None, address_columns: List[str] = None,
+                        batch_size: int = 10, use_free_apis: bool = True, 
+                        enable_batch_processing: bool = True) -> str:
         """
         Process a CSV file and standardize addresses using efficient batch processing
         
@@ -1161,6 +1242,7 @@ class CSVAddressProcessor:
             input_file: Path to input CSV file
             output_file: Path to output CSV file (optional)
             address_column: Specific column name containing addresses (optional)
+            address_columns: List of column names to combine into address (optional)
             batch_size: Number of addresses to process in each batch (default: 10)
             use_free_apis: Whether to use free APIs to fill missing components
             enable_batch_processing: Whether to use batch processing for efficiency
@@ -1191,15 +1273,32 @@ class CSVAddressProcessor:
         else:
             print(f"🌐 Free API enhancement: DISABLED")
         
-        # Check if this is a site address structure
-        is_site_format = self.detect_site_address_columns(df)
+        # Determine processing method based on parameters
+        result_file = None
         
-        if is_site_format:
-            # Process site address format
-            return self.process_site_address_format(df, output_file, use_free_apis)
+        if address_columns:
+            # User-specified columns to combine
+            result_file = self.process_user_specified_columns(df, address_columns, output_file, use_free_apis)
+        elif address_column:
+            # Single specified column
+            result_file = self.process_regular_address_format(df, address_column, output_file, use_free_apis, enable_batch_processing)
         else:
-            # Process regular address format
-            return self.process_regular_address_format(df, address_column, output_file, use_free_apis, enable_batch_processing)
+            # Auto-detect format (existing logic)
+            # Check if this is a site address structure
+            is_site_format = self.detect_site_address_columns(df)
+            
+            if is_site_format:
+                # Process site address format
+                result_file = self.process_site_address_format(df, output_file, use_free_apis)
+            else:
+                # Process regular address format
+                result_file = self.process_regular_address_format(df, address_column, output_file, use_free_apis, enable_batch_processing)
+        
+        # Archive input file if it was from inbound directory and processing was successful
+        if result_file:
+            self.archive_single_inbound_file(input_file)
+            
+        return result_file
     
     def process_site_address_format(self, df: pd.DataFrame, output_file: str = None, use_free_apis: bool = True) -> str:
         """Process CSV with site address column structure"""
@@ -1354,6 +1453,124 @@ class CSVAddressProcessor:
         
         return self.save_and_summarize_results(df, output_file, processed_count, success_count, error_count, ["Combined_Address"])
     
+    def process_user_specified_columns(self, df: pd.DataFrame, address_columns: List[str], 
+                                     output_file: str = None, use_free_apis: bool = True) -> str:
+        """Process CSV with user-specified columns to combine into addresses - completely column name independent"""
+        
+        print(f"\n🎯 Processing User-Specified Address Columns")
+        print("=" * 60)
+        print("📋 Processing mode: USER-SPECIFIED COLUMNS")
+        print(f"   Columns to combine: {', '.join(address_columns)}")
+        print("   Original columns preserved + new standardized columns added")
+        
+        # Validate that all specified columns exist
+        missing_columns = [col for col in address_columns if col not in df.columns]
+        if missing_columns:
+            print(f"❌ Error: Missing columns in CSV: {', '.join(missing_columns)}")
+            print(f"   Available columns: {', '.join(df.columns.tolist())}")
+            raise ValueError(f"Missing columns: {', '.join(missing_columns)}")
+        
+        # Add combined address column using user-specified columns
+        df['Combined_Address'] = df.apply(lambda row: self.combine_address_columns(row, address_columns), axis=1)
+        
+        # Show sample of combined addresses
+        print(f"\n📋 Sample combined addresses:")
+        for i in range(min(3, len(df))):
+            if df.iloc[i]['Combined_Address']:
+                print(f"   Row {i+1}: {df.iloc[i]['Combined_Address'][:80]}...")
+        
+        # Add standardization result columns
+        base_col_name = "Standardized_Address"
+        df[f"{base_col_name}_formatted"] = ""
+        df[f"{base_col_name}_street_number"] = ""
+        df[f"{base_col_name}_street_name"] = ""
+        df[f"{base_col_name}_street_type"] = ""
+        df[f"{base_col_name}_unit_type"] = ""
+        df[f"{base_col_name}_unit_number"] = ""
+        df[f"{base_col_name}_city"] = ""
+        df[f"{base_col_name}_state"] = ""
+        df[f"{base_col_name}_postal_code"] = ""
+        df[f"{base_col_name}_country"] = ""
+        df[f"{base_col_name}_confidence"] = ""
+        df[f"{base_col_name}_issues"] = ""
+        df[f"{base_col_name}_status"] = ""
+        df[f"{base_col_name}_api_source"] = ""
+        df[f"{base_col_name}_latitude"] = ""
+        df[f"{base_col_name}_longitude"] = ""
+        df[f"{base_col_name}_address_id"] = ""
+        df[f"{base_col_name}_from_cache"] = ""
+        
+        # Process each combined address
+        total_rows = len(df)
+        processed_count = 0
+        success_count = 0
+        error_count = 0
+        cached_count = 0
+        
+        print(f"\n🚀 Processing {total_rows} combined addresses...")
+        
+        for df_index, row in df.iterrows():
+            combined_address = row['Combined_Address']
+            
+            if not combined_address or pd.isna(combined_address):
+                # Handle empty combined address
+                df.at[df_index, f"{base_col_name}_status"] = "skipped"
+                df.at[df_index, f"{base_col_name}_issues"] = "empty_combined_address"
+                df.at[df_index, f"{base_col_name}_confidence"] = "n/a"
+                error_count += 1
+                processed_count += 1
+                continue
+            
+            # Standardize the combined address
+            result = self.standardize_single_address(combined_address, df_index)
+            
+            # Update DataFrame with results
+            if result:
+                df.at[df_index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
+                df.at[df_index, f"{base_col_name}_street_number"] = result.get('street_number', '')
+                df.at[df_index, f"{base_col_name}_street_name"] = result.get('street_name', '')
+                df.at[df_index, f"{base_col_name}_street_type"] = result.get('street_type', '')
+                df.at[df_index, f"{base_col_name}_unit_type"] = result.get('unit_type', '')
+                df.at[df_index, f"{base_col_name}_unit_number"] = result.get('unit_number', '')
+                df.at[df_index, f"{base_col_name}_city"] = result.get('city', '')
+                df.at[df_index, f"{base_col_name}_state"] = result.get('state', '')
+                df.at[df_index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
+                df.at[df_index, f"{base_col_name}_country"] = result.get('country', '')
+                df.at[df_index, f"{base_col_name}_confidence"] = result.get('confidence', '')
+                df.at[df_index, f"{base_col_name}_issues"] = result.get('issues', '')
+                df.at[df_index, f"{base_col_name}_status"] = result.get('status', '')
+                df.at[df_index, f"{base_col_name}_api_source"] = result.get('api_source', '')
+                df.at[df_index, f"{base_col_name}_latitude"] = result.get('latitude', '')
+                df.at[df_index, f"{base_col_name}_longitude"] = result.get('longitude', '')
+                df.at[df_index, f"{base_col_name}_address_id"] = result.get('address_id', '')
+                df.at[df_index, f"{base_col_name}_from_cache"] = 'Yes' if result.get('from_cache', False) else 'No'
+                
+                processed_count += 1
+                if result.get('status') == 'success':
+                    success_count += 1
+                else:
+                    error_count += 1
+                    
+                if result.get('from_cache', False):
+                    cached_count += 1
+            
+            # Progress indicator
+            if (processed_count + 1) % 5 == 0 or processed_count == total_rows - 1:
+                print(f"Progress: {processed_count + 1}/{total_rows} ({(processed_count + 1)/total_rows*100:.1f}%) - {cached_count} cached")
+            
+            # Small delay to avoid overwhelming the API
+            time.sleep(0.1)
+        
+        # Print enhanced summary with cache statistics
+        print(f"\n📊 Processing Summary:")
+        print(f"   Total processed: {processed_count}")
+        print(f"   Successful: {success_count}")
+        print(f"   Errors: {error_count}")
+        print(f"   Cached addresses: {cached_count}/{processed_count} ({cached_count/processed_count*100:.1f}%)" if processed_count > 0 else "   Cached addresses: 0/0 (0.0%)")
+        print(f"   New addresses processed: {processed_count - cached_count}")
+        
+        return self.save_and_summarize_results(df, output_file, processed_count, success_count, error_count, ["Combined_Address"])
+
     def process_regular_address_format(self, df: pd.DataFrame, address_column: str = None, output_file: str = None, use_free_apis: bool = True, enable_batch_processing: bool = True) -> str:
         """Process CSV with regular address format"""
         
@@ -1479,12 +1696,12 @@ class CSVAddressProcessor:
         if not output_path.is_absolute() and output_path.parent == Path('.'):
             output_file = str(self.outbound_dir / output_path.name)
         
-        # Save results
+        # Save results with proper CSV escaping to handle commas in addresses
         try:
-            df.to_csv(output_file, index=False, encoding='utf-8')
+            df.to_csv(output_file, index=False, encoding='utf-8', quoting=1)  # quoting=1 means QUOTE_ALL
         except Exception as e:
             # Fallback to latin-1 encoding if utf-8 fails
-            df.to_csv(output_file, index=False, encoding='latin-1')
+            df.to_csv(output_file, index=False, encoding='latin-1', quoting=1)
         
         # Print summary
         print(f"\n{'='*60}")
@@ -2267,17 +2484,7 @@ Return JSON with: overall_score, match_level, likely_same_address, confidence, e
                 print(f"   {level}: {count:,} ({percentage:.1f}%)")
             
             # Archive input file if it was from inbound directory
-            if str(input_path).startswith(str(self.inbound_dir)):
-                print(f"\n📦 Archiving processed input file...")
-                try:
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    archive_filename = f"{input_path.stem}_{timestamp}{input_path.suffix}"
-                    archive_path = self.archive_dir / archive_filename
-                    shutil.move(str(input_path), str(archive_path))
-                    print(f"   📦 Archived: {input_path.name} → {archive_filename}")
-                except Exception as e:
-                    print(f"   ⚠️  Could not archive input file: {e}")
-                self.archive_inbound_files([input_path])
+            self.archive_single_inbound_file(input_file)
             
             return str(output_file)
             
@@ -2297,19 +2504,23 @@ def main():
 Examples:
   # Process CSV file
   python csv_address_processor.py addresses.csv
-  
+
   # Process all files in inbound directory
   python csv_address_processor.py --batch-process
-  
+
+  # Process with user-specified columns (column name independent!)
+  python csv_address_processor.py addresses.csv --address-columns "street,city,state,zip"
+  python csv_address_processor.py data.csv --address-columns "Site_Address_Line1,Site_City,Site_State,Site_PostCode"
+
   # Process all comparison files in inbound directory
   python csv_address_processor.py --batch-compare
-  
+
   # Process single address
   python csv_address_processor.py --address "123 Main St, NYC, NY"
-  
+
   # Process multiple addresses
   python csv_address_processor.py --address "123 Main St, NYC" "456 Oak Ave, LA"
-  
+
   # Compare two addresses
   python csv_address_processor.py --compare "123 Main St, NYC" "123 Main Street, New York"
   
@@ -2361,6 +2572,7 @@ Examples:
     # Options for CSV processing
     parser.add_argument('-o', '--output', help='Output file path')
     parser.add_argument('-c', '--column', help='Specific address column name (for CSV)')
+    parser.add_argument('--address-columns', help='Comma-separated list of columns to combine into address (e.g., "address_line1,city,state,zip")')
     parser.add_argument('-b', '--batch-size', type=int, default=5, help='Batch size for processing (default: 5)')
     parser.add_argument('--no-free-apis', action='store_true', help='Disable free API enhancement')
     
@@ -2696,6 +2908,7 @@ Examples:
                     input_file=args.input_file,
                     output_file=args.output,
                     address_column=args.column,
+                    address_columns=args.address_columns.split(',') if args.address_columns else None,
                     batch_size=args.batch_size,
                     use_free_apis=not args.no_free_apis
                 )
