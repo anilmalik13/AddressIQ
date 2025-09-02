@@ -127,3 +127,8 @@ pids
 ehthumbs.db
 Thumbs.db
 /.vs
+
+# AddressIQ specific output directories
+chatbot-app/backend/outbound/
+chatbot-app/backend/archive/
+chatbot-app/backend/inbound/
