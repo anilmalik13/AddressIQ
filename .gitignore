@@ -53,6 +53,9 @@ venv.bak/
 # Virtual environments (specific to this project)
 venv/
 .venv/
+addressiq_venv/
+addressiq_venv_new/
+chatbot-app/backend/addressiq_venv/
 
 # IDEs
 .vscode/
