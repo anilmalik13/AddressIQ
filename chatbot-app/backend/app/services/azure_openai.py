@@ -498,7 +498,8 @@ def _process_address_batch(address_list: list, target_country: str = None, batch
         response = connect_wso2(
             access_token=access_token,
             user_content=enhanced_content,
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
+            max_tokens=3000  # Higher token limit for batch processing to handle 5 addresses
         )
         
         # Extract and parse the batch response

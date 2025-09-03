@@ -277,6 +277,139 @@ class AzureSQLDatabaseService:
         except Exception as e:
             print(f"❌ Error saving address: {str(e)}")
             return None
+
+    def save_addresses_batch(self, addresses_data: list) -> list:
+        """
+        Save multiple addresses to database in a single transaction for better performance
+        
+        Args:
+            addresses_data: List of tuples (original_address, standardized_result)
+            
+        Returns:
+            List of address IDs (None for skipped/failed saves)
+        """
+        if not addresses_data:
+            return []
+        
+        print(f"   💾 Batch saving {len(addresses_data)} addresses to database...")
+        
+        address_ids = []
+        addresses_to_insert = []
+        addresses_to_update = []
+        
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # First pass: check existing addresses and prepare data
+            for original_address, standardized_result in addresses_data:
+                # Only save if successfully processed
+                if (standardized_result.get('status') != 'success' or 
+                    standardized_result.get('confidence') == 'low' or
+                    'failed' in standardized_result.get('api_source', '') or
+                    'fallback' in standardized_result.get('api_source', '')):
+                    address_ids.append(None)
+                    continue
+                
+                address_hash = self.generate_address_hash(original_address)
+                
+                # Check if exists
+                cursor.execute('SELECT id, usage_count FROM standardized_addresses WHERE address_hash = ?', (address_hash,))
+                existing = cursor.fetchone()
+                
+                if existing:
+                    addresses_to_update.append(existing[0])
+                    address_ids.append(existing[0])
+                else:
+                    # Prepare insert data
+                    insert_data = (
+                        address_hash,
+                        original_address,
+                        standardized_result.get('formatted_address', ''),
+                        standardized_result.get('street_number'),
+                        standardized_result.get('street_name'),
+                        standardized_result.get('street_type'),
+                        standardized_result.get('unit_type'),
+                        standardized_result.get('unit_number'),
+                        standardized_result.get('building_name'),
+                        standardized_result.get('floor_number'),
+                        standardized_result.get('city'),
+                        standardized_result.get('state'),
+                        standardized_result.get('county'),
+                        standardized_result.get('postal_code'),
+                        standardized_result.get('country'),
+                        standardized_result.get('country_code'),
+                        standardized_result.get('district'),
+                        standardized_result.get('region'),
+                        standardized_result.get('suburb'),
+                        standardized_result.get('locality'),
+                        standardized_result.get('sublocality'),
+                        standardized_result.get('canton'),
+                        standardized_result.get('prefecture'),
+                        standardized_result.get('oblast'),
+                        standardized_result.get('confidence'),
+                        str(standardized_result.get('issues', [])),
+                        standardized_result.get('api_source'),
+                        float(standardized_result.get('latitude', 0)) if standardized_result.get('latitude') and str(standardized_result.get('latitude')).strip() else None,
+                        float(standardized_result.get('longitude', 0)) if standardized_result.get('longitude') and str(standardized_result.get('longitude')).strip() else None,
+                        standardized_result.get('address_type'),
+                        standardized_result.get('po_box'),
+                        standardized_result.get('delivery_instructions'),
+                        standardized_result.get('mail_route')
+                    )
+                    addresses_to_insert.append(insert_data)
+                    address_ids.append('PENDING')  # Will be replaced with actual ID
+            
+            # Batch update existing addresses
+            if addresses_to_update:
+                for address_id in addresses_to_update:
+                    cursor.execute('''
+                        UPDATE standardized_addresses 
+                        SET usage_count = usage_count + 1, updated_at = GETDATE()
+                        WHERE id = ?
+                    ''', (address_id,))
+            
+            # Batch insert new addresses
+            if addresses_to_insert:
+                insert_sql = '''
+                    INSERT INTO standardized_addresses (
+                        address_hash, original_address, formatted_address,
+                        street_number, street_name, street_type, unit_type, unit_number,
+                        building_name, floor_number, city, state, county, postal_code, 
+                        country, country_code, district, region, suburb, locality, 
+                        sublocality, canton, prefecture, oblast, confidence, issues, 
+                        api_source, latitude, longitude, address_type, po_box,
+                        delivery_instructions, mail_route
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                '''
+                
+                # Insert all new addresses
+                inserted_ids = []
+                for insert_data in addresses_to_insert:
+                    cursor.execute(insert_sql, insert_data)
+                    cursor.execute('SELECT @@IDENTITY')
+                    inserted_id = cursor.fetchone()[0]
+                    inserted_ids.append(int(inserted_id))
+                
+                # Replace PENDING with actual IDs
+                insert_index = 0
+                for i, addr_id in enumerate(address_ids):
+                    if addr_id == 'PENDING':
+                        address_ids[i] = inserted_ids[insert_index]
+                        insert_index += 1
+            
+            # Single commit for all operations
+            conn.commit()
+            conn.close()
+            
+            successful_saves = len([aid for aid in address_ids if aid is not None])
+            print(f"   ✅ Batch saved {successful_saves}/{len(addresses_data)} addresses to database")
+            
+            return address_ids
+            
+        except Exception as e:
+            print(f"❌ Error in batch save: {str(e)}")
+            return [None] * len(addresses_data)
     
     def get_address_by_id(self, address_id: int) -> Optional[Dict[str, Any]]:
         """Get address by unique ID"""

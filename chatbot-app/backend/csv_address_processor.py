@@ -782,6 +782,110 @@ class CSVAddressProcessor:
         
         return address_columns
     
+    def detect_separated_address_components(self, df: pd.DataFrame) -> dict:
+        """Detect if address components are in separate columns (like Address Line 1, City, Postcode, etc.)"""
+        columns_lower = {col.lower().replace(' ', '_').replace('-', '_'): col for col in df.columns}
+        
+        # Define patterns for different address components - support multiple address lines
+        address_line_patterns = {
+            'address_line_1': ['address_line_1', 'address_line1', 'street_address', 'address_1', 'address1', 'street', 'address', 'line_1', 'line1'],
+            'address_line_2': ['address_line_2', 'address_line2', 'address_2', 'address2', 'line_2', 'line2', 'apartment', 'apt', 'unit', 'suite'],
+            'address_line_3': ['address_line_3', 'address_line3', 'address_3', 'address3', 'line_3', 'line3', 'additional', 'care_of'],
+            'address_line_4': ['address_line_4', 'address_line4', 'address_4', 'address4', 'line_4', 'line4'],
+            'address_line_5': ['address_line_5', 'address_line5', 'address_5', 'address5', 'line_5', 'line5']
+        }
+        
+        city_patterns = ['city', 'town', 'locality']
+        state_patterns = ['state', 'province', 'region', 'county'] 
+        postal_patterns = ['postcode', 'postal_code', 'zip_code', 'zip', 'postalcode']
+        country_patterns = ['country', 'nation']
+        
+        detected_components = {}
+        
+        # Find all address line columns
+        for line_type, patterns in address_line_patterns.items():
+            for pattern in patterns:
+                for col_key, col_name in columns_lower.items():
+                    if pattern in col_key:
+                        detected_components[line_type] = col_name
+                        break
+                if line_type in detected_components:
+                    break
+        
+        # Find city columns
+        for pattern in city_patterns:
+            for col_key, col_name in columns_lower.items():
+                if col_key == pattern:  # Exact match for city
+                    detected_components['city'] = col_name
+                    break
+            if 'city' in detected_components:
+                break
+        
+        # Find state/county columns
+        for pattern in state_patterns:
+            for col_key, col_name in columns_lower.items():
+                if col_key == pattern:
+                    detected_components['state'] = col_name
+                    break
+            if 'state' in detected_components:
+                break
+        
+        # Find postal code columns
+        for pattern in postal_patterns:
+            for col_key, col_name in columns_lower.items():
+                if pattern in col_key:
+                    detected_components['postal_code'] = col_name
+                    break
+            if 'postal_code' in detected_components:
+                break
+        
+        # Find country columns
+        for pattern in country_patterns:
+            for col_key, col_name in columns_lower.items():
+                if col_key == pattern:
+                    detected_components['country'] = col_name
+                    break
+        
+        return detected_components
+    
+    def combine_separated_address_components(self, row: pd.Series, component_mapping: dict) -> str:
+        """Combine separated address components into a single address string"""
+        address_parts = []
+        
+        # Add all address lines in order (1, 2, 3, 4, 5)
+        for line_num in range(1, 6):
+            line_key = f'address_line_{line_num}'
+            if line_key in component_mapping:
+                addr_line = str(row[component_mapping[line_key]]).strip()
+                if addr_line and addr_line.lower() != 'nan':
+                    address_parts.append(addr_line)
+        
+        # Add city
+        if 'city' in component_mapping:
+            city = str(row[component_mapping['city']]).strip()
+            if city and city.lower() != 'nan':
+                address_parts.append(city)
+        
+        # Add state/county
+        if 'state' in component_mapping:
+            state = str(row[component_mapping['state']]).strip()
+            if state and state.lower() != 'nan':
+                address_parts.append(state)
+        
+        # Add postal code
+        if 'postal_code' in component_mapping:
+            postal = str(row[component_mapping['postal_code']]).strip()
+            if postal and postal.lower() != 'nan':
+                address_parts.append(postal)
+        
+        # Add country
+        if 'country' in component_mapping:
+            country = str(row[component_mapping['country']]).strip()
+            if country and country.lower() != 'nan':
+                address_parts.append(country)
+        
+        return ', '.join(address_parts)
+    
     def detect_site_address_columns(self, df: pd.DataFrame) -> bool:
         """Check if the DataFrame has the specific site address column structure"""
         available_columns = [col.lower() for col in df.columns.tolist()]
@@ -1204,17 +1308,6 @@ class CSVAddressProcessor:
                             enhanced_result
                         )
                     
-                    # Save to database if successful
-                    if self.db_service and enhanced_result['status'] == 'success':
-                        try:
-                            address_id = self.db_service.save_address(
-                                enhanced_result.get('original_address', ''),
-                                enhanced_result
-                            )
-                            enhanced_result['address_id'] = address_id
-                        except Exception as db_error:
-                            print(f"   ⚠️  Warning: Could not save to database: {str(db_error)}")
-                    
                     all_results.append(enhanced_result)
                 else:
                     # Fallback for missing results
@@ -1227,6 +1320,44 @@ class CSVAddressProcessor:
                         'from_cache': False,
                         'address_id': None
                     })
+        
+        # Batch save to database for efficiency
+        if self.db_service and all_results:
+            try:
+                # Prepare data for batch save: list of (original_address, result) tuples
+                addresses_to_save = []
+                for result in all_results:
+                    if result.get('status') == 'success' and not result.get('from_cache', False):
+                        addresses_to_save.append((
+                            result.get('original_address', ''),
+                            result
+                        ))
+                
+                if addresses_to_save:
+                    # Batch save all non-cached addresses
+                    batch_ids = self.db_service.save_addresses_batch(addresses_to_save)
+                    
+                    # Update results with database IDs
+                    save_index = 0
+                    for result in all_results:
+                        if result.get('status') == 'success' and not result.get('from_cache', False):
+                            if save_index < len(batch_ids):
+                                result['address_id'] = batch_ids[save_index]
+                            save_index += 1
+                
+            except Exception as db_error:
+                print(f"   ⚠️  Warning: Batch database save failed, falling back to individual saves: {str(db_error)}")
+                # Fallback to individual saves
+                for result in all_results:
+                    if result.get('status') == 'success' and not result.get('from_cache', False):
+                        try:
+                            address_id = self.db_service.save_address(
+                                result.get('original_address', ''),
+                                result
+                            )
+                            result['address_id'] = address_id
+                        except Exception as individual_error:
+                            print(f"   ⚠️  Warning: Could not save individual address: {str(individual_error)}")
         
         print(f"✅ Batch completed: {len(all_results)} results")
         return all_results
@@ -1577,17 +1708,35 @@ class CSVAddressProcessor:
         # Detect country column
         country_column = self.detect_country_column(df)
         
-        # Detect address columns
-        if address_column:
-            if address_column not in df.columns:
-                raise ValueError(f"Specified address column '{address_column}' not found in CSV")
-            address_columns = [address_column]
-        else:
-            address_columns = self.detect_address_columns(df)
+        # Check if we have separated address components
+        separated_components = self.detect_separated_address_components(df)
+        
+        if separated_components and len(separated_components) >= 2:
+            # We have separated address components - combine them
+            print(f"✅ Detected separated address components:")
+            for component, column in separated_components.items():
+                print(f"   {component}: '{column}'")
             
-        if not address_columns:
-            print("Available columns:", df.columns.tolist())
-            raise ValueError("No address columns detected. Please specify the address column manually.")
+            # Create a combined address column
+            print(f"\n🔗 Combining address components into complete addresses...")
+            df['Combined_Address'] = df.apply(lambda row: self.combine_separated_address_components(row, separated_components), axis=1)
+            
+            # Use the combined address column for processing
+            address_columns = ['Combined_Address']
+            print(f"✅ Combined address column created: 'Combined_Address'")
+            
+        else:
+            # Detect address columns using existing logic
+            if address_column:
+                if address_column not in df.columns:
+                    raise ValueError(f"Specified address column '{address_column}' not found in CSV")
+                address_columns = [address_column]
+            else:
+                address_columns = self.detect_address_columns(df)
+                
+            if not address_columns:
+                print("Available columns:", df.columns.tolist())
+                raise ValueError("No address columns detected. Please specify the address column manually.")
         
         print(f"Detected address columns: {', '.join(address_columns)}")
         
@@ -1628,52 +1777,145 @@ class CSVAddressProcessor:
             error_count = 0
             cached_count = 0
             
-            for index, row in df.iterrows():
-                address = row[addr_col]
-                
-                # Get target country from column if available
-                target_country = None
-                if country_column and country_column in row:
-                    target_country = str(row[country_column]).strip() if pd.notna(row[country_column]) else None
+            if enable_batch_processing:
+                # Use batch processing
+                try:
+                    from app.config.address_config import PROMPT_CONFIG
+                    batch_size = PROMPT_CONFIG.get("batch_size", 5)
+                except ImportError:
+                    batch_size = 5
                     
-                result = self.standardize_single_address(address, index, target_country, use_free_apis)
+                print(f"🚀 Processing {total_rows} addresses...")
+                print(f"   Using batch processing (batch size: {batch_size})")
                 
-                # Update DataFrame with results
-                df.at[index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
-                df.at[index, f"{base_col_name}_street_number"] = result.get('street_number', '')
-                df.at[index, f"{base_col_name}_street_name"] = result.get('street_name', '')
-                df.at[index, f"{base_col_name}_street_type"] = result.get('street_type', '')
-                df.at[index, f"{base_col_name}_unit_type"] = result.get('unit_type', '')
-                df.at[index, f"{base_col_name}_unit_number"] = result.get('unit_number', '')
-                df.at[index, f"{base_col_name}_city"] = result.get('city', '')
-                df.at[index, f"{base_col_name}_state"] = result.get('state', '')
-                df.at[index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
-                df.at[index, f"{base_col_name}_country"] = result.get('country', '')
-                df.at[index, f"{base_col_name}_confidence"] = result.get('confidence', '')
-                df.at[index, f"{base_col_name}_issues"] = result.get('issues', '')
-                df.at[index, f"{base_col_name}_status"] = result.get('status', '')
-                df.at[index, f"{base_col_name}_api_source"] = result.get('api_source', '')
-                df.at[index, f"{base_col_name}_latitude"] = result.get('latitude', '')
-                df.at[index, f"{base_col_name}_longitude"] = result.get('longitude', '')
-                df.at[index, f"{base_col_name}_address_id"] = result.get('address_id', '')
-                df.at[index, f"{base_col_name}_from_cache"] = 'Yes' if result.get('from_cache', False) else 'No'
-                
-                processed_count += 1
-                if result.get('status') == 'success':
-                    success_count += 1
-                else:
-                    error_count += 1
+                # Process in batches
+                for batch_start in range(0, total_rows, batch_size):
+                    batch_end = min(batch_start + batch_size, total_rows)
+                    batch_df = df.iloc[batch_start:batch_end]
                     
-                if result.get('from_cache', False):
-                    cached_count += 1
+                    # Extract addresses for this batch
+                    batch_addresses = []
+                    batch_countries = []
+                    batch_indices = []
+                    
+                    for idx, (_, row) in enumerate(batch_df.iterrows()):
+                        address = row[addr_col]
+                        batch_addresses.append(address)
+                        
+                        # Get target country from column if available
+                        target_country = None
+                        if country_column and country_column in row:
+                            target_country = str(row[country_column]).strip() if pd.notna(row[country_column]) else None
+                        batch_countries.append(target_country)
+                        batch_indices.append(batch_start + idx)
+                    
+                    # Process this batch
+                    if len(batch_addresses) > 1:
+                        print(f"   Processing batch {batch_start//batch_size + 1}: rows {batch_start+1}-{batch_end}")
+                        
+                        # Use the most common country in the batch, or None
+                        common_country = max(set(batch_countries), key=batch_countries.count) if any(batch_countries) else None
+                        
+                        batch_results = self.standardize_addresses_batch(
+                            batch_addresses, 
+                            batch_start, 
+                            target_country=common_country, 
+                            use_free_apis=use_free_apis
+                        )
+                    else:
+                        # Single address processing for small batches
+                        batch_results = []
+                        for i, address in enumerate(batch_addresses):
+                            result = self.standardize_single_address(
+                                address, 
+                                batch_start + i, 
+                                target_country=batch_countries[i],
+                                use_free_apis=use_free_apis
+                            )
+                            batch_results.append(result)
+                    
+                    # Update DataFrame with batch results
+                    for i, result in enumerate(batch_results):
+                        df_index = batch_start + i
+                        df.at[df_index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
+                        df.at[df_index, f"{base_col_name}_street_number"] = result.get('street_number', '')
+                        df.at[df_index, f"{base_col_name}_street_name"] = result.get('street_name', '')
+                        df.at[df_index, f"{base_col_name}_street_type"] = result.get('street_type', '')
+                        df.at[df_index, f"{base_col_name}_unit_type"] = result.get('unit_type', '')
+                        df.at[df_index, f"{base_col_name}_unit_number"] = result.get('unit_number', '')
+                        df.at[df_index, f"{base_col_name}_city"] = result.get('city', '')
+                        df.at[df_index, f"{base_col_name}_state"] = result.get('state', '')
+                        df.at[df_index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
+                        df.at[df_index, f"{base_col_name}_country"] = result.get('country', '')
+                        df.at[df_index, f"{base_col_name}_confidence"] = result.get('confidence', '')
+                        df.at[df_index, f"{base_col_name}_issues"] = result.get('issues', '')
+                        df.at[df_index, f"{base_col_name}_status"] = result.get('status', '')
+                        df.at[df_index, f"{base_col_name}_api_source"] = result.get('api_source', '')
+                        df.at[df_index, f"{base_col_name}_latitude"] = result.get('latitude', '')
+                        df.at[df_index, f"{base_col_name}_longitude"] = result.get('longitude', '')
+                        df.at[df_index, f"{base_col_name}_address_id"] = result.get('address_id', '')
+                        df.at[df_index, f"{base_col_name}_from_cache"] = 'Yes' if result.get('from_cache', False) else 'No'
+                        
+                        processed_count += 1
+                        if result.get('status') == 'success':
+                            success_count += 1
+                        else:
+                            error_count += 1
+                            
+                        if result.get('from_cache', False):
+                            cached_count += 1
                 
-                # Progress indicator
-                if processed_count % 10 == 0:
-                    print(f"Progress: {processed_count}/{total_rows} ({processed_count/total_rows*100:.1f}%) - {cached_count} cached")
+                print(f"✅ Batch processing completed: {processed_count} addresses processed")
+            else:
+                # Use individual processing
+                print(f"🔄 Processing {total_rows} addresses individually...")
                 
-                # Small delay to avoid overwhelming the API (only for non-cached)
-                if not result.get('from_cache', False):
-                    time.sleep(0.1)
+                for index, row in df.iterrows():
+                    address = row[addr_col]
+                    
+                    # Get target country from column if available
+                    target_country = None
+                    if country_column and country_column in row:
+                        target_country = str(row[country_column]).strip() if pd.notna(row[country_column]) else None
+                        
+                    result = self.standardize_single_address(address, index, target_country, use_free_apis)
+                    
+                    # Update DataFrame with results
+                    df.at[index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
+                    df.at[index, f"{base_col_name}_street_number"] = result.get('street_number', '')
+                    df.at[index, f"{base_col_name}_street_name"] = result.get('street_name', '')
+                    df.at[index, f"{base_col_name}_street_type"] = result.get('street_type', '')
+                    df.at[index, f"{base_col_name}_unit_type"] = result.get('unit_type', '')
+                    df.at[index, f"{base_col_name}_unit_number"] = result.get('unit_number', '')
+                    df.at[index, f"{base_col_name}_city"] = result.get('city', '')
+                    df.at[index, f"{base_col_name}_state"] = result.get('state', '')
+                    df.at[index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
+                    df.at[index, f"{base_col_name}_country"] = result.get('country', '')
+                    df.at[index, f"{base_col_name}_confidence"] = result.get('confidence', '')
+                    df.at[index, f"{base_col_name}_issues"] = result.get('issues', '')
+                    df.at[index, f"{base_col_name}_status"] = result.get('status', '')
+                    df.at[index, f"{base_col_name}_api_source"] = result.get('api_source', '')
+                    df.at[index, f"{base_col_name}_latitude"] = result.get('latitude', '')
+                    df.at[index, f"{base_col_name}_longitude"] = result.get('longitude', '')
+                    df.at[index, f"{base_col_name}_address_id"] = result.get('address_id', '')
+                    df.at[index, f"{base_col_name}_from_cache"] = 'Yes' if result.get('from_cache', False) else 'No'
+                    
+                    processed_count += 1
+                    if result.get('status') == 'success':
+                        success_count += 1
+                    else:
+                        error_count += 1
+                        
+                    if result.get('from_cache', False):
+                        cached_count += 1
+                    
+                    # Progress indicator
+                    if processed_count % 10 == 0:
+                        print(f"Progress: {processed_count}/{total_rows} ({processed_count/total_rows*100:.1f}%) - {cached_count} cached")
+                    
+                    # Small delay to avoid overwhelming the API (only for non-cached)
+                    if not result.get('from_cache', False):
+                        time.sleep(0.1)
             
             total_processed += processed_count
             total_success += success_count
