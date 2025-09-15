@@ -17,7 +17,7 @@ ADDRESS_STANDARDIZATION_PROMPT = """You are an expert global address standardiza
 Return a single raw JSON object only (no markdown, no code fences, no text).
 
 TASKS:
-- Expand abbreviations, fix misspellings.
+- Must Expand abbreviations, fix misspellings.
 - Extract components and validate using geographical hierarchy knowledge.
 - Apply country-specific formatting and administrative divisions.
 - Validate postal codes by country and map to correct cities/regions.
@@ -71,35 +71,25 @@ RULES:
 3) If a component is missing or unverifiable, set it to null and add a clear issue.
 4) Never invent postal codes; leave null and add "postal_code_missing".
 5) Prefer a provided target country if present; otherwise auto-detect.
-6) Standardize abbreviations (St→Street, Ave→Avenue, Rd→Road, etc.).
+6) Standardize abbreviations (St→Street, Ave→Avenue, Rd→Road, similarly for blocks and pockets etc.).
 7) If uncertainty remains, set confidence to low/medium and explain in issues.
 8) GEOGRAPHICAL INTELLIGENCE: Use postal code to identify correct city (e.g., 4818 → Townsville, QLD → Queensland).
 9) HIERARCHY MAPPING: Place suburbs in "suburb" field, main administrative city in "city" field.
 10) STATE EXPANSION: Always expand state/province abbreviations to full names globally.
+11) MANDATORY COMPONENT EXTRACTION: Always attempt to populate ALL geographic components (district, region, suburb, locality, country, county, canton, prefecture, oblast) using postal code, city, and address knowledge. Only set to null if truly not applicable to that country's system.
+12) ENHANCED GEOGRAPHICAL INFERENCE: Use your comprehensive knowledge of global postal systems, administrative divisions, and geographical hierarchies to infer and populate as many address components as possible. For UK addresses with OX postcodes, include district/suburb info when available.
+13) POSTAL CODE INTELLIGENCE: Leverage postal code patterns to determine districts, regions, suburbs, and localities (e.g., OX2 → Jericho/Wolvercote area in Oxford, 10001 → Manhattan/NYC, 75001 → 1st arrondissement Paris).
+14) ADMINISTRATIVE DIVISION MAPPING: Always include applicable administrative divisions for each country (counties for UK/US, prefectures for Japan, länder for Germany, regions for France, etc.).
 
 EXAMPLES OF GEOGRAPHICAL HIERARCHY:
 - "Mount St John QLD 4818" → suburb: "Mount St John", city: "Townsville", state: "Queensland", postal_code: "4818"
 - "Brooklyn NY 11201" → suburb: "Brooklyn", city: "New York", state: "New York", postal_code: "11201"  
 - "Shibuya Tokyo 150-0002" → district: "Shibuya", city: "Tokyo", prefecture: "Tokyo", postal_code: "150-0002"
 - "Southwark London SE1 9RT" → district: "Southwark", city: "London", postal_code: "SE1 9RT"
+- "76 Great Clarendon Street, Oxford, OX2 6AU" → suburb: "Jericho", city: "Oxford", county: "Oxfordshire", region: "South East England", postal_code: "OX2 6AU"
 
 Process this address:"""
 
-# Alternative organization-specific prompt for global address normalization
-ORGANIZATION_SPECIFIC_PROMPT = """You are an intelligent address normalization system. Take raw address inputs and return clean, standardized addresses.
-
-**TASKS:**
-1. Correct spelling errors
-2. Expand abbreviations  
-3. Reorder components logically
-4. Infer missing components where possible
-5. Apply country-specific formatting
-
-**INPUT:** Raw address string
-**OUTPUT:** Fully formatted address only, no explanations
-
-Example: "795 sec 22 Pkt-B GGN Haryna" → "795, Pocket B, Sector 22, Gurugram, Haryana 122015, India"
-"""
 
 # Enhanced address comparison prompt with integrated standardization
 ADDRESS_COMPARISON_PROMPT = """You are an expert address comparison system with comprehensive geographical knowledge and standardization capabilities.
@@ -112,6 +102,9 @@ Apply the same geographical intelligence used in address standardization:
 - Expand state/province abbreviations to full names (QLD → Queensland, CA → California, NY → New York)
 - Normalize street types (St → Street, Ave → Avenue, Rd → Road)
 - Apply country-specific formatting and administrative divisions
+- Always attempt to populate all geographic components (district, region, suburb, locality, country, etc.) using postal code, city, and other address parts. Only set to null if the component is truly not applicable or cannot be determined.
+- Use your knowledge of global postal codes and administrative divisions to infer and fill in as many fields as possible.
+
 
 STEP 2: COMPARE STANDARDIZED ADDRESSES
 CRITICAL: You must carefully compare each component to determine if these are the same physical location or different locations.
@@ -280,7 +273,7 @@ Return a raw JSON array only (no markdown, no code fences, no text).
 Each element must be a JSON object with this schema and include "input_index" and "original_address".
 
 TASKS FOR EACH ADDRESS:
-- Expand abbreviations, fix misspellings
+- Must Expand abbreviations, fix misspellings
 - Extract components and validate using geographical hierarchy knowledge
 - Apply country-specific formatting and administrative divisions
 - Validate postal codes by country and map to correct cities/regions
@@ -336,17 +329,22 @@ RULES:
 3) Include original_address verbatim per item.
 4) Apply country-specific formatting; prefer provided target country; otherwise auto-detect.
 5) Never fabricate postal codes; use null and add "postal_code_missing".
-6) Use standardized abbreviations and spelling corrections (St→Street, Ave→Avenue, Rd→Road).
+6) Standardize abbreviations (St→Street, Ave→Avenue, Rd→Road, similarly for blocks and pockets etc.).
 7) Set confidence to high | medium | low | unknown, and list issues precisely.
 8) GEOGRAPHICAL INTELLIGENCE: Use postal code to identify correct city (e.g., 4818 → Townsville, QLD → Queensland).
 9) HIERARCHY MAPPING: Place suburbs in "suburb" field, main administrative city in "city" field.
 10) STATE EXPANSION: Always expand state/province abbreviations to full names globally.
+11) MANDATORY COMPONENT EXTRACTION: Always attempt to populate ALL geographic components (district, region, suburb, locality, country, county, canton, prefecture, oblast) using postal code, city, and address knowledge. Only set to null if truly not applicable to that country's system.
+12) ENHANCED GEOGRAPHICAL INFERENCE: Use your comprehensive knowledge of global postal systems, administrative divisions, and geographical hierarchies to infer and populate as many address components as possible. For UK addresses with OX postcodes, include district/suburb info when available.
+13) POSTAL CODE INTELLIGENCE: Leverage postal code patterns to determine districts, regions, suburbs, and localities (e.g., OX2 → Jericho/Wolvercote area in Oxford, 10001 → Manhattan/NYC, 75001 → 1st arrondissement Paris).
+14) ADMINISTRATIVE DIVISION MAPPING: Always include applicable administrative divisions for each country (counties for UK/US, prefectures for Japan, länder for Germany, regions for France, etc.).
 
 EXAMPLES OF GEOGRAPHICAL HIERARCHY:
 - "Mount St John QLD 4818" → suburb: "Mount St John", city: "Townsville", state: "Queensland", postal_code: "4818"
 - "Brooklyn NY 11201" → suburb: "Brooklyn", city: "New York", state: "New York", postal_code: "11201"
 - "Shibuya Tokyo 150-0002" → district: "Shibuya", city: "Tokyo", prefecture: "Tokyo", postal_code: "150-0002"
 - "Southwark London SE1 9RT" → district: "Southwark", city: "London", postal_code: "SE1 9RT"
+- "76 Great Clarendon Street, Oxford, OX2 6AU" → suburb: "Jericho", city: "Oxford", county: "Oxfordshire", region: "South East England", postal_code: "OX2 6AU"
 
 Process these addresses:"""
 

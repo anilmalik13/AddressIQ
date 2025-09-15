@@ -400,15 +400,31 @@ class CSVAddressProcessor:
                     'street_type': existing_address.get('street_type', '') or '',
                     'unit_type': existing_address.get('unit_type', '') or '',
                     'unit_number': existing_address.get('unit_number', '') or '',
+                    'building_name': existing_address.get('building_name', '') or '',
+                    'floor_number': existing_address.get('floor_number', '') or '',
                     'city': existing_address.get('city', '') or '',
                     'state': existing_address.get('state', '') or '',
+                    'county': existing_address.get('county', '') or '',
                     'postal_code': existing_address.get('postal_code', '') or '',
                     'country': existing_address.get('country', '') or '',
+                    'country_code': existing_address.get('country_code', '') or '',
+                    'district': existing_address.get('district', '') or '',
+                    'region': existing_address.get('region', '') or '',
+                    'suburb': existing_address.get('suburb', '') or '',
+                    'locality': existing_address.get('locality', '') or '',
+                    'sublocality': existing_address.get('sublocality', '') or '',
+                    'canton': existing_address.get('canton', '') or '',
+                    'prefecture': existing_address.get('prefecture', '') or '',
+                    'oblast': existing_address.get('oblast', '') or '',
                     'confidence': existing_address.get('confidence', 'medium') or 'medium',
                     'issues': existing_address.get('issues', '') or '',
                     'api_source': f"{existing_address.get('api_source', 'cached')}_cached",
                     'latitude': str(existing_address.get('latitude', '')) if existing_address.get('latitude') else '',
                     'longitude': str(existing_address.get('longitude', '')) if existing_address.get('longitude') else '',
+                    'address_type': existing_address.get('address_type', '') or '',
+                    'po_box': existing_address.get('po_box', '') or '',
+                    'delivery_instructions': existing_address.get('delivery_instructions', '') or '',
+                    'mail_route': existing_address.get('mail_route', '') or '',
                     'address_id': existing_address.get('id'),
                     'from_cache': True
                 }
@@ -433,13 +449,29 @@ class CSVAddressProcessor:
                     'street_type': result.get('street_type', '') or '',
                     'unit_type': result.get('unit_type', '') or '',
                     'unit_number': result.get('unit_number', '') or '',
+                    'building_name': result.get('building_name', '') or '',
+                    'floor_number': result.get('floor_number', '') or '',
                     'city': result.get('city', '') or '',
                     'state': result.get('state', '') or '',
+                    'county': result.get('county', '') or '',
                     'postal_code': result.get('postal_code', '') or '',
                     'country': result.get('country', '') or '',
+                    'country_code': result.get('country_code', '') or '',
+                    'district': result.get('district', '') or '',
+                    'region': result.get('region', '') or '',
+                    'suburb': result.get('suburb', '') or '',
+                    'locality': result.get('locality', '') or '',
+                    'sublocality': result.get('sublocality', '') or '',
+                    'canton': result.get('canton', '') or '',
+                    'prefecture': result.get('prefecture', '') or '',
+                    'oblast': result.get('oblast', '') or '',
                     'confidence': result.get('confidence', 'medium') or 'medium',
                     'issues': ', '.join(result.get('issues', [])) if result.get('issues') else '',
                     'api_source': 'azure_openai',
+                    'address_type': result.get('address_type', '') or '',
+                    'po_box': result.get('po_box', '') or '',
+                    'delivery_instructions': result.get('delivery_instructions', '') or '',
+                    'mail_route': result.get('mail_route', '') or '',
                     'latitude': '',
                     'longitude': '',
                     'from_cache': False
@@ -512,15 +544,31 @@ class CSVAddressProcessor:
                         'street_type': existing.get('street_type', '') or '',
                         'unit_type': existing.get('unit_type', '') or '',
                         'unit_number': existing.get('unit_number', '') or '',
+                        'building_name': existing.get('building_name', '') or '',
+                        'floor_number': existing.get('floor_number', '') or '',
                         'city': existing.get('city', '') or '',
                         'state': existing.get('state', '') or '',
+                        'county': existing.get('county', '') or '',
                         'postal_code': existing.get('postal_code', '') or '',
                         'country': existing.get('country', '') or '',
+                        'country_code': existing.get('country_code', '') or '',
+                        'district': existing.get('district', '') or '',
+                        'region': existing.get('region', '') or '',
+                        'suburb': existing.get('suburb', '') or '',
+                        'locality': existing.get('locality', '') or '',
+                        'sublocality': existing.get('sublocality', '') or '',
+                        'canton': existing.get('canton', '') or '',
+                        'prefecture': existing.get('prefecture', '') or '',
+                        'oblast': existing.get('oblast', '') or '',
                         'confidence': existing.get('confidence', 'medium') or 'medium',
                         'issues': existing.get('issues', '') or '',
                         'api_source': f"{existing.get('api_source', 'cached')}_cached",
                         'latitude': str(existing.get('latitude', '')) if existing.get('latitude') else '',
                         'longitude': str(existing.get('longitude', '')) if existing.get('longitude') else '',
+                        'address_type': existing.get('address_type', '') or '',
+                        'po_box': existing.get('po_box', '') or '',
+                        'delivery_instructions': existing.get('delivery_instructions', '') or '',
+                        'mail_route': existing.get('mail_route', '') or '',
                         'address_id': existing.get('id'),
                         'from_cache': True
                     }
@@ -1076,6 +1124,15 @@ class CSVAddressProcessor:
                     'state': str(result.get('state', '') or ''),
                     'postal_code': str(result.get('postal_code', '') or ''),
                     'country': str(result.get('country', '') or ''),
+                    'country_code': str(result.get('country_code', '') or ''),
+                    'district': str(result.get('district', '') or ''),
+                    'region': str(result.get('region', '') or ''),
+                    'suburb': str(result.get('suburb', '') or ''),
+                    'locality': str(result.get('locality', '') or ''),
+                    'sublocality': str(result.get('sublocality', '') or ''),
+                    'canton': str(result.get('canton', '') or ''),
+                    'prefecture': str(result.get('prefecture', '') or ''),
+                    'oblast': str(result.get('oblast', '') or ''),
                     'confidence': result.get('confidence', 'unknown'),
                     'issues': ', '.join(result.get('issues', [])) if result.get('issues') else '',
                     'api_source': 'azure_openai',
@@ -1205,15 +1262,31 @@ class CSVAddressProcessor:
                         'street_type': existing_address['street_type'] or '',
                         'unit_type': existing_address['unit_type'] or '',
                         'unit_number': existing_address['unit_number'] or '',
+                        'building_name': existing_address.get('building_name', '') or '',
+                        'floor_number': existing_address.get('floor_number', '') or '',
                         'city': existing_address['city'] or '',
                         'state': existing_address['state'] or '',
+                        'county': existing_address.get('county', '') or '',
                         'postal_code': existing_address['postal_code'] or '',
                         'country': existing_address['country'] or '',
+                        'country_code': existing_address.get('country_code', '') or '',
+                        'district': existing_address.get('district', '') or '',
+                        'region': existing_address.get('region', '') or '',
+                        'suburb': existing_address.get('suburb', '') or '',
+                        'locality': existing_address.get('locality', '') or '',
+                        'sublocality': existing_address.get('sublocality', '') or '',
+                        'canton': existing_address.get('canton', '') or '',
+                        'prefecture': existing_address.get('prefecture', '') or '',
+                        'oblast': existing_address.get('oblast', '') or '',
                         'confidence': existing_address['confidence'] or '',
                         'issues': existing_address['issues'] or '',
                         'api_source': f"{existing_address['api_source']}_cached",
                         'latitude': str(existing_address['latitude']) if existing_address['latitude'] else '',
                         'longitude': str(existing_address['longitude']) if existing_address['longitude'] else '',
+                        'address_type': existing_address.get('address_type', '') or '',
+                        'po_box': existing_address.get('po_box', '') or '',
+                        'delivery_instructions': existing_address.get('delivery_instructions', '') or '',
+                        'mail_route': existing_address.get('mail_route', '') or '',
                         'address_id': existing_address['id'],
                         'from_cache': True,
                         'input_index': i
@@ -1292,6 +1365,15 @@ class CSVAddressProcessor:
                         'state': str(result.get('state', '') or ''),
                         'postal_code': str(result.get('postal_code', '') or ''),
                         'country': str(result.get('country', '') or ''),
+                        'country_code': str(result.get('country_code', '') or ''),
+                        'district': str(result.get('district', '') or ''),
+                        'region': str(result.get('region', '') or ''),
+                        'suburb': str(result.get('suburb', '') or ''),
+                        'locality': str(result.get('locality', '') or ''),
+                        'sublocality': str(result.get('sublocality', '') or ''),
+                        'canton': str(result.get('canton', '') or ''),
+                        'prefecture': str(result.get('prefecture', '') or ''),
+                        'oblast': str(result.get('oblast', '') or ''),
                         'confidence': result.get('confidence', 'unknown'),
                         'issues': ', '.join(result.get('issues', [])) if result.get('issues') else '',
                         'api_source': 'azure_openai_batch',
@@ -1622,6 +1704,15 @@ class CSVAddressProcessor:
         df[f"{base_col_name}_state"] = ""
         df[f"{base_col_name}_postal_code"] = ""
         df[f"{base_col_name}_country"] = ""
+        df[f"{base_col_name}_country_code"] = ""
+        df[f"{base_col_name}_district"] = ""
+        df[f"{base_col_name}_region"] = ""
+        df[f"{base_col_name}_suburb"] = ""
+        df[f"{base_col_name}_locality"] = ""
+        df[f"{base_col_name}_sublocality"] = ""
+        df[f"{base_col_name}_canton"] = ""
+        df[f"{base_col_name}_prefecture"] = ""
+        df[f"{base_col_name}_oblast"] = ""
         df[f"{base_col_name}_confidence"] = ""
         df[f"{base_col_name}_issues"] = ""
         df[f"{base_col_name}_status"] = ""
@@ -1667,6 +1758,15 @@ class CSVAddressProcessor:
                 df.at[df_index, f"{base_col_name}_state"] = result.get('state', '')
                 df.at[df_index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
                 df.at[df_index, f"{base_col_name}_country"] = result.get('country', '')
+                df.at[df_index, f"{base_col_name}_country_code"] = result.get('country_code', '')
+                df.at[df_index, f"{base_col_name}_district"] = result.get('district', '')
+                df.at[df_index, f"{base_col_name}_region"] = result.get('region', '')
+                df.at[df_index, f"{base_col_name}_suburb"] = result.get('suburb', '')
+                df.at[df_index, f"{base_col_name}_locality"] = result.get('locality', '')
+                df.at[df_index, f"{base_col_name}_sublocality"] = result.get('sublocality', '')
+                df.at[df_index, f"{base_col_name}_canton"] = result.get('canton', '')
+                df.at[df_index, f"{base_col_name}_prefecture"] = result.get('prefecture', '')
+                df.at[df_index, f"{base_col_name}_oblast"] = result.get('oblast', '')
                 df.at[df_index, f"{base_col_name}_confidence"] = result.get('confidence', '')
                 df.at[df_index, f"{base_col_name}_issues"] = result.get('issues', '')
                 df.at[df_index, f"{base_col_name}_status"] = result.get('status', '')
@@ -1761,6 +1861,15 @@ class CSVAddressProcessor:
             df[f"{base_col_name}_state"] = ""
             df[f"{base_col_name}_postal_code"] = ""
             df[f"{base_col_name}_country"] = ""
+            df[f"{base_col_name}_country_code"] = ""
+            df[f"{base_col_name}_district"] = ""
+            df[f"{base_col_name}_region"] = ""
+            df[f"{base_col_name}_suburb"] = ""
+            df[f"{base_col_name}_locality"] = ""
+            df[f"{base_col_name}_sublocality"] = ""
+            df[f"{base_col_name}_canton"] = ""
+            df[f"{base_col_name}_prefecture"] = ""
+            df[f"{base_col_name}_oblast"] = ""
             df[f"{base_col_name}_confidence"] = ""
             df[f"{base_col_name}_issues"] = ""
             df[f"{base_col_name}_status"] = ""
@@ -1847,6 +1956,15 @@ class CSVAddressProcessor:
                         df.at[df_index, f"{base_col_name}_state"] = result.get('state', '')
                         df.at[df_index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
                         df.at[df_index, f"{base_col_name}_country"] = result.get('country', '')
+                        df.at[df_index, f"{base_col_name}_country_code"] = result.get('country_code', '')
+                        df.at[df_index, f"{base_col_name}_district"] = result.get('district', '')
+                        df.at[df_index, f"{base_col_name}_region"] = result.get('region', '')
+                        df.at[df_index, f"{base_col_name}_suburb"] = result.get('suburb', '')
+                        df.at[df_index, f"{base_col_name}_locality"] = result.get('locality', '')
+                        df.at[df_index, f"{base_col_name}_sublocality"] = result.get('sublocality', '')
+                        df.at[df_index, f"{base_col_name}_canton"] = result.get('canton', '')
+                        df.at[df_index, f"{base_col_name}_prefecture"] = result.get('prefecture', '')
+                        df.at[df_index, f"{base_col_name}_oblast"] = result.get('oblast', '')
                         df.at[df_index, f"{base_col_name}_confidence"] = result.get('confidence', '')
                         df.at[df_index, f"{base_col_name}_issues"] = result.get('issues', '')
                         df.at[df_index, f"{base_col_name}_status"] = result.get('status', '')
@@ -1891,6 +2009,15 @@ class CSVAddressProcessor:
                     df.at[index, f"{base_col_name}_state"] = result.get('state', '')
                     df.at[index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
                     df.at[index, f"{base_col_name}_country"] = result.get('country', '')
+                    df.at[index, f"{base_col_name}_country_code"] = result.get('country_code', '')
+                    df.at[index, f"{base_col_name}_district"] = result.get('district', '')
+                    df.at[index, f"{base_col_name}_region"] = result.get('region', '')
+                    df.at[index, f"{base_col_name}_suburb"] = result.get('suburb', '')
+                    df.at[index, f"{base_col_name}_locality"] = result.get('locality', '')
+                    df.at[index, f"{base_col_name}_sublocality"] = result.get('sublocality', '')
+                    df.at[index, f"{base_col_name}_canton"] = result.get('canton', '')
+                    df.at[index, f"{base_col_name}_prefecture"] = result.get('prefecture', '')
+                    df.at[index, f"{base_col_name}_oblast"] = result.get('oblast', '')
                     df.at[index, f"{base_col_name}_confidence"] = result.get('confidence', '')
                     df.at[index, f"{base_col_name}_issues"] = result.get('issues', '')
                     df.at[index, f"{base_col_name}_status"] = result.get('status', '')
