@@ -11,21 +11,35 @@ from dotenv import load_dotenv
 
 # Import address configuration
 try:
+    import sys
+    import os
+    
+    # Add the backend directory to the path if needed
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+    
     from app.config.address_config import (
         ADDRESS_STANDARDIZATION_PROMPT, 
         BATCH_ADDRESS_STANDARDIZATION_PROMPT,
-        ORGANIZATION_SPECIFIC_PROMPT,
         ADDRESS_COMPARISON_PROMPT,
         PROMPT_CONFIG,
         COUNTRY_FORMATS,
         get_country_specific_prompt
     )
+    
+    # Set optional prompts to None if they don't exist
+    ORGANIZATION_SPECIFIC_PROMPT = None
+    
     CONFIG_AVAILABLE = True
     # Avoid non-ASCII emoji in import-time logs to prevent encoding issues on some consoles
-    print("Address configuration loaded successfully")
-except ImportError:
+    print("✅ Address configuration loaded successfully")
+except ImportError as e:
     CONFIG_AVAILABLE = False
-    print("Warning: address_config.py not found, using fallback prompts")
+    print(f"❌ Warning: address_config.py not found, using fallback prompts. Error: {e}")
+except Exception as e:
+    CONFIG_AVAILABLE = False
+    print(f"❌ Error loading address config: {e}")
 
 # Load environment variables
 load_dotenv()
@@ -124,9 +138,21 @@ def get_address_standardization_prompt():
     Returns the address standardization prompt from configuration file
     Falls back to simple prompt if config is not available
     """
-    if CONFIG_AVAILABLE and PROMPT_CONFIG.get("use_address_standardization_prompt", True):
-        return ADDRESS_STANDARDIZATION_PROMPT
+    print(f"🔧 DEBUG: CONFIG_AVAILABLE = {CONFIG_AVAILABLE}")
+    
+    if CONFIG_AVAILABLE:
+        use_enhanced_prompt = PROMPT_CONFIG.get("use_address_standardization_prompt", True)
+        print(f"🔧 DEBUG: use_address_standardization_prompt = {use_enhanced_prompt}")
+        print(f"🔧 DEBUG: PROMPT_CONFIG keys = {list(PROMPT_CONFIG.keys())}")
+        
+        if use_enhanced_prompt:
+            print("✅ Using ENHANCED ADDRESS_STANDARDIZATION_PROMPT with geographic intelligence")
+            return ADDRESS_STANDARDIZATION_PROMPT
+        else:
+            print("⚠️ Enhanced prompt disabled in config")
+            return "You are an address standardization system. Standardize the given address and return it in JSON format with fields: street_number, street_name, city, state, postal_code, country, formatted_address, confidence."
     else:
+        print("❌ CONFIG_AVAILABLE is False - using fallback prompt")
         # Simple fallback if config file is missing
         return "You are an address standardization system. Standardize the given address and return it in JSON format with fields: street_number, street_name, city, state, postal_code, country, formatted_address, confidence."
 
@@ -139,7 +165,7 @@ def get_custom_system_prompt(prompt_type="general"):
         return get_address_standardization_prompt()
     elif prompt_type == "batch_address_standardization" and CONFIG_AVAILABLE:
         return BATCH_ADDRESS_STANDARDIZATION_PROMPT
-    elif prompt_type == "organization_specific" and CONFIG_AVAILABLE:
+    elif prompt_type == "organization_specific" and CONFIG_AVAILABLE and ORGANIZATION_SPECIFIC_PROMPT:
         return ORGANIZATION_SPECIFIC_PROMPT
     elif prompt_type == "comparison" and CONFIG_AVAILABLE:
         return ADDRESS_COMPARISON_PROMPT
