@@ -1,53 +1,358 @@
-# AddressIQ Backend – CLI Usage Guide
+# AddressIQ Backend
 
-## Web API additions (Database Connect)
+A powerful Python Flask backend providing comprehensive address intelligence services through RESTful APIs, CLI tools, and database integration capabilities.
 
-Endpoints used by the Database Connect UI:
+## Overview
 
-- `POST /api/db/connect` — Start a DB fetch + process job. Payload: `{ mode: 'format', connectionString, sourceType: 'table'|'query', tableName?, uniqueId?, columnNames?, query?, limit? }`.
-- `GET /api/processing-status/<id>` — Poll current status and progress; includes recent logs and output_file on completion.
-- `GET /api/processing-status/<id>/logs` — Retrieve recent log entries only.
-- `GET /api/preview/<filename>` — Paginated preview of processed outbound file (CSV/Excel). Query: `page`, `page_size`.
-- `GET /api/download/<filename>` — Download processed CSV from `outbound/`.
+The AddressIQ backend serves as the core processing engine for address standardization, file processing, and data management. It combines Azure OpenAI integration, database connectivity, and flexible CLI tools to deliver enterprise-grade address intelligence solutions.
 
-Notes:
-- Only outbound (processed) files are downloadable.
-- Preview returns `{ columns: string[], rows: any[] }`.
-- The job uses a safe default record limit (10) unless overridden.
+## Features
 
-## Quick start
+### API Endpoints (v1)
+- **File Processing**: Upload and process Excel/CSV files for batch address standardization
+- **Address Standardization**: Single and batch address processing with AI-powered analysis
+- **Compare Processing**: Upload and analyze files for address comparison
+- **Database Integration**: Connect to SQL Server/Azure SQL for direct data processing
+- **Sample Downloads**: Downloadable template files for testing and development
 
-The AddressIQ processor supports CSV files, batch modes, address comparison, and direct address input.
+### CLI Tools
+- **CSV Processing**: Advanced command-line tools for processing address files
+- **Batch Operations**: Process multiple files with batch processing modes
+- **Address Comparison**: Compare addresses and analyze differences
+- **Direct Input Processing**: Process individual addresses from command line
 
-## 🎯 Common commands
+### Database Features
+- **SQL Server/Azure SQL Support**: Direct database connectivity and processing
+- **Table and Query Modes**: Flexible data extraction from existing databases
+- **Preview and Download**: Paginated results with processed file downloads
+- **Safe Processing**: Limited record processing for testing and validation
 
-### 1) Process a CSV file
+## API v1 Endpoints
+
+### File Processing
+- `POST /api/v1/files/upload` — Upload Excel/CSV files for address processing
+- `GET /api/v1/files/status/<processing_id>` — Check file processing status
+- `GET /api/v1/files/download/<filename>` — Download processed files
+
+### Address Standardization
+- `POST /api/v1/addresses/standardize` — Standardize a single address
+- `POST /api/v1/addresses/batch-standardize` — Process multiple addresses in batch
+
+### Comparison Processing
+- `POST /api/v1/compare/upload` — Upload files for address comparison analysis
+
+### Database Integration
+- `POST /api/v1/database/connect` — Connect to database and process address data
+
+### Sample Files
+- `GET /api/v1/samples/file-upload` — Download sample upload file template
+- `GET /api/v1/samples/compare-upload` — Download sample comparison file template
+
+### Legacy Endpoints (still supported)
+- `POST /api/db/connect` — Database connection endpoint (legacy)
+- `GET /api/processing-status/<id>` — Processing status (legacy)
+- `GET /api/preview/<filename>` — File preview (legacy)
+- `GET /api/download/<filename>` — File download (legacy)
+
+## CLI Usage Guide
+
+The AddressIQ backend includes powerful command-line tools for processing addresses directly from the terminal.
+
+### Quick Start
+
+#### 1) Process a CSV file
 ```bash
 python csv_address_processor.py site_addresses_sample.csv
 ```
 
-### 2) Process a single address
+#### 2) Process a single address
 ```bash
 # Auto-detect country
 python csv_address_processor.py --address "795 sec 22 Pkt-B GGN Haryna"
 
-# Force country
+# Force specific country
 python csv_address_processor.py --address "123 High St, London" --country "UK"
 
-# Output formats
+# Different output formats
 python csv_address_processor.py --address "123 Main St" --format formatted
 python csv_address_processor.py --address "123 Main St" --format detailed
+python csv_address_processor.py --address "123 Main St" --format json
 ```
 
-### 3) Process multiple addresses
+#### 3) Process multiple addresses
 ```bash
 python csv_address_processor.py --address "123 Main St, NYC" "456 Oak Ave, LA" "789 Park Blvd, SF"
 ```
 
-### 4) Save results to file
+#### 4) Save results to file
 ```bash
 # Single address → JSON
 python csv_address_processor.py --address "123 Main St" --output result.json
+
+# CSV file → processed CSV
+python csv_address_processor.py input.csv --output processed_addresses.csv
+```
+
+### Advanced CLI Features
+
+#### Batch Processing
+```bash
+# Process all files in inbound directory
+python csv_address_processor.py --batch-process
+
+# Set custom base directory
+python csv_address_processor.py --batch-process --base-dir "C:\\AddressIQ\\chatbot-app\\backend"
+
+# Batch comparison processing
+python csv_address_processor.py --batch-compare
+```
+
+#### Address Comparison
+```bash
+# Compare two addresses directly
+python csv_address_processor.py --compare "123 Main St, New York" "123 Main Street, NYC"
+
+# Compare addresses from CSV file
+python csv_address_processor.py comparison.csv --compare-csv
+```
+
+#### Advanced Options
+```bash
+# Specify column name for processing
+python csv_address_processor.py input.csv --column "address_field"
+
+# Set batch size for processing
+python csv_address_processor.py input.csv --batch-size 10
+
+# Disable free API fallbacks
+python csv_address_processor.py input.csv --no-free-apis
+
+# Test API connectivity
+python csv_address_processor.py --test-apis
+
+# Generate database statistics
+python csv_address_processor.py --db-stats
+```
+
+## Setup Instructions
+
+### Prerequisites
+- Python 3.8 or higher
+- pip package manager
+- Azure OpenAI API access (optional - free APIs available as fallback)
+- SQL Server/Azure SQL Database (optional - for database features)
+
+### Installation
+
+1. **Navigate to backend directory**
+   ```bash
+   cd chatbot-app/backend
+   ```
+
+2. **Create virtual environment**
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate  # Windows
+   # source .venv/bin/activate  # macOS/Linux
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment variables**
+   ```bash
+   # Create .env file with your credentials
+   CLIENT_ID=your_client_id_here
+   CLIENT_SECRET=your_client_secret_here
+   WSO2_AUTH_URL=https://api-test.cbre.com:443/token
+   AZURE_OPENAI_DEPLOYMENT_ID=your_deployment_id
+   ```
+
+5. **Run the application**
+   ```bash
+   python run.py
+   ```
+
+### Directory Structure
+```
+backend/
+├── run.py                      # Application entry point
+├── requirements.txt            # Python dependencies
+├── .env                       # Environment variables (create this)
+├── app/                       # Main application package
+│   ├── main.py               # Flask routes and API endpoints
+│   ├── config/               # Configuration files
+│   ├── models/               # Data models
+│   └── services/             # Business logic services
+├── inbound/                  # File upload directory
+├── outbound/                 # Processed file output
+├── archive/                  # Archived processed files
+├── samples/                  # Sample files for API testing
+└── __pycache__/             # Python cache files
+```
+
+## Database Integration
+
+### Connection String Format
+```
+Server=your_server;Database=your_database;Trusted_Connection=yes;
+# OR for Azure SQL:
+Server=tcp:yourserver.database.windows.net,1433;Database=yourdatabase;User ID=username;Password=password;
+```
+
+### Table Mode
+- Specify table name and column names containing address data
+- Optional unique ID column for tracking records
+- Safe processing with configurable record limits
+
+### Query Mode
+- Write custom SQL queries to extract address data
+- Support for complex joins and filtering
+- Results processed through standardization pipeline
+
+## API Response Formats
+
+### Standard Success Response
+```json
+{
+  "success": true,
+  "data": {
+    "processing_id": "uuid-string",
+    "status": "queued|processing|completed|failed",
+    "message": "Operation completed successfully"
+  }
+}
+```
+
+### Address Standardization Response
+```json
+{
+  "success": true,
+  "input_address": "123 Main St, NYC",
+  "standardized_address": {
+    "street_number": "123",
+    "street_name": "Main Street",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10001",
+    "country": "USA",
+    "confidence_score": 0.95
+  }
+}
+```
+
+### Error Response
+```json
+{
+  "success": false,
+  "error": "Error description",
+  "code": "ERROR_CODE",
+  "details": {}
+}
+```
+
+## Configuration
+
+### Address Processing Configuration
+The system uses configurable prompts and settings in `app/config/address_config.py`:
+
+- **System Prompts**: Customizable AI prompts for different processing scenarios
+- **Output Formats**: Control standardized address output structure
+- **Processing Options**: Batch sizes, timeout settings, retry logic
+- **API Settings**: Azure OpenAI configuration and fallback options
+
+### File Processing Options
+- **Supported Formats**: Excel (.xlsx, .xls), CSV (.csv)
+- **Maximum File Size**: 50MB default (configurable)
+- **Processing Limits**: Configurable batch sizes and record limits
+- **Output Locations**: Automatic file organization in inbound/outbound/archive
+
+## Error Handling
+
+The backend includes comprehensive error handling for:
+- **File Processing Errors**: Invalid file formats, corrupted files, size limits
+- **API Connectivity Issues**: Azure OpenAI service availability, authentication
+- **Database Connection Problems**: Invalid connection strings, network issues
+- **Address Processing Failures**: Unparseable addresses, service timeouts
+
+## Development
+
+### Running in Development Mode
+```bash
+# Enable debug mode
+export FLASK_ENV=development  # Linux/macOS
+set FLASK_ENV=development     # Windows
+
+# Run with auto-reload
+python run.py
+```
+
+### Testing
+```bash
+# Test API connectivity
+python csv_address_processor.py --test-apis
+
+# Process sample data
+python csv_address_processor.py site_addresses_sample.csv
+
+# Test database connection
+python database_workflow_demo.py
+```
+
+### Adding New Features
+1. **API Endpoints**: Add new routes in `app/main.py`
+2. **Business Logic**: Implement services in `app/services/`
+3. **Configuration**: Update settings in `app/config/`
+4. **Models**: Add data structures in `app/models/`
+
+## Troubleshooting
+
+### Common Issues
+
+**1. Authentication Errors**
+- Verify Azure OpenAI credentials in `.env` file
+- Check WSO2 gateway connectivity
+- Validate API key format and permissions
+
+**2. File Processing Issues**
+- Ensure files are in supported formats (Excel/CSV)
+- Check file size limits (50MB default)
+- Verify column names and data structure
+
+**3. Database Connection Problems**
+- Validate connection string format
+- Test network connectivity to database server
+- Check user permissions for database access
+
+**4. Address Processing Failures**
+- Review address format and completeness
+- Check Azure OpenAI service availability
+- Verify prompt configuration settings
+
+### Logging
+The application logs detailed information for debugging:
+- **API Requests**: All incoming requests and responses
+- **Processing Steps**: Step-by-step address processing logs
+- **Error Details**: Comprehensive error messages and stack traces
+- **Performance Metrics**: Processing times and resource usage
+
+## License
+
+[Add your license information here]
+
+## Support
+
+For technical support and questions:
+- **API Documentation**: Use the Public API interface in the frontend
+- **CLI Help**: Run `python csv_address_processor.py --help`
+- **Configuration Guide**: Check `app/config/address_config.py`
+- **Sample Data**: Use files in the `samples/` directory for testing
+
+---
+
+**AddressIQ Backend** - Powerful address intelligence processing engine with comprehensive API and CLI capabilities.
 
 # Multiple addresses → JSON
 python csv_address_processor.py --address "123 Main St" "456 Oak Ave" --output results.json

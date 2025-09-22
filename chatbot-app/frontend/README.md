@@ -1,241 +1,394 @@
 # AddressIQ Frontend
 
-A React TypeScript application with Redux state management for intelligent address processing. This frontend provides a comprehensive solution for Excel/CSV file uploads, AI-powered address processing, and geographical visualization through an interactive map interface.
+A modern React TypeScript application providing a comprehensive user interface for intelligent address processing, file uploads, database connectivity, and API testing. Built with Redux state management and featuring an interactive map interface.
+
+## Overview
+
+The AddressIQ frontend is a single-page application that provides an intuitive interface for all address intelligence features. It includes multiple specialized components for different workflows, comprehensive state management, and a powerful API testing interface.
 
 ## Features
 
-- **File Upload Component**: Upload Excel/CSV files with progress tracking and validation
-- **Address Processing Component**: AI-powered address standardization with free text input
-- **Region & City Map View**: Interactive map visualization with geographical data
-- **Redux State Management**: Using Redux Toolkit with Redux Observable epics for async operations
-- **Tabbed Navigation**: Seamless navigation between different application views
+### Core Components
+- **File Upload Component**: Upload Excel/CSV files with drag-and-drop functionality and progress tracking
+- **Address Processing Component**: AI-powered address standardization with real-time processing
+- **Compare Upload Component**: File comparison and analysis functionality
+- **Database Connect Component**: Direct database connectivity with table/query modes and preview capabilities
+- **Public API Component**: Interactive API documentation and testing interface with accordion UI
+- **Region & City Map Component**: Interactive geographic visualization with Leaflet integration
+
+### User Experience
+- **Tabbed Navigation**: Seamless navigation between different application features
+- **CBRE Green Theme**: Professional styling with #003f2d color scheme
+- **Responsive Design**: Works across desktop and mobile devices
+- **Real-time Feedback**: Progress indicators, status updates, and error handling
+- **Sample Downloads**: Built-in sample file downloads for testing
+
+### Technical Features
+- **Redux State Management**: Comprehensive state management with Redux Toolkit and Redux Observable
 - **TypeScript**: Full type safety throughout the application
-- **Error Handling**: Comprehensive error management with user-friendly feedback
-- **Progress Tracking**: Real-time upload progress and processing status
+- **API Integration**: Clean service layer for backend communication
+- **Error Handling**: User-friendly error messages and recovery options
+- **Performance Optimization**: Efficient rendering and state updates
 
 ## Project Structure
 
-The frontend is located in the `frontend/` directory of the AddressIQ project:
+The frontend is organized into a clear, modular structure:
 
 ```
-AddressIQ/
- - **Database Connect**: Pull data directly from a database (Table/Query) and process with preview/download
-├── frontend/                    # React TypeScript frontend
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── build/                   # Production build output
-│   ├── public/
-│   │   └── index.html
-│   └── src/
-│       ├── App.tsx              # Main app component with tabbed navigation
-│       ├── App.css              # Global styles
-│       ├── index.tsx            # Application entry point
-│       ├── index.css            # Global CSS styles
-│       ├── setupProxy.js        # Proxy configuration for API calls
-│       ├── components/          # React components
-│       │   ├── FileUpload/      # File upload feature
-│       │   │   ├── FileUpload.tsx
-│       │   │   ├── FileUpload.css
-│       │   │   └── index.ts
-│       │   ├── AddressProcessing/ # Address processing feature
-│       │   │   ├── AddressProcessing.tsx
-│       │   │   ├── AddressProcessing.css
-│       │   │   └── index.ts
-│       │   └── RegionCityMap/   # Interactive map visualization
-│       │       ├── RegionCityMap.tsx
-│       │       ├── RegionCityMap.css
-│       │       └── index.ts
-│       ├── store/               # Redux store setup
-│       │   ├── index.ts         # Store configuration
-│       │   ├── slices/          # Redux slices
-│       │   │   ├── fileUploadSlice.ts
-│       │   │   └── addressProcessingSlice.ts
-│       │   └── epics/           # Redux Observable epics
-│       │       ├── index.ts
-│       │   └── DatabaseConnect/ # Database connect feature
-│       │       ├── DatabaseConnect.tsx
-│       │       ├── DatabaseConnect.css
-│       │       └── index.ts (optional)
-│       │       ├── fileUploadEpic.ts
-│       │       └── addressProcessingEpic.ts
-│       ├── services/            # Axios API configuration
+frontend/
+├── package.json                 # Dependencies and scripts
+├── tsconfig.json               # TypeScript configuration
+├── build/                      # Production build output
+├── public/
+│   └── index.html             # Main HTML template
+└── src/
+    ├── App.tsx                # Main application component with routing
+    ├── App.css                # Global application styles
+    ├── index.tsx              # Application entry point
+    ├── index.css              # Global CSS styles
+    ├── setupProxy.js          # Development proxy configuration
+    ├── components/            # React components
+    │   ├── FileUpload/        # File upload functionality
+    │   │   ├── FileUpload.tsx
+    │   │   ├── FileUpload.css
+    │   │   └── index.ts
+    │   ├── AddressProcessing/ # Address standardization
+    │   │   ├── AddressProcessing.tsx
+    │   │   ├── AddressProcessing.css
+    │   │   └── index.ts
+    │   ├── CompareUpload/     # File comparison features
+    │   │   ├── CompareUpload.tsx
+    │   │   ├── CompareUpload.css
+    │   │   └── index.ts
+    │   ├── DatabaseConnect/   # Database integration
+    │   │   ├── DatabaseConnect.tsx
+    │   │   ├── DatabaseConnect.css
+    │   │   └── index.ts
+    │   ├── PublicAPI/         # API documentation and testing
+    │   │   ├── PublicAPI.tsx
+    │   │   ├── PublicAPI.css
+    │   │   └── index.ts
+    │   └── RegionCityMap/     # Interactive map visualization
+    │       ├── RegionCityMap.tsx
+    │       ├── RegionCityMap.css
+    │       └── index.ts
+    ├── store/                 # Redux store configuration
+    │   ├── index.ts          # Store setup and configuration
+    │   └── slices/           # Redux Toolkit slices
+    │       ├── fileUploadSlice.ts
+    │       ├── addressProcessingSlice.ts
+    │       ├── compareUploadSlice.ts
+    │       ├── databaseConnectSlice.ts
+    │       └── mapSlice.ts
+    ├── services/             # API service layer
+    │   └── api.ts           # Axios configuration and API calls
+    ├── hooks/               # Custom React hooks
+    │   └── redux.ts         # Typed Redux hooks
+    └── types/               # TypeScript type definitions
+        └── index.ts         # Application-wide type definitions
+```
 
-### DatabaseConnect Component
-- **Tab**: Database Connect (with disabled Compare and active Format)
-- **Files**: `src/components/DatabaseConnect/`
-- **Purpose**: Fetch a small set of rows from a database and run the standardization pipeline
-- **Table mode**:
-  - Required: Connection string, Table name, at least one column_name (letters/numbers/underscore only)
-  - Optional: UniqueId (primary key-like)
-  - Comma in a column shows a yellow tip to use + to add multiple fields
-- **Query mode**:
-  - Required: Connection string and SQL query
-- **Run**:
-  - Format triggers one job; after completion, Format stays disabled until Reset
-  - Shows paginated “Processed Results” preview and a “Download Processed Results” button
-  - Only outbound processed files are downloadable
-│       │   └── api.ts
-│       ├── hooks/               # Typed Redux hooks
-│       │   └── redux.ts
-│       └── types/               # TypeScript type definitions
-│           └── index.ts
-    ├── ADDRESS_STANDARDIZATION_README.md
-    └── app/
-        ├── models/
-        └── services/
-### FileUpload Component
-- **Tab**: `File Upload`
-### Database Connect
-- **POST** `/api/db/connect` — start job
-- **GET** `/api/processing-status/<id>` — poll status
-- **GET** `/api/processing-status/<id>/logs` — recent logs
-- **GET** `/api/preview/<filename>` — preview processed results (paginated)
-- **GET** `/api/download/<filename>` — download processed CSV
-  - File type validation for Excel and CSV formats
-  - Upload progress tracking with real-time updates
-  - Success/error feedback with detailed messages
-  - Integration with Redux store for state management
-  - Secure file storage with timestamp naming
+## Component Overview
 
-### AddressProcessing Component
-- **Tab**: `Address Processing`
-- **Files**: `src/components/AddressProcessing/`
-- **Purpose**: AI-powered address standardization and processing
+### 📁 File Upload Component
+- **Purpose**: Upload Excel/CSV files for batch address processing
+- **Features**: 
+  - Drag-and-drop file selection
+  - Progress tracking with visual indicators
+  - File validation (format, size)
+  - Real-time processing status updates
+- **API Integration**: `/api/v1/files/upload` endpoint
+- **State Management**: `fileUploadSlice.ts`
+
+### 🏠 Address Processing Component
+- **Purpose**: Individual address standardization and processing
 - **Features**:
-  - Free text address input with validation
-  - Azure OpenAI integration for intelligent processing
-  - Fallback to free geocoding APIs when needed
-  - Before/after address comparison with confidence scoring
-  - Detailed component breakdown (street, city, state, etc.)
-  - Copy to clipboard functionality
-  - Real-time processing feedback with status indicators
+  - Real-time address input and processing
+  - AI-powered standardization results
+  - Confidence scoring display
+  - Copy-to-clipboard functionality
+- **API Integration**: `/api/v1/addresses/standardize` endpoint
+- **State Management**: `addressProcessingSlice.ts`
 
-### RegionCityMap Component
-- **Tab**: `Map View`
-- **Files**: `src/components/RegionCityMap/`
-- **Purpose**: Interactive geographical visualization
+### 📊 Compare Upload Component
+- **Purpose**: Upload and compare address datasets
 - **Features**:
-  - Interactive map using Leaflet and React-Leaflet
-  - Region and country selection
-  - Coordinate plotting and visualization
-  - Geographic data integration
-  - Custom map markers and popups
+  - File comparison functionality
+  - Difference analysis visualization
+  - Side-by-side comparison views
+  - Export comparison results
+- **API Integration**: `/api/v1/compare/upload` endpoint
+- **State Management**: `compareUploadSlice.ts`
 
-## Redux Store Architecture
+### 🗄️ Database Connect Component
+- **Purpose**: Direct database connectivity and processing
+- **Features**:
+  - Table and SQL query modes
+  - Connection string configuration
+  - Preview processed results with pagination
+  - Download processed CSV files
+  - Real-time processing logs
+- **API Integration**: `/api/v1/database/connect` endpoint
+- **State Management**: `databaseConnectSlice.ts`
 
-### State Structure
-```typescript
-interface RootState {
-    fileUpload: FileUploadState;
-    addressProcessing: AddressProcessingState;
-}
-```
+### 🌐 Public API Component
+- **Purpose**: Interactive API documentation and testing interface
+- **Features**:
+  - Accordion-based API explorer
+  - Live endpoint testing
+  - Request/response examples
+  - Sample file downloads
+  - No authentication required
+- **API Integration**: All v1 API endpoints
+- **State Management**: Local component state
 
-### File Upload State
-```typescript
-interface FileUploadState {
-    uploading: boolean;
-    uploadProgress: number;
-    uploadResult: string | null;
-    error: string | null;
-}
-```
+### 🗺️ Region City Map Component
+- **Purpose**: Interactive geographic visualization of address data
+- **Features**:
+  - Leaflet-based interactive mapping
+  - Address marker clustering
+  - Regional filtering capabilities
+  - Zoom and pan functionality
+  - Custom CBRE-styled markers
+- **API Integration**: Geocoding and coordinate services
+- **State Management**: `mapSlice.ts`
 
-### Address Processing State
-```typescript
-interface AddressProcessingState {
-    processing: boolean;
-    originalAddress: string;
-    processedAddress: string | null;
-    error: string | null;
-}
-```
+## Setup and Development
 
-## API Endpoints
+### Prerequisites
+- **Node.js** 16.0 or higher
+- **npm** 8.0 or higher (comes with Node.js)
+- **TypeScript** knowledge for development
 
-The application expects the following backend API endpoints:
+### Installation
 
-### File Upload
-- **Endpoint**: `POST /api/upload-excel`
-- **Content-Type**: `multipart/form-data`
-- **Body**: FormData with file field
-- **Response**: `{ message: string, file_path: string, filename: string, file_info: object }`
+1. **Navigate to frontend directory**
+   ```bash
+   cd chatbot-app/frontend
+   ```
 
-### List Uploaded Files
-- **Endpoint**: `GET /api/uploaded-files`
-- **Response**: `{ files: array }` with file metadata
-
-### Address Processing
-- **Endpoint**: `POST /api/process-address`
-- **Content-Type**: `application/json`
-- **Body**: `{ address: string }`
-- **Response**: `{ processedAddress: string, confidence: string, components: object, status: string, source: string }`
-
-### Coordinates
-- **Endpoint**: `GET /api/coordinates`
-- **Query Parameters**: `region`, `country`
-- **Response**: Coordinate data for geographical visualization
-
-## Getting Started
-
-1. **Install Dependencies**
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. **Start Development Server**
+3. **Start development server**
    ```bash
    npm start
    ```
-   The application will run on http://localhost:3003
 
-3. **Build for Production**
-   ```bash
-   npm run build
-   ```
+4. **Access the application**
+   - Frontend: http://localhost:3003
+   - Development server with hot reload enabled
 
-## Project Configuration
+### Available Scripts
 
-- **Port**: The development server runs on port 3003 (configured in package.json)
-- **Proxy**: API calls are proxied to the backend via setupProxy.js configuration
-- **TypeScript**: Configured with tsconfig.json for strict type checking
+```bash
+# Start development server
+npm start
+
+# Build for production
+npm run build
+
+# Run tests
+npm test
+
+# Eject from Create React App (use with caution)
+npm run eject
+
+# Type checking
+npx tsc --noEmit
+
+# Lint code
+npm run lint  # if configured
+```
+
+### Environment Configuration
+
+Create a `.env` file in the frontend directory for environment-specific settings:
+```env
+REACT_APP_API_URL=http://localhost:5001
+REACT_APP_VERSION=1.0.0
+```
+
+## Development Guidelines
+
+### State Management
+The application uses Redux Toolkit for state management:
+
+- **Store Configuration**: Centralized in `store/index.ts`
+- **Slices**: Feature-based state slices for each component
+- **Async Actions**: Redux Toolkit Query for API calls
+- **Typed Hooks**: Custom hooks for type-safe Redux usage
+
+### Component Architecture
+- **Functional Components**: All components use React hooks
+- **TypeScript**: Full type safety with interfaces and types
+- **CSS Modules**: Component-specific styling with CSS files
+- **Error Boundaries**: Comprehensive error handling
+
+### API Integration
+- **Axios Client**: Configured in `services/api.ts`
+- **Proxy Setup**: Development proxy in `setupProxy.js`
+- **Error Handling**: Consistent error handling across all API calls
+- **Response Types**: TypeScript interfaces for all API responses
+
+### Styling Guidelines
+- **CBRE Theme**: Primary color #003f2d (CBRE green)
+- **Responsive Design**: Mobile-first approach
+- **CSS Variables**: Consistent color and spacing variables
+- **Component Styling**: Individual CSS files for each component
 
 ## Technologies Used
 
-- **React 18** with TypeScript
-- **Redux Toolkit** for state management
-- **Redux Observable** for handling async operations
-- **Leaflet & React-Leaflet** for interactive maps
-- **Axios** for API calls
-- **RxJS** for reactive programming
-- **Country-State-City** library for geographical data
+### Core Technologies
+- **React 18**: Latest React with concurrent features and improved performance
+- **TypeScript**: Full type safety with strict mode enabled
+- **Redux Toolkit**: Modern Redux with Redux Toolkit Query for API state management
+- **React Hooks**: Functional components with useState, useEffect, useContext
+- **CSS3**: Modern styling with custom properties and flexbox/grid layouts
 
-## Navigation
+### Key Dependencies
+- **Redux Toolkit**: `@reduxjs/toolkit` - Modern Redux development
+- **React-Redux**: `react-redux` - React bindings for Redux
+- **Redux Observable**: `redux-observable` - Handle complex async flows
+- **Axios**: `axios` - Promise-based HTTP client for API calls
+- **React Leaflet**: `react-leaflet` - Interactive maps with Leaflet integration
+- **Country-State-City**: Geographic data for region filtering
 
-The application uses a tabbed interface for navigation between three main views:
-- **File Upload**: Upload and process Excel/CSV files with real-time progress tracking
-- **Address Processing**: AI-powered standardization of individual addresses with component breakdown
-- **Map View**: Interactive geographical visualization with regional filtering and coordinate plotting
+### Development Dependencies
+- **Create React App**: Project scaffolding and build tools
+- **TypeScript**: Static type checking and IntelliSense
+- **ESLint**: Code linting and quality checks
+- **Web Vitals**: Performance monitoring for Core Web Vitals
 
-Each component is accessible through the navigation tabs in the header, providing a seamless user experience.
+## Testing
 
-## Styling
+### Component Testing
+```bash
+# Run all tests
+npm test
 
-- Responsive design that works on desktop and mobile devices
-- Clean, modern UI with consistent styling across all components
-- Tabbed navigation interface with active state indicators
-- Loading states and progress indicators for all async operations
-- Success and error state feedback with clear messaging
-- Interactive map styling with custom markers and popups
-- Hover effects and smooth transitions throughout the application
+# Run tests in watch mode
+npm test -- --watch
 
-## Error Handling
+# Generate coverage report
+npm test -- --coverage
+```
 
-- File type validation for Excel/CSV uploads with clear feedback
-- Network error handling with retry mechanisms
-- User-friendly error messages with actionable guidance
-- Loading states during API calls with progress indicators
-- Progress tracking for file uploads with percentage display
-- Graceful handling of Azure OpenAI service unavailability
-- Validation for address input with instant feedback
-- Connection error recovery with automatic fallback options
+### Manual Testing
+Use the Public API component to test all backend endpoints:
+1. Navigate to the "Public API" tab
+2. Use the accordion interface to explore endpoints
+3. Download sample files for testing
+4. Test endpoints with real data
+
+## Build and Deployment
+
+### Production Build
+```bash
+# Create optimized production build
+npm run build
+
+# The build folder contains the optimized static files
+# Ready for deployment to any static hosting service
+```
+
+### Deployment Options
+- **Static Hosting**: Netlify, Vercel, GitHub Pages
+- **CDN Deployment**: AWS CloudFront, Azure CDN
+- **Traditional Hosting**: Any web server capable of serving static files
+
+### Performance Optimization
+- **Code Splitting**: Automatic with Create React App
+- **Tree Shaking**: Unused code elimination
+- **Bundle Analysis**: Use `npm run build` to analyze bundle size
+- **Lazy Loading**: Components loaded on demand
+
+## Troubleshooting
+
+### Common Issues
+
+**1. Port Already in Use**
+```bash
+# Kill process using port 3003
+npx kill-port 3003
+
+# Or start on different port
+PORT=3004 npm start
+```
+
+**2. API Connection Issues**
+- Verify backend is running on port 5001
+- Check proxy configuration in `setupProxy.js`
+- Confirm CORS settings in backend
+
+**3. TypeScript Errors**
+```bash
+# Type check without emitting files
+npx tsc --noEmit
+
+# Install missing type definitions
+npm install @types/package-name
+```
+
+**4. Build Issues**
+```bash
+# Clear npm cache
+npm cache clean --force
+
+# Delete node_modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+```
+
+## Contributing
+
+### Development Workflow
+1. **Create feature branch**: `git checkout -b feature/component-name`
+2. **Follow TypeScript conventions**: Use proper typing for all components
+3. **Update tests**: Add tests for new components or functionality
+4. **Check build**: Ensure `npm run build` works without errors
+5. **Submit PR**: Include description of changes and testing performed
+
+### Code Standards
+- **TypeScript**: Strict mode enabled, no implicit any
+- **ESLint**: Follow configured linting rules
+- **Prettier**: Use consistent code formatting
+- **Component Structure**: Follow established patterns for new components
+
+## Architecture Decisions
+
+### Why Redux Toolkit?
+- **Predictable State**: Centralized state management
+- **DevTools**: Excellent debugging capabilities
+- **TypeScript Support**: Built-in TypeScript integration
+- **Performance**: Optimized updates with Immer
+
+### Why Accordion UI for Public API?
+- **Organized Display**: Clean presentation of multiple endpoints
+- **Interactive Testing**: Direct testing without external tools
+- **User-Friendly**: Intuitive interface for developers
+- **Self-Documenting**: Examples and responses built-in
+
+### Why Leaflet for Mapping?
+- **Open Source**: No licensing costs
+- **Customizable**: Full control over map appearance
+- **Performance**: Efficient rendering of multiple markers
+- **Plugin Ecosystem**: Rich set of available plugins
+
+## License
+
+[Add your license information here]
+
+## Support
+
+For frontend-specific issues and questions:
+- **Component Documentation**: Refer to individual component files
+- **TypeScript Issues**: Check type definitions in `types/index.ts`
+- **Build Problems**: Review Create React App documentation
+- **State Management**: Review Redux Toolkit documentation
+
+---
+
+**AddressIQ Frontend** - Modern React TypeScript interface for comprehensive address intelligence and processing.

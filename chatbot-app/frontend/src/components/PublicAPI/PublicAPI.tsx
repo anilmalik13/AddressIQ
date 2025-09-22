@@ -1,386 +1,334 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import './PublicAPI.css';
-import { processPublicStandardize } from '../../services/api';
 
-const sanitize = (s: string) => {
-  let out = '';
-  for (let i = 0; i < s.length; i++) {
-    const code = s.charCodeAt(i);
-    const ch = s[i];
-    // Strip control chars except tab/newline (so multi-line input works)
-    if (code < 32 && ch !== '\t' && ch !== '\n' && ch !== '\r') {
-      out += ' ';
-    } else {
-      out += ch;
-    }
-  }
-  out = out.replace(/[<>]/g, ' ');
-  if (out.length > 500) out = out.slice(0, 500);
-  return out;
-};
+interface APIEndpoint {
+  id: string;
+  title: string;
+  description: string;
+  method: string;
+  endpoint: string;
+  parameters: { [key: string]: any };
+  example: any;
+  responseExample: any;
+  sampleDownload?: string;
+}
 
-// Canonical order for address components displayed and in response preview
-const COMPONENT_ORDER = [
-  'street_number',
-  'street_name',
-  'city',
-  'state',
-  'postal_code',
-  'country',
-  'latitude',
-  'longitude',
-];
+interface AccordionState {
+  [key: string]: boolean;
+}
 
 const PublicAPI: React.FC = () => {
-  const [addresses, setAddresses] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [resultsOpen, setResultsOpen] = useState(false);
-  const [responseOpen, setResponseOpen] = useState(false);
-  const [requestId, setRequestId] = useState<string | null>(null);
-  const [apiVersion, setApiVersion] = useState<string | null>(null);
-  const [responseCount, setResponseCount] = useState<number | null>(null);
+  const [activeAccordion, setActiveAccordion] = useState<AccordionState>({});
+  const [testResults, setTestResults] = useState<{ [key: string]: any }>({});
+  const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
 
-  const list = useMemo(() => addresses.split(/\r?\n/).map(a => sanitize(a.trim())).filter(Boolean), [addresses]);
+  const apiEndpoints: APIEndpoint[] = [
+    {
+      id: 'file-upload',
+      title: 'File Upload & Processing', 
+      description: 'Upload Excel/CSV files for address standardization and processing',
+      method: 'POST',
+      endpoint: '/api/v1/files/upload',
+      parameters: {
+        file: 'File (Excel/CSV)',
+        options: 'Processing options (optional)'
+      },
+      example: {
+        description: 'Upload a file using multipart/form-data',
+        curl: 'curl -X POST -F "file=@addresses.xlsx" http://localhost:5001/api/v1/files/upload'
+      },
+      responseExample: {
+        success: true,
+        processing_id: "123e4567-e89b-12d3-a456-426614174000",
+        filename: "addresses_20230922_143022.xlsx",
+        file_size: 45632,
+        status: "queued",
+        message: "File uploaded successfully and processing started"
+      },
+      sampleDownload: '/api/v1/samples/file-upload'
+    },
+    {
+      id: 'address-single',
+      title: 'Single Address Standardization',
+      description: 'Standardize and validate a single address',
+      method: 'POST',
+      endpoint: '/api/v1/addresses/standardize',
+      parameters: {
+        address: 'Raw address string to standardize'
+      },
+      example: {
+        description: 'Standardize a single address',
+        curl: 'curl -X POST -H "Content-Type: application/json" -d \'{"address": "123 Main St, New York, NY 10001"}\' http://localhost:5001/api/v1/addresses/standardize'
+      },
+      responseExample: {
+        success: true,
+        input_address: "123 Main St, New York, NY 10001",
+        standardized_address: {
+          street_number: "123",
+          street_name: "Main Street",
+          city: "New York",
+          state: "NY",
+          postal_code: "10001",
+          country: "USA"
+        }
+      }
+    },
+    {
+      id: 'address-batch',
+      title: 'Batch Address Standardization',
+      description: 'Standardize multiple addresses in a single request',
+      method: 'POST',
+      endpoint: '/api/v1/addresses/batch-standardize',
+      parameters: {
+        addresses: 'Array of address strings (max 1000)'
+      },
+      example: {
+        description: 'Standardize multiple addresses',
+        curl: 'curl -X POST -H "Content-Type: application/json" -d \'{"addresses": ["123 Main St, NY", "456 Oak Ave, CA"]}\' http://localhost:5001/api/v1/addresses/batch-standardize'
+      },
+      responseExample: {
+        success: true,
+        total_addresses: 2,
+        processed_addresses: 2,
+        results: []
+      }
+    },
+    {
+      id: 'compare-upload',
+      title: 'Compare Upload Processing',
+      description: 'Upload files for address comparison and analysis',
+      method: 'POST',
+      endpoint: '/api/v1/compare/upload',
+      parameters: {
+        file: 'File for comparison processing',
+        options: 'Comparison options (optional)'
+      },
+      example: {
+        description: 'Upload a file for comparison',
+        curl: 'curl -X POST -F "file=@compare_addresses.csv" http://localhost:5001/api/v1/compare/upload'
+      },
+      responseExample: {
+        success: true,
+        processing_id: "456e7890-e89b-12d3-a456-426614174001",
+        filename: "compare_addresses_20230922_143025.csv",
+        status: "queued",
+        message: "Comparison file uploaded successfully"
+      },
+      sampleDownload: '/api/v1/samples/compare-upload'
+    },
+    {
+      id: 'database-connect',
+      title: 'Database Connection & Processing',
+      description: 'Connect to external databases and process address data',
+      method: 'POST',
+      endpoint: '/api/v1/database/connect',
+      parameters: {
+        server: 'Database server address',
+        database: 'Database name',
+        query: 'SQL query to fetch addresses',
+        limit: 'Maximum number of records (optional, default: 10)'
+      },
+      example: {
+        description: 'Connect to database and process addresses',
+        curl: 'curl -X POST -H "Content-Type: application/json" -d \'{"server": "localhost", "database": "addresses_db", "query": "SELECT address FROM customers LIMIT 100"}\' http://localhost:5001/api/v1/database/connect'
+      },
+      responseExample: {
+        success: true,
+        processing_id: "789e1234-e89b-12d3-a456-426614174002",
+        status: "queued",
+        message: "Database processing started successfully"
+      }
+    }
+  ];
 
-  // Fixed sample endpoint (HTTP GET) per request
-  const fixedEndpoint = 'http://localhost:5001/api/public/standardize?address=123%20Main%20St%2C%20NYC';
+  const toggleAccordion = (id: string) => {
+    setActiveAccordion(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
-  const onCall = async () => {
-    if (!list.length) return;
-    setLoading(true); 
-    setError(null); 
-    setResults(null);
+  const testEndpoint = async (endpoint: APIEndpoint) => {
+    setLoading(prev => ({ ...prev, [endpoint.id]: true }));
+    
     try {
-      const res: any = await processPublicStandardize(list);
-      setResults(res.results || []);
-      setRequestId(res.request_id || null);
-      setApiVersion(res.api_version || null);
-      setResponseCount(typeof res.count === 'number' ? res.count : null);
-      setResultsOpen(true); // auto-open results when available
-    } catch (e: any) {
-      setError(e.message || 'Request failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+      let requestData: any = {};
+      let requestMethod = endpoint.method;
+      let requestUrl = `http://localhost:5001${endpoint.endpoint}`;
+      let headers: any = {};
 
-  useEffect(() => {
-    if (results && results.length > 0) {
-      setResultsOpen(true);
-    }
-  }, [results]);
+      switch (endpoint.id) {
+        case 'address-single':
+          requestData = { address: "123 Main Street, New York, NY 10001" };
+          headers['Content-Type'] = 'application/json';
+          break;
+        case 'address-batch':
+          requestData = { 
+            addresses: [
+              "123 Main Street, New York, NY 10001",
+              "456 Oak Avenue, Los Angeles, CA 90210"
+            ]
+          };
+          headers['Content-Type'] = 'application/json';
+          break;
+        case 'database-connect':
+          requestData = {
+            server: "test-server",
+            database: "test-db",
+            query: "SELECT address FROM test_table LIMIT 5",
+            limit: 5
+          };
+          headers['Content-Type'] = 'application/json';
+          break;
+        case 'file-upload':
+        case 'compare-upload':
+          setTestResults(prev => ({
+            ...prev,
+            [endpoint.id]: {
+              note: "File upload testing requires actual file selection. Use the cURL example or upload a file through the interface.",
+              example_response: endpoint.responseExample
+            }
+          }));
+          return;
+      }
 
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  const getStatusChipClass = (status: string) => {
-    switch (status) {
-      case 'success': return 'status-chip success';
-      case 'fallback': return 'status-chip fallback';
-      case 'error': return 'status-chip error';
-      default: return 'status-chip';
-    }
-  };
-
-  const getConfidenceChipClass = (confidence: string) => {
-    const c = (confidence || '').toLowerCase();
-    switch (c) {
-      case 'high': return 'confidence-chip high';
-      case 'medium': return 'confidence-chip medium';
-      case 'low': return 'confidence-chip low';
-      default: return 'confidence-chip';
-    }
-  };
-
-  const getConfidenceIcon = (confidence: string) => {
-    const c = (confidence || '').toLowerCase();
-    switch (c) {
-      case 'high':
-        // Shield with check
-        return (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
-        );
-      case 'medium':
-        // Gauge / speedometer
-  return (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 14v-4" />
-            <path d="M8 14.5a4 4 0 0 1 8 0" />
-            <path d="M5 20a10.94 10.94 0 0 1 14 0" />
-            <path d="M12 3v2" />
-            <path d="m4.93 6.93 1.41 1.41" />
-            <path d="M3 13h2" />
-            <path d="m18.07 8.34 1.41-1.41" />
-            <path d="M19 13h2" />
-          </svg>
-        );
-      case 'low':
-        // Triangle warning
-        return (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-            <path d="M12 9v5" />
-            <path d="M12 17h.01" />
-          </svg>
-        );
-      default:
-        // Dot
-        return (
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6" /></svg>
-        );
-    }
-  };
-
-  // Build a dynamic response preview that mirrors the backend response and uses real request_id
-  const responsePreview = useMemo(() => {
-    // Fallback example when no results yet
-    const fallback = {
-    request_id: requestId || 'unknown',
-      count: 1,
-    results: [
-        {
-          original: '123 Main St, NYC',
-          formatted: '123 Main Street, New York, NY',
-          components: {
-            street_number: '123',
-            street_name: 'Main Street',
-            city: 'New York',
-            state: 'NY',
-            postal_code: '',
-            country: 'USA',
-            latitude: '',
-            longitude: '',
-          },
-          confidence: 'high',
-          status: 'success',
-          source: 'azure_openai',
-      error: null,
-        },
-      ],
-    api_version: apiVersion || 'v1',
-    };
-
-    if (!results || results.length === 0) {
-      return JSON.stringify(fallback, null, 2);
-    }
-
-  const mapped = results.map((r: any) => {
-      const comps = (r?.components ?? {}) as Record<string, any>;
-      const orderedComps: Record<string, any> = {};
-      COMPONENT_ORDER.forEach(k => {
-        if (k in comps) orderedComps[k] = comps[k];
+      const response = await fetch(requestUrl, {
+        method: requestMethod,
+        headers: headers,
+        body: JSON.stringify(requestData)
       });
-      Object.keys(comps)
-        .filter(k => !COMPONENT_ORDER.includes(k))
-        .sort()
-        .forEach(k => {
-          orderedComps[k] = comps[k];
-        });
-      return {
-        original: r?.original ?? '',
-        formatted: r?.formatted ?? '',
-        components: orderedComps,
-        confidence: r?.confidence ?? '',
-        status: r?.status ?? '',
-        source: r?.source ?? '',
-        error: r?.error ?? null,
-      };
-    });
 
-    const preview = {
-      request_id: requestId || 'unknown',
-      count: typeof responseCount === 'number' ? responseCount : results.length,
-      results: mapped,
-      api_version: apiVersion || 'v1',
-    };
+      const result = await response.json();
+      setTestResults(prev => ({
+        ...prev,
+        [endpoint.id]: {
+          status: response.status,
+          response: result
+        }
+      }));
 
-    return JSON.stringify(preview, null, 2);
-  }, [results, requestId, apiVersion, responseCount]);
+    } catch (error) {
+      setTestResults(prev => ({
+        ...prev,
+        [endpoint.id]: {
+          error: `Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }
+      }));
+    } finally {
+      setLoading(prev => ({ ...prev, [endpoint.id]: false }));
+    }
+  };
+
+  const downloadSample = (sampleUrl: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = `http://localhost:5001${sampleUrl}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
-    <div className="publicapi-container">
-      <div className="publicapi-card">
-        <div className="publicapi-header">
-          <h1>Public Address Standardization API</h1>
-          <p>Submit one or more unformatted addresses and get standardized addresses with individual address components.</p>
-        </div>
+    <div className="public-api-container">
+      <div className="api-header">
+        <h1>🔗 AddressIQ Public API</h1>
+        <p className="api-description">
+          Comprehensive API documentation and testing interface for all AddressIQ features. 
+          Standardize addresses, process files, compare data, and connect to databases programmatically.
+        </p>
+      </div>
 
-        <div className="publicapi-content">
-          <div className="input-section">
-            <div className="section-title">Try the API</div>
-            
-            {/* Endpoint first */}
-            <div className="form-group">
-              <label className="form-label">Endpoint (HTTP GET)</label>
-              <div className="endpoint-row">
-                <input className="form-input endpoint-input" type="text" value={fixedEndpoint} disabled readOnly aria-label="Public API endpoint URL" />
-                <button className="btn btn-secondary" onClick={() => copy(fixedEndpoint)}>Copy</button>
+      <div className="api-endpoints">
+        {apiEndpoints.map((endpoint) => (
+          <div key={endpoint.id} className="api-accordion">
+            <div 
+              className={`accordion-header ${activeAccordion[endpoint.id] ? 'active' : ''}`}
+              onClick={() => toggleAccordion(endpoint.id)}
+            >
+              <div className="accordion-title">
+                <span className={`method-badge ${endpoint.method.toLowerCase()}`}>
+                  {endpoint.method}
+                </span>
+                <h3>{endpoint.title}</h3>
               </div>
-            </div>
-
-            {/* Addresses input next */}
-            <div className="form-group">
-              <label className="form-label">Enter addresses (one per line)</label>
-              <textarea
-                className="form-input form-textarea"
-                placeholder="123 Main St, NYC, NY&#10;BPTP Capital City, Noida&#10;Another address..."
-                value={addresses}
-                onChange={e => setAddresses(e.target.value)}
-                rows={6}
-              />
-            </div>
-
-            <div className="button-group">
-              <button 
-                className="btn btn-primary" 
-                onClick={onCall} 
-                disabled={!list.length || loading}
-              >
-                {loading ? 'Processing...' : 'Standardize Addresses'}
-              </button>
-              <button 
-                className="btn btn-secondary" 
-                onClick={() => {
-                  setAddresses(''); 
-                  setResults(null); 
-                  setError(null);
-                  setResultsOpen(false);
-                  setRequestId(null);
-                  setApiVersion(null);
-                  setResponseCount(null);
-                }}
-              >
-                Clear
-              </button>
-              <span className="help-text">
-                {list.length} address(es) ready to process
+              <span className="accordion-icon">
+                {activeAccordion[endpoint.id] ? '▼' : '▶'}
               </span>
             </div>
 
-            {error && (
-              <div className="error-message">
-                {error}
-              </div>
-            )}
-          </div>
+            {activeAccordion[endpoint.id] && (
+              <div className="accordion-content">
+                <div className="endpoint-info">
+                  <p className="description">{endpoint.description}</p>
+                  
+                  <div className="endpoint-url">
+                    <strong>Endpoint:</strong> 
+                    <code>{endpoint.endpoint}</code>
+                  </div>
 
-          {/* Accordions */}
-          <div className="accordion">
-            {/* Results Accordion */}
-            <div className="accordion-item">
-              <button className="accordion-header" onClick={() => setResultsOpen(o => !o)} aria-expanded={resultsOpen}>
-                <span>Results{results && results.length ? ` (${results.length})` : ''}</span>
-                <span className={`accordion-icon ${resultsOpen ? 'open' : ''}`}>▸</span>
-              </button>
-              {resultsOpen && (
-                <div className="accordion-panel">
-                  {results && results.length > 0 ? (
-                    <div className="results-section" style={{marginTop: 0, borderTop: 'none', paddingTop: 0}}>
-                <div className="results-grid">
-                  {results.map((result, index) => (
-                    <div key={index} className="result-card">
-                      <div className="result-header">
-                        <span className="result-number">Address #{index + 1}</span>
-                        <div className="copy-buttons">
-                          <button className="btn-copy" onClick={() => copy(result.original)}>
-                            Copy Original
-                          </button>
-                          <button className="btn-copy" onClick={() => copy(result.formatted)}>
-                            Copy Formatted
-                          </button>
-                          <button className="btn-copy" onClick={() => copy(JSON.stringify(result.components))}>
-                            Copy JSON
-                          </button>
-                        </div>
-                      </div>
+                  <div className="parameters">
+                    <h4>Parameters:</h4>
+                    <ul>
+                      {Object.entries(endpoint.parameters).map(([key, value]) => (
+                        <li key={key}>
+                          <code>{key}</code>: {value}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-                      <div className="status-chips">
-                        <span className="status-wrapper">
-                          <span className={getStatusChipClass(result.status)}>
-                            {result.status}
-                          </span>
-                        </span>
-                        <span className="confidence-wrapper">
-                          <span
-                            className={getConfidenceChipClass(result.confidence)}
-                            title={`Confidence level: ${result.confidence}`}
-                            aria-label={`Confidence level ${result.confidence}`}
-                          >
-                            {getConfidenceIcon(result.confidence)}
-                            <span>{result.confidence}</span>
-                          </span>
-                        </span>
-                      </div>
-
-                      <div className="address-comparison">
-                        <div className="address-row">
-                          <span className="address-label">Original</span>
-                          <span className="address-value">{result.original}</span>
-                        </div>
-                        <div className="address-row">
-                          <span className="address-label">Standardized</span>
-                          <span className="address-value formatted">{result.formatted}</span>
-                        </div>
-                      </div>
-
-                      <div className="components-section">
-                        <div className="components-title">Address Components</div>
-                        <div className="components-grid">
-                                {(() => {
-                                  const comps = (result.components ?? {}) as Record<string, any>;
-                                  const orderedKeys = [
-                                    ...COMPONENT_ORDER.filter(k => k in comps),
-                                    ...Object.keys(comps).filter(k => !COMPONENT_ORDER.includes(k)).sort(),
-                                  ];
-                                  return orderedKeys.map((key) => (
-                            <div key={key} className="component-item">
-                              <span className="component-key">{key.replace(/_/g, ' ')}</span>
-                                      <span className="component-value">{String(comps[key] ?? '') || '—'}</span>
-                            </div>
-                                  ));
-                                })()}
-                        </div>
-                      </div>
-
-                      {result.error && (
-                        <div className="error-row">
-                          <span className="error-label">Error</span>
-                          <span className="error-value">{result.error}</span>
-                        </div>
-                      )}
+                  {endpoint.sampleDownload && (
+                    <div className="sample-download">
+                      <h4>Sample File:</h4>
+                      <button 
+                        className="sample-download-btn"
+                        onClick={() => downloadSample(
+                          endpoint.sampleDownload!, 
+                          endpoint.id === 'file-upload' ? 'file-upload-sample.csv' : 'compare-upload-sample.csv'
+                        )}
+                      >
+                        📥 Download Sample {endpoint.id === 'file-upload' ? 'Upload' : 'Compare'} File
+                      </button>
                     </div>
-                  ))}
-                </div>
-                    </div>
-                  ) : (
-                    <div className="no-results">No results found. Enter the address in the above field to see the results.</div>
                   )}
-              </div>
-            )}
-          </div>
 
-            {/* Response Format Accordion */}
-            <div className="accordion-item">
-              <button className="accordion-header" onClick={() => setResponseOpen(o => !o)} aria-expanded={responseOpen}>
-                <span>Response Format</span>
-                <span className={`accordion-icon ${responseOpen ? 'open' : ''}`}>▸</span>
-              </button>
-              {responseOpen && (
-                <div className="accordion-panel">
-            <div className="response-format">
-                    <div className="code-block response-example">{responsePreview}</div>
+                  <div className="example-section">
+                    <h4>Example Request:</h4>
+                    <div className="code-block">
+                      <pre>{endpoint.example.curl}</pre>
+                    </div>
+                  </div>
+
+                  <div className="response-section">
+                    <h4>Example Response:</h4>
+                    <div className="code-block">
+                      <pre>{JSON.stringify(endpoint.responseExample, null, 2)}</pre>
+                    </div>
+                  </div>
+
+                  <div className="test-section">
+                    <button 
+                      className="test-button"
+                      onClick={() => testEndpoint(endpoint)}
+                      disabled={loading[endpoint.id]}
+                    >
+                      {loading[endpoint.id] ? 'Testing...' : 'Test This Endpoint'}
+                    </button>
+                    
+                    {testResults[endpoint.id] && (
+                      <div className="test-results">
+                        <h5>Test Results:</h5>
+                        <div className="code-block">
+                          <pre>{JSON.stringify(testResults[endpoint.id], null, 2)}</pre>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
