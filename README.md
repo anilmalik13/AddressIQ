@@ -4,21 +4,31 @@ A comprehensive address intelligence platform with AI-powered address standardiz
 
 ## Overview
 
-AddressIQ is a full-stack web application that combines a React TypeScript frontend with a Python Flask backend to deliver intelligent address processing, standardization, and visualization. The application features file upload capabilities, real-time address processing, and interactive geographic mapping.
+AddressIQ is a full-stack web application that combines a React TypeScript frontend with a Python Flask backend to deliver intelligent address processing, standardization, and visualization. The application features multiple processing modes, public API endpoints, real-time address processing, and interactive geographic mapping.
 
 ## Features
 
-- **Excel File Upload & Processing**: Upload Excel files containing address data for batch processing
-- **Database Connect (Table/Query)**: Fetch rows directly from SQL Server/Azure SQL using a connection string, then standardize and preview results with pagination; download processed CSV from outbound
-- **AI-Powered Address Standardization**: Advanced address parsing and standardization using Azure OpenAI
+### Core Functionality
+- **Excel/CSV File Upload & Processing**: Upload and process files containing address data for batch standardization
+- **Database Connect (Table/Query)**: Fetch rows directly from SQL Server/Azure SQL using connection strings, then standardize and preview results with pagination
+- **Compare Upload Processing**: Upload files for address comparison and analysis between datasets
+- **AI-Powered Address Standardization**: Advanced address parsing and standardization using Azure OpenAI with confidence scoring
+- **Single & Batch Address Processing**: Process individual addresses or multiple addresses in real-time
 - **Interactive Geographic Mapping**: Visual representation of addresses using Leaflet maps with regional filtering
-- **Real-time Address Processing**: Individual address standardization with confidence scoring
-- **Batch Processing**: Process multiple addresses from uploaded Excel files
+
+### Public API
+- **RESTful API v1**: Comprehensive API endpoints for programmatic access to all features
+- **API Documentation Interface**: Interactive accordion-based UI for testing and exploring API endpoints
+- **Sample File Downloads**: Downloadable sample files for testing file upload and compare functionality
+- **No Authentication Required**: Simplified access for public API endpoints
+
+### Technical Features
 - **Backend CLI Tools**: Powerful CSV processor with batch modes, address comparison, and directory management
 - **Regional Analysis**: Filter and visualize addresses by region and country
 - **Modern React UI**: Responsive interface with tabbed navigation and real-time updates
-- **RESTful API**: Clean backend API for frontend-backend communication
+- **Redux State Management**: Comprehensive state management with Redux Toolkit
 - **WSO2 Integration**: Secure authentication through WSO2 gateway for Azure OpenAI services
+- **CBRE Branding**: Modern green theme with professional styling
 
 ## Architecture
 
@@ -26,288 +36,282 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 - **React 18** with TypeScript and modern hooks
 - **Redux Toolkit** with Redux Observable for state management
 - **Main Components**:
-  - **File Upload**: Excel file processing with drag-and-drop functionality
+  - **File Upload**: Excel/CSV file processing with drag-and-drop functionality
   - **Address Processing**: Real-time individual address standardization
+  - **Compare Upload**: File comparison and analysis functionality
+  - **Database Connect**: Table/Query mode to pull data from databases and run standardization pipeline with preview/download
+  - **Public API**: Interactive API documentation and testing interface with accordion UI
   - **Region City Map**: Interactive geographic visualization with Leaflet
-   - **Database Connect**: Table/Query mode to pull data from a database and run the same standardization pipeline with preview/download
 - **Responsive Design**: Cross-platform compatibility with tabbed navigation
 - **API Integration**: Axios-based service layer with proxy configuration
+- **CBRE Theme**: Modern green styling with professional design
 
 ### Backend (`/chatbot-app/backend`)
 - **Python Flask** application with modular architecture
 - **Azure OpenAI Integration** through WSO2 gateway with OAuth2 authentication
 - **Address Processing Engine**: AI-powered standardization with confidence scoring
-- **RESTful API**: Clean endpoints for chat and address processing
+- **RESTful API v1**: Comprehensive endpoints for all features including:
+  - `/api/v1/files/upload` - File upload and processing
+  - `/api/v1/addresses/standardize` - Single address standardization
+  - `/api/v1/addresses/batch-standardize` - Batch address processing
+  - `/api/v1/compare/upload` - File comparison processing
+  - `/api/v1/database/connect` - Database connection and processing
+  - `/api/v1/samples/*` - Sample file downloads
 - **Configuration Management**: Flexible prompt and system configuration
 - **Data Processing**: CSV handling and batch address processing capabilities
-- **Database Ingest**: Endpoint to connect to SQL Server/Azure SQL, extract a safe preview set, and process to outbound
+- **Database Integration**: Support for SQL Server/Azure SQL connections
 
 ## Project Structure
 
 ```
 AddressIQ/
-├── README.md
+├── README.md                    # This file - project overview and setup
 ├── chatbot-app/                 # Main application directory
-│   ├── QUICKSTART.md           # Quick setup guide
 │   ├── README.md               # Application-specific documentation
+│   ├── QUICKSTART.md           # Quick setup guide
 │   ├── start-dev.sh            # Development startup script
 │   ├── frontend/               # React TypeScript frontend
-│   │   ├── package.json        # Frontend dependencies and scripts
+│   │   ├── package.json        # Frontend dependencies
 │   │   ├── tsconfig.json       # TypeScript configuration
-│   │   ├── README.md           # Frontend documentation
-│   │   ├── public/
-│   │   │   └── index.html      # Main HTML template
-│   │   └── src/
-│   │       ├── App.tsx         # Main app component with tabbed navigation
-│   │       ├── App.css         # Global application styles
-│   │       ├── index.tsx       # Application entry point
-│   │       ├── index.css       # Global CSS styles
-│   │       ├── setupProxy.js   # Development proxy configuration
+│   │   ├── build/              # Production build output
+│   │   ├── public/             # Static files
+│   │   └── src/                # Source code
+│   │       ├── App.tsx         # Main application component with routing
 │   │       ├── components/     # React components
-│   │       │   ├── FileUpload/ # Excel file upload component
-│   │       │   │   ├── FileUpload.tsx
-│   │       │   │   ├── FileUpload.css
-│   │       │   │   └── index.ts
-│   │       │   ├── AddressProcessing/ # Address standardization component
-│   │       │   │   ├── AddressProcessing.tsx
-│   │       │   │   ├── AddressProcessing.css
-│   │       │   │   └── index.ts
-│   │       │   ├── RegionCityMap/ # Interactive map component
-│   │       │   │   ├── RegionCityMap.tsx
-│   │       │   │   ├── RegionCityMap.css
-│   │       │   │   └── index.ts
-│   │       ├── store/              # Redux store setup
-│   │       │   ├── index.ts        # Store configuration
-│   │       │   ├── slices/         # Redux slices
-│   │       │   │   ├── fileUploadSlice.ts      # File upload state management
-│   │       │   │   └── addressProcessingSlice.ts # Address processing state
-│   │       │   └── epics/          # Redux Observable epics
-│   │       │       ├── index.ts
-│   │       │       ├── fileUploadEpic.ts       # File upload side effects
-│   │       │       └── addressProcessingEpic.ts # Address processing side effects
-│   │       ├── services/           # API services
-│   │       │   └── api.ts          # Axios configuration and API calls
-│   │       ├── hooks/              # Custom React hooks
-│   │       │   └── redux.ts        # Typed Redux hooks
-│   │       └── types/              # TypeScript type definitions
-│   │           └── index.ts        # Application type definitions
-│   └── backend/                    # Python Flask backend
-│       ├── requirements.txt        # Python dependencies
-│       ├── run.py                 # Application entry point
-│       ├── ADDRESS_STANDARDIZATION_README.md # Address processing documentation
-│       ├── csv_address_processor.py # CSV processing utilities
-│       ├── debug_geocoding.py     # Geocoding debugging tools
-│       ├── example_address_standardization.py # Usage examples
-│       ├── site_addresses_sample.csv # Sample data files
-│       ├── test_global_addresses.csv
-│       └── app/                   # Main application package
-│           ├── __init__.py        # Package initialization
-│           ├── main.py            # Flask application and routes
-│           ├── config/            # Configuration management
-│           │   ├── address_config.py # Address processing configuration
-│           │   └── address_config_backup.py # Backup configuration
-│           ├── models/            # Data models
-│           │   ├── __init__.py
-│           │   └── chat.py        # Chat-related models
-│           └── services/          # Business logic services
-│               ├── __init__.py
-│               └── azure_openai.py # Azure OpenAI integration service
+│   │       │   ├── FileUpload/ # File upload functionality
+│   │       │   ├── AddressProcessing/ # Address standardization
+│   │       │   ├── CompareUpload/ # File comparison features
+│   │       │   ├── DatabaseConnect/ # Database integration
+│   │       │   ├── PublicAPI/  # API documentation and testing interface
+│   │       │   └── RegionCityMap/ # Geographic visualization
+│   │       ├── store/          # Redux store configuration
+│   │       ├── services/       # API service layer
+│   │       └── types/          # TypeScript type definitions
+│   └── backend/                # Python Flask backend
+│       ├── README.md           # Backend-specific documentation
+│       ├── requirements.txt    # Python dependencies
+│       ├── run.py              # Application entry point
+│       ├── app/                # Flask application
+│       │   ├── main.py         # Main Flask app with API routes
+│       │   ├── config/         # Configuration files
+│       │   ├── models/         # Data models
+│       │   └── services/       # Business logic services
+│       ├── inbound/            # File upload directory
+│       ├── outbound/           # Processed file output
+│       ├── archive/            # Archived files
+│       └── samples/            # Sample files for API testing
+└── .venv/                      # Python virtual environment
 ```
 
 ## Quick Start
 
+### Prerequisites
+- **Node.js** 16+ and npm (for frontend)
+- **Python** 3.8+ and pip (for backend)
+- **SQL Server** or **Azure SQL Database** (optional, for database features)
+
+### Development Setup
+
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd AddressIQ/chatbot-app
+   git clone https://github.com/anilmalik13/AddressIQ.git
+   cd AddressIQ
    ```
 
-2. **Set up environment variables**
+2. **Backend Setup**
    ```bash
-   # Create .env file in backend directory
-   cd backend
-   cp .env.example .env  # If example exists, or create new .env
-   # Edit .env with your credentials:
-   # CLIENT_ID=your_actual_client_id_here
-   # CLIENT_SECRET=your_actual_client_secret_here
-   # WSO2_AUTH_URL=https://api-test.cbre.com:443/token
-   # AZURE_OPENAI_DEPLOYMENT_ID=your_deployment_id
-   ```
-
-3. **Set up the backend**
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   cd chatbot-app/backend
+   python -m venv .venv
+   .venv\Scripts\activate  # Windows
+   # source .venv/bin/activate  # macOS/Linux
    pip install -r requirements.txt
+   python run.py
    ```
 
-4. **Set up the frontend**
+3. **Frontend Setup** (in a new terminal)
    ```bash
-   cd frontend
+   cd chatbot-app/frontend
    npm install
+   npm start
    ```
 
-5. **Start the application**
-   ```bash
-   # Use the provided script for easy development
-   ./start-dev.sh
-   
-   # Or start services individually:
-   # Terminal 1 - Backend: 
-   cd backend && python run.py
-   
-   # Terminal 2 - Frontend: 
-   cd frontend && npm start
-   ```
-
-6. **Access the application**
+4. **Access the Application**
    - Frontend: http://localhost:3003
    - Backend API: http://localhost:5001
+   - API Documentation: http://localhost:3003 (Public API tab)
 
-   ## Database Connect (current behavior)
+### Using the Public API
 
-   - UI under Database Connect shows two source types: Table and SQL Query.
-   - Connection string is required. In Table mode, Table name is required. UniqueId is optional.
-   - One or more column_name fields are required. Only letters, numbers, and underscore (_) are allowed. Spaces/specials are rejected. If a comma is typed, a yellow tip suggests using the + button to add multiple fields.
-   - Compare tab is disabled (Soon). Format runs a single job at a time. After “Processing Complete,” the Format button stays disabled until you click Reset.
-   - On completion, the “Processed Results” table shows a paginated preview (sticky header, page controls). A “Download Processed Results” button downloads the outbound CSV. Only outbound (processed) files are downloadable.
+AddressIQ provides a comprehensive RESTful API for programmatic access to all features:
 
-   ### Backend endpoints used by the UI
+#### Available Endpoints
 
-   - POST `/api/db/connect` — Start a DB fetch+process job (table or query)
-   - GET `/api/processing-status/<id>` — Poll job status
-   - GET `/api/processing-status/<id>/logs` — Retrieve recent logs
-   - GET `/api/preview/<filename>` — Paginated preview of processed results
-   - GET `/api/download/<filename>` — Download processed (outbound) CSV
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/files/upload` | POST | Upload Excel/CSV files for processing |
+| `/api/v1/addresses/standardize` | POST | Standardize a single address |
+| `/api/v1/addresses/batch-standardize` | POST | Standardize multiple addresses |
+| `/api/v1/compare/upload` | POST | Upload files for comparison analysis |
+| `/api/v1/database/connect` | POST | Connect to database and process addresses |
+| `/api/v1/samples/file-upload` | GET | Download sample upload file |
+| `/api/v1/samples/compare-upload` | GET | Download sample compare file |
 
-## Backend CLI (CSV processor) – current capabilities
+#### Example API Usage
 
-In addition to the web app, the backend includes a CLI for addressing CSVs and free-text addresses:
+**Single Address Standardization:**
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"address": "123 Main St, New York, NY 10001"}' \
+  http://localhost:5001/api/v1/addresses/standardize
+```
 
-- CSV file: `python csv_address_processor.py input.csv`
-- Batch modes (use `inbound/`, `outbound/`, `archive/` under the base dir):
-   - Process all files: `python csv_address_processor.py --batch-process`
-   - Process all comparison files: `python csv_address_processor.py --batch-compare`
-   - Set base directory: `python csv_address_processor.py --batch-process --base-dir "C:\\AddressIQ\\chatbot-app\\backend"`
-- Direct address processing:
-   - Single or multiple: `python csv_address_processor.py --address "123 Main St" "456 Oak Ave"`
-   - Force country: `--country UK`; output formats: `--format json|formatted|detailed`
-   - Save output: `--output results.json`
-- Address comparison:
-   - Two addresses: `python csv_address_processor.py --compare "A1" "A2"`
-   - CSV pairs: `python csv_address_processor.py comparison.csv --compare-csv`
-- CSV options: `-c/--column`, `-b/--batch-size 5` (default 5), `-o/--output`, `--no-free-apis`
-- Utilities: `--db-stats`, `--test-apis`
+**File Upload:**
+```bash
+curl -X POST -F "file=@addresses.xlsx" \
+  http://localhost:5001/api/v1/files/upload
+```
+
+For complete API documentation and interactive testing, visit the **Public API** tab in the web interface.
 
 ## Technologies Used
 
 ### Frontend
-- **React 18** with TypeScript
-- **Redux Toolkit** with Redux Observable for state management
-- **React Leaflet** for interactive mapping
-- **Axios** for HTTP client communication
-- **Country-State-City** for geographic data
-- **CSS3** with component-specific styling
+- **React 18** with TypeScript for modern component-based architecture
+- **Redux Toolkit** with Redux Observable for comprehensive state management
+- **React Leaflet** for interactive mapping and geographic visualization
+- **Axios** for HTTP client communication with the backend API
+- **CSS3** with custom styling and CBRE green theme (#003f2d)
 
 ### Backend
-- **Python 3.11+** with Flask web framework
-- **Azure OpenAI SDK** for AI-powered address processing
-- **WSO2 Gateway** for secure API access
-- **Pandas** for data manipulation and CSV processing
-- **Python-dotenv** for environment configuration
+- **Python 3.11+** with Flask web framework for RESTful API development
+- **Azure OpenAI SDK** for AI-powered address processing and standardization
+- **WSO2 Gateway** for secure API access and authentication
+- **Pandas** for data manipulation and CSV/Excel processing
+- **pyodbc** for SQL Server/Azure SQL database connectivity
 - **Flask-CORS** for cross-origin resource sharing
 
 ### Development & Infrastructure
-- **TypeScript** for type safety
-- **npm/Node.js** for frontend package management
-- **pip/virtualenv** for Python dependency management
-- **Git** for version control
+- **TypeScript** for type safety across the frontend application
+- **Python Virtual Environment** for isolated dependency management
+- **npm/Node.js** ecosystem for frontend package management
+- **Git** for version control and collaboration
 
-## Key Features Breakdown
+## Key Components
 
-### 📁 File Upload Component
-- **Excel File Processing**: Support for .xls and .xlsx files
-- **Drag & Drop Interface**: Intuitive file selection
-- **Progress Tracking**: Real-time upload progress indicators
-- **File Validation**: Automatic file type and size validation
+### 📁 File Upload & Processing
+- **Multi-format Support**: Excel (.xlsx, .xls) and CSV file processing
+- **Batch Processing**: Handle large datasets efficiently
+- **Progress Tracking**: Real-time upload and processing status
+- **Sample Downloads**: Downloadable template files for testing
 
-### 🏠 Address Processing Component
-- **AI-Powered Standardization**: Uses Azure OpenAI for intelligent address parsing
-- **Real-time Processing**: Individual address standardization with instant results
+### 🏠 Address Standardization
+- **AI-Powered Processing**: Azure OpenAI for intelligent address parsing
+- **Single & Batch Modes**: Process individual addresses or multiple addresses
 - **Confidence Scoring**: Quality assessment for processed addresses
-- **Copy Functionality**: Easy result copying for further use
+- **Global Support**: Multi-country address standardization
 
-### 🗺️ Regional Map Component
+### 📊 Compare & Analysis
+- **File Comparison**: Upload and compare address datasets
+- **Difference Analysis**: Identify variations between address records
+- **Batch Comparison**: Process multiple comparison operations
+
+### 🗄️ Database Integration
+- **SQL Server/Azure SQL**: Direct database connectivity
+- **Table & Query Modes**: Flexible data extraction options
+- **Preview & Download**: Paginated results with download capabilities
+
+### 🌐 Public API Interface
+- **Interactive Documentation**: Accordion-based API explorer
+- **Live Testing**: Test endpoints directly from the web interface
+- **Sample Data**: Download sample files for API testing
+- **No Authentication**: Simplified access for public endpoints
+
+### 🗺️ Geographic Visualization
 - **Interactive Mapping**: Leaflet-based geographic visualization
-- **Regional Filtering**: Filter addresses by region and country
-- **Geocoding Integration**: Automatic coordinate generation for addresses
+- **Regional Filtering**: Filter and analyze addresses by location
 - **Marker Clustering**: Efficient display of multiple address points
 
-### 🔧 Backend Services
-- **WSO2 Authentication**: Secure token-based authentication
-- **Azure OpenAI Integration**: Advanced language model processing
-- **Configurable Prompts**: Customizable system prompts for different use cases
-- **Batch Processing**: Handle multiple addresses efficiently
+## Configuration
 
-## Development
+### Environment Setup
+Create a `.env` file in the backend directory with your Azure OpenAI credentials:
+```env
+CLIENT_ID=your_actual_client_id_here
+CLIENT_SECRET=your_actual_client_secret_here
+WSO2_AUTH_URL=https://api-test.cbre.com:443/token
+AZURE_OPENAI_DEPLOYMENT_ID=your_deployment_id
+```
 
-### Backend Development
-The backend is built with Flask and follows a modular architecture:
+### Backend CLI Features
+The backend includes a powerful CLI for address processing:
 
-- **Main Application** (`app/main.py`): Flask app with CORS enabled and API routes
-- **Azure OpenAI Service** (`app/services/azure_openai.py`): Handles authentication and AI requests
-- **Configuration** (`app/config/address_config.py`): Customizable prompts and settings
-- **Models** (`app/models/`): Data structures for chat and address processing
+**Basic Usage:**
+```bash
+# Process a CSV file
+python csv_address_processor.py input.csv
 
-### Frontend Development
-The frontend uses modern React patterns with Redux for state management:
+# Process single address
+python csv_address_processor.py --address "123 Main St, New York, NY"
 
-- **Component Architecture**: Modular components with CSS modules
-- **State Management**: Redux Toolkit with Redux Observable for async operations
-- **Type Safety**: Full TypeScript implementation with strict type checking
-- **API Layer**: Centralized Axios configuration with proxy setup
+# Batch processing
+python csv_address_processor.py --batch-process --base-dir "./backend"
+```
 
-### Configuration Management
-- **Environment Variables**: Secure credential management via .env files
-- **Prompt Configuration**: Customizable AI prompts for different address processing needs
-- **API Settings**: Configurable endpoints and authentication parameters
+**Advanced Options:**
+- `--country UK`: Force specific country processing
+- `--format json|formatted|detailed`: Output format options
+- `--batch-size 10`: Control batch processing size
+- `--compare "Address1" "Address2"`: Compare two addresses
+- `--output results.csv`: Save results to file
+
+## API Documentation
+
+The application provides comprehensive API documentation through the **Public API** component. Visit the frontend interface and navigate to the "Public API" tab for:
+
+- **Interactive API Testing**: Test all endpoints directly from the browser
+- **Request/Response Examples**: See example requests and responses
+- **Parameter Documentation**: Detailed parameter descriptions
+- **Sample File Downloads**: Get sample files for testing uploads
+
+## Development Notes
+
+### Current Features
+- ✅ File upload and processing (Excel/CSV)
+- ✅ Single and batch address standardization
+- ✅ Database connectivity (SQL Server/Azure SQL)
+- ✅ File comparison and analysis
+- ✅ Public API with comprehensive endpoints
+- ✅ Interactive API documentation and testing
+- ✅ Geographic visualization and mapping
+- ✅ Sample file downloads for testing
+
+### Architecture Highlights
+- **Modular Design**: Clean separation between frontend and backend
+- **Type Safety**: Full TypeScript implementation in frontend
+- **State Management**: Redux Toolkit for predictable state updates
+- **API Versioning**: Structured v1 API endpoints for stability
+- **Error Handling**: Comprehensive error management throughout the stack
 
 ## Contributing
 
-This project follows modern development practices:
-
-- **Version Control**: Git with descriptive commit messages
-- **Code Organization**: Modular, maintainable structure with clear separation of concerns
-- **Type Safety**: TypeScript for frontend, Python type hints for backend
-- **Documentation**: Comprehensive README files and inline code documentation
-- **Testing**: Component and service-level testing capabilities
-
-## API Endpoints
-
-### Backend API Routes
-- **POST `/api/chat`**: Process address standardization requests through AI
-  - Body: `{ "message": "address_text", "system_prompt": "optional_prompt", "prompt_type": "general|address" }`
-  - Response: Standardized address data with confidence scores
-
-Additional (file + database): see the section above for file upload and database connect endpoints currently used by the UI.
-
-### Frontend Routes
-- **File Upload Tab**: Excel file processing interface
-- **Address Processing Tab**: Individual address standardization
-- **Region Map Tab**: Geographic visualization and filtering
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/your-feature-name`
+3. **Make your changes** with proper documentation
+4. **Test thoroughly** using the provided API testing interface
+5. **Submit a pull request** with detailed description
 
 ## License
 
 [Add your license information here]
 
-## Support
+## Support and Documentation
 
-For questions, issues, or contributions, please refer to the project documentation:
-- **Backend Documentation**: `chatbot-app/backend/ADDRESS_STANDARDIZATION_README.md`
-- **Frontend Documentation**: `chatbot-app/frontend/README.md`
-- **Quick Setup**: `chatbot-app/QUICKSTART.md`
+For additional documentation and support:
+- **Backend CLI Guide**: `chatbot-app/backend/README.md`
+- **Frontend Component Guide**: `chatbot-app/frontend/README.md`
+- **Quick Setup Guide**: `chatbot-app/QUICKSTART.md`
+- **API Testing**: Use the Public API tab in the web interface
 
 ---
 
-**AddressIQ** - Comprehensive address intelligence platform with AI-powered standardization, file processing, and geographic visualization capabilities.
+**AddressIQ** - Your comprehensive solution for intelligent address processing, standardization, and geographic analysis.
