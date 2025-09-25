@@ -1389,7 +1389,7 @@ def api_v1_address_standardize():
         from csv_address_processor import CSVAddressProcessor
         processor = CSVAddressProcessor()
         
-        result = processor.process_address(address.strip())
+        result = processor.process_single_address_input(address.strip())
         
         return jsonify({
             'success': True,
@@ -1435,7 +1435,7 @@ def api_v1_addresses_batch_standardize():
                 continue
             
             try:
-                result = processor.process_address(addr)
+                result = processor.process_single_address_input(addr)
                 results.append({
                     'index': idx,
                     'input_address': raw,
