@@ -1201,20 +1201,26 @@ def get_api_docs():
                 "description": "File upload and processing operations",
                 "endpoints": {
                     "POST /api/v1/files/upload": {
-                        "description": "Upload Excel/CSV file for address processing",
+                        "description": "Upload Excel/CSV file and get processed file immediately",
                         "parameters": {
-                            "file": "multipart/form-data file upload",
-                            "options": "JSON object with processing options"
+                            "file": "multipart/form-data file upload (CSV, XLS, XLSX)"
                         },
-                        "returns": "Processing ID and file information"
+                        "returns": "Directly returns the processed CSV file for download"
+                    },
+                    "POST /api/v1/files/upload-async": {
+                        "description": "Upload Excel/CSV file for asynchronous processing",
+                        "parameters": {
+                            "file": "multipart/form-data file upload"
+                        },
+                        "returns": "Processing ID for status checking"
                     },
                     "GET /api/v1/files/status/{processing_id}": {
-                        "description": "Get processing status and progress",
-                        "parameters": {"processing_id": "UUID from upload response"},
+                        "description": "Get processing status and progress (for async uploads)",
+                        "parameters": {"processing_id": "UUID from async upload response"},
                         "returns": "Status, progress percentage, and results"
                     },
                     "GET /api/v1/files/download/{filename}": {
-                        "description": "Download processed file",
+                        "description": "Download processed file (for async uploads)",
                         "parameters": {"filename": "Processed file name"},
                         "returns": "File download"
                     }
@@ -1263,6 +1269,27 @@ def get_api_docs():
                 }
             }
         },
+        "documentation": {
+            "description": "API documentation and guides",
+            "endpoints": {
+                "GET /api/v1/docs": {
+                    "description": "Get comprehensive API documentation (JSON format)",
+                    "returns": "Complete API documentation with all endpoints"
+                },
+                "GET /api/v1/docs/download": {
+                    "description": "Download File Upload API Postman testing guide (.docx file)",
+                    "returns": "Microsoft Word document with step-by-step Postman instructions for file upload"
+                },
+                "GET /api/v1/docs/download-address-guide": {
+                    "description": "Download Single Address Standardization Postman testing guide (.docx file)",
+                    "returns": "Microsoft Word document with step-by-step Postman instructions for address standardization"
+                },
+                "GET /api/v1/docs/download-batch-guide": {
+                    "description": "Download Batch Address Standardization Postman testing guide (.docx file)",
+                    "returns": "Microsoft Word document with step-by-step Postman instructions for batch address standardization"
+                }
+            }
+        },
         "authentication": {
             "type": "API Key",
             "header": "X-API-Key",
@@ -1271,16 +1298,139 @@ def get_api_docs():
     }
     return jsonify(docs), 200
 
+@app.route('/api/v1/docs/download', methods=['GET'])
+def get_api_documentation_file():
+    """Download Postman API testing documentation file"""
+    try:
+        # Path to the documentation file in samples directory
+        samples_dir = BASE_DIR / 'samples'
+        doc_file = samples_dir / 'AddressIQ API - File Upload & Processing.docx'
+        
+        if not doc_file.exists():
+            return jsonify({'error': 'Documentation file not found'}), 404
+        
+        return send_file(
+            str(doc_file),
+            as_attachment=True,
+            download_name='AddressIQ_API_Postman_Guide.docx',
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        return jsonify({'error': f'Documentation download failed: {str(e)}'}), 500
+
+@app.route('/api/v1/docs/download-address-guide', methods=['GET'])
+def get_address_api_documentation_file():
+    """Download Single Address Standardization Postman testing guide (.docx)"""
+    try:
+        # Path to the Word documentation file in samples directory
+        samples_dir = BASE_DIR / 'samples'
+        doc_file = samples_dir / 'AddressIQ API - Single Address Standardization.docx'
+        
+        if not doc_file.exists():
+            return jsonify({'error': 'Address API documentation file not found'}), 404
+        
+        return send_file(
+            str(doc_file),
+            as_attachment=True,
+            download_name='AddressIQ_Single_Address_API_Guide.docx',
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        return jsonify({'error': f'Address API documentation download failed: {str(e)}'}), 500
+
+@app.route('/api/v1/docs/download-batch-guide', methods=['GET'])
+def get_batch_address_api_documentation_file():
+    """Download Batch Address Standardization Postman testing guide (.docx)"""
+    try:
+        # Path to the Word documentation file in samples directory
+        samples_dir = BASE_DIR / 'samples'
+        doc_file = samples_dir / 'AddressIQ API - Batch Address Standardization.docx'
+        
+        if not doc_file.exists():
+            return jsonify({'error': 'Batch Address API documentation file not found'}), 404
+        
+        return send_file(
+            str(doc_file),
+            as_attachment=True,
+            download_name='AddressIQ_Batch_Address_API_Guide.docx',
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        return jsonify({'error': f'Batch Address API documentation download failed: {str(e)}'}), 500
+
 # File Processing API endpoints
 @app.route('/api/v1/files/upload', methods=['POST'])
 def api_v1_file_upload():
-    """v1 API: Upload file for address processing"""
+    """v1 API: Upload file for address processing and return processed file directly"""
     # Check API key for public access
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Reuse existing upload logic but with consistent v1 response format
+    # Process file synchronously and return the processed file
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not _allowed_file(file.filename):
+            return jsonify({'error': 'File type not allowed. Use .xlsx, .xls, or .csv'}), 400
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = secure_filename(file.filename)
+        name_part, ext_part = os.path.splitext(safe_filename)
+        unique_filename = f"{name_part}_{timestamp}{ext_part}"
+        
+        # Save file
+        file_path = os.path.join(app.config['INBOUND_FOLDER'], unique_filename)
+        file.save(file_path)
+        
+        # Process file synchronously
+        processor = CSVAddressProcessor(base_directory=str(BASE_DIR))
+        output_path = processor.process_csv_file(str(file_path))
+        
+        if not output_path or not os.path.exists(output_path):
+            # Clean up inbound file on error
+            try:
+                os.remove(file_path)
+            except:
+                pass
+            return jsonify({'error': 'File processing failed - no output generated'}), 500
+        
+        # Generate a user-friendly filename for download
+        original_name = os.path.splitext(safe_filename)[0]
+        download_filename = f"{original_name}_processed_{timestamp}.csv"
+        
+        # Return the processed file directly
+        return send_file(
+            output_path,
+            as_attachment=True,
+            download_name=download_filename,
+            mimetype='text/csv'
+        )
+        
+    except Exception as e:
+        # Clean up any temporary files on error
+        try:
+            if 'file_path' in locals() and os.path.exists(file_path):
+                os.remove(file_path)
+        except:
+            pass
+        return jsonify({'error': f'Upload and processing failed: {str(e)}'}), 500
+
+@app.route('/api/v1/files/upload-async', methods=['POST'])
+def api_v1_file_upload_async():
+    """v1 API: Upload file for asynchronous address processing (returns processing_id for status checking)"""
+    # Check API key for public access
+    auth_valid, auth_error = _check_api_key()
+    if not auth_valid:
+        return jsonify({'error': auth_error}), 401
+    
+    # Asynchronous processing (same as original implementation)
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -1389,7 +1539,7 @@ def api_v1_address_standardize():
         from csv_address_processor import CSVAddressProcessor
         processor = CSVAddressProcessor()
         
-        result = processor.process_address(address.strip())
+        result = processor.standardize_single_address(address.strip(), 0)
         
         return jsonify({
             'success': True,
@@ -1435,7 +1585,7 @@ def api_v1_addresses_batch_standardize():
                 continue
             
             try:
-                result = processor.process_address(addr)
+                result = processor.standardize_single_address(addr, idx)
                 results.append({
                     'index': idx,
                     'input_address': raw,

@@ -228,6 +228,33 @@ const PublicAPI: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const downloadDocumentation = () => {
+    const link = document.createElement('a');
+    link.href = 'http://localhost:5001/api/v1/docs/download';
+    link.download = 'AddressIQ_API_Postman_Guide.docx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadAddressGuide = () => {
+    const link = document.createElement('a');
+    link.href = 'http://localhost:5001/api/v1/docs/download-address-guide';
+    link.download = 'AddressIQ_Single_Address_API_Guide.docx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadBatchGuide = () => {
+    const link = document.createElement('a');
+    link.href = 'http://localhost:5001/api/v1/docs/download-batch-guide';
+    link.download = 'AddressIQ_Batch_Address_API_Guide.docx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="public-api-container">
       <div className="api-header">
@@ -289,6 +316,54 @@ const PublicAPI: React.FC = () => {
                       >
                         📥 Download Sample {endpoint.id === 'file-upload' ? 'Upload' : 'Compare'} File
                       </button>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'file-upload' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={downloadDocumentation}
+                        title="Download step-by-step Postman testing instructions"
+                      >
+                        📄 Download Postman API Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing this API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'address-single' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={downloadAddressGuide}
+                        title="Download step-by-step Postman testing instructions for Single Address API"
+                      >
+                        📄 Download Address API Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Single Address Standardization API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'address-batch' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={downloadBatchGuide}
+                        title="Download step-by-step Postman testing instructions for Batch Address API"
+                      >
+                        📄 Download Batch API Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Batch Address Standardization API with Postman, including screenshots and troubleshooting tips.
+                      </p>
                     </div>
                   )}
 
