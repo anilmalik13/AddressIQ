@@ -25,24 +25,21 @@ const PublicAPI: React.FC = () => {
     {
       id: 'file-upload',
       title: 'File Upload & Processing', 
-      description: 'Upload Excel/CSV files for address standardization and processing',
+      description: 'Upload Excel/CSV files for address standardization and get processed file directly',
       method: 'POST',
       endpoint: '/api/v1/files/upload',
       parameters: {
-        file: 'File (Excel/CSV)',
-        options: 'Processing options (optional)'
+        file: 'File (Excel/CSV)'
       },
       example: {
-        description: 'Upload a file using multipart/form-data',
+        description: 'Upload a file using multipart/form-data and receive processed file',
         curl: 'curl -X POST -F "file=@addresses.xlsx" http://localhost:5001/api/v1/files/upload'
       },
       responseExample: {
-        success: true,
-        processing_id: "123e4567-e89b-12d3-a456-426614174000",
-        filename: "addresses_20230922_143022.xlsx",
-        file_size: 45632,
-        status: "queued",
-        message: "File uploaded successfully and processing started"
+        description: "Returns processed CSV file directly as download",
+        filename: "addresses_processed_20230922_143022.csv",
+        content_type: "text/csv",
+        note: "File is returned as attachment download, not JSON response"
       },
       sampleDownload: '/api/v1/samples/file-upload'
     },
@@ -89,29 +86,54 @@ const PublicAPI: React.FC = () => {
         success: true,
         total_addresses: 2,
         processed_addresses: 2,
-        results: []
+        results: [
+          {
+            index: 0,
+            input_address: "123 Main St, NY",
+            standardized_address: {
+              street_number: "123",
+              street_name: "Main Street",
+              city: "New York",
+              state: "NY",
+              postal_code: "10001",
+              country: "USA"
+            },
+            error: null
+          },
+          {
+            index: 1,
+            input_address: "456 Oak Ave, CA",
+            standardized_address: {
+              street_number: "456",
+              street_name: "Oak Avenue",
+              city: "Los Angeles",
+              state: "CA",
+              postal_code: "90210",
+              country: "USA"
+            },
+            error: null
+          }
+        ]
       }
     },
     {
       id: 'compare-upload',
       title: 'Compare Upload Processing',
-      description: 'Upload files for address comparison and analysis',
+      description: 'Upload files for address comparison and get processed results directly',
       method: 'POST',
       endpoint: '/api/v1/compare/upload',
       parameters: {
-        file: 'File for comparison processing',
-        options: 'Comparison options (optional)'
+        file: 'File for comparison processing (CSV/Excel)'
       },
       example: {
-        description: 'Upload a file for comparison',
+        description: 'Upload a file for comparison and receive processed file',
         curl: 'curl -X POST -F "file=@compare_addresses.csv" http://localhost:5001/api/v1/compare/upload'
       },
       responseExample: {
-        success: true,
-        processing_id: "456e7890-e89b-12d3-a456-426614174001",
-        filename: "compare_addresses_20230922_143025.csv",
-        status: "queued",
-        message: "Comparison file uploaded successfully"
+        description: "Returns processed comparison CSV file directly as download",
+        filename: "compare_addresses_processed_20230922_143025.csv",
+        content_type: "text/csv",
+        note: "File is returned as attachment download, not JSON response"
       },
       sampleDownload: '/api/v1/samples/compare-upload'
     },
@@ -125,7 +147,7 @@ const PublicAPI: React.FC = () => {
         connectionString: 'Database connection string (required)',
         sourceType: 'Must be "table" for table mode (required)',
         tableName: 'Name of the database table (required)',
-        columnNames: 'Array of column names to fetch (required, at least one)',
+        columnNames: 'Array of column names to fetch (required, at least one non-empty)',
         uniqueId: 'Primary key or unique identifier column (optional)',
         limit: 'Maximum number of records to return (optional, default: 10)'
       },
@@ -155,7 +177,7 @@ const PublicAPI: React.FC = () => {
       parameters: {
         connectionString: 'Database connection string (required)',
         sourceType: 'Must be "query" for query mode (required)',
-        query: 'Custom SQL query to execute (required)',
+        query: 'Custom SQL query to execute (required, cannot be empty)',
         limit: 'Maximum number of records to return (optional, default: 10)'
       },
       example: {
