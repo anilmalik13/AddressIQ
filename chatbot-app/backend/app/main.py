@@ -1444,28 +1444,16 @@ def get_api_docs():
                     "returns": "Complete API documentation with all endpoints"
                 },
                 "GET /api/v1/docs/download": {
-                    "description": "Download File Upload API Postman testing guide (.docx file)",
-                    "returns": "Microsoft Word document with step-by-step Postman instructions for file upload"
-                },
-                "GET /api/v1/docs/download-address-guide": {
-                    "description": "Download Single Address Standardization Postman testing guide (.docx file)",
-                    "returns": "Microsoft Word document with step-by-step Postman instructions for address standardization"
-                },
-                "GET /api/v1/docs/download-batch-guide": {
-                    "description": "Download Batch Address Standardization Postman testing guide (.docx file)",
-                    "returns": "Microsoft Word document with step-by-step Postman instructions for batch address standardization"
-                },
-                "GET /api/v1/docs/download-compare-guide": {
-                    "description": "Download Compare Upload Processing Postman testing guide (.docx file)",
-                    "returns": "Microsoft Word document with step-by-step Postman instructions for compare upload processing"
-                },
-                "GET /api/v1/docs/download-database-table-guide": {
-                    "description": "Download Database Connection Table Mode Postman testing guide (.docx file)",
-                    "returns": "Microsoft Word document with step-by-step Postman instructions for database table mode connection"
-                },
-                "GET /api/v1/docs/download-database-query-guide": {
-                    "description": "Download Database Connection Query Mode Postman testing guide (.docx file)",
-                    "returns": "Microsoft Word document with step-by-step Postman instructions for database query mode connection"
+                    "description": "Download Postman API testing guides (.docx files)",
+                    "parameters": {
+                        "guide": "Guide type (file-upload, address-single, address-batch, compare-upload, database-table, database-query)"
+                    },
+                    "returns": "Microsoft Word document with step-by-step Postman instructions for the specified API",
+                    "examples": [
+                        "/api/v1/docs/download?guide=file-upload",
+                        "/api/v1/docs/download?guide=address-single",
+                        "/api/v1/docs/download?guide=address-batch"
+                    ]
                 }
             }
         },
@@ -1479,123 +1467,59 @@ def get_api_docs():
 
 @app.route('/api/v1/docs/download', methods=['GET'])
 def get_api_documentation_file():
-    """Download Postman API testing documentation file"""
+    """Download Postman API testing documentation file based on guide parameter"""
     try:
+        # Get the guide parameter from query string
+        guide_type = request.args.get('guide', 'file-upload')
+        
         # Path to the documentation file in samples directory
         samples_dir = BASE_DIR / 'samples'
-        doc_file = samples_dir / 'AddressIQ API - File Upload & Processing.docx'
+        
+        # Map guide types to file paths and download names
+        guide_mapping = {
+            'file-upload': {
+                'file': 'AddressIQ API - File Upload & Processing.docx',
+                'download_name': 'AddressIQ_API_Postman_Guide.docx'
+            },
+            'address-single': {
+                'file': 'AddressIQ API - Single Address Standardization.docx',
+                'download_name': 'AddressIQ_Single_Address_API_Guide.docx'
+            },
+            'address-batch': {
+                'file': 'AddressIQ API - Batch Address Standardization.docx',
+                'download_name': 'AddressIQ_Batch_Address_API_Guide.docx'
+            },
+            'compare-upload': {
+                'file': 'AddressIQ API - Compare Upload Processing.docx',
+                'download_name': 'AddressIQ_Compare_Upload_API_Guide.docx'
+            },
+            'database-table': {
+                'file': 'AddressIQ API - Database Connection Table Mode.docx',
+                'download_name': 'AddressIQ_Database_Table_Mode_API_Guide.docx'
+            },
+            'database-query': {
+                'file': 'AddressIQ API - Database Connection Query Mode.docx',
+                'download_name': 'AddressIQ_Database_Query_Mode_API_Guide.docx'
+            }
+        }
+        
+        if guide_type not in guide_mapping:
+            return jsonify({'error': f'Invalid guide type: {guide_type}'}), 400
+        
+        guide_info = guide_mapping[guide_type]
+        doc_file = samples_dir / guide_info['file']
         
         if not doc_file.exists():
-            return jsonify({'error': 'Documentation file not found'}), 404
+            return jsonify({'error': f'Documentation file not found for guide: {guide_type}'}), 404
         
         return send_file(
             str(doc_file),
             as_attachment=True,
-            download_name='AddressIQ_API_Postman_Guide.docx',
+            download_name=guide_info['download_name'],
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
     except Exception as e:
         return jsonify({'error': f'Documentation download failed: {str(e)}'}), 500
-
-@app.route('/api/v1/docs/download-address-guide', methods=['GET'])
-def get_address_api_documentation_file():
-    """Download Single Address Standardization Postman testing guide (.docx)"""
-    try:
-        # Path to the Word documentation file in samples directory
-        samples_dir = BASE_DIR / 'samples'
-        doc_file = samples_dir / 'AddressIQ API - Single Address Standardization.docx'
-        
-        if not doc_file.exists():
-            return jsonify({'error': 'Address API documentation file not found'}), 404
-        
-        return send_file(
-            str(doc_file),
-            as_attachment=True,
-            download_name='AddressIQ_Single_Address_API_Guide.docx',
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-    except Exception as e:
-        return jsonify({'error': f'Address API documentation download failed: {str(e)}'}), 500
-
-@app.route('/api/v1/docs/download-batch-guide', methods=['GET'])
-def get_batch_address_api_documentation_file():
-    """Download Batch Address Standardization Postman testing guide (.docx)"""
-    try:
-        # Path to the Word documentation file in samples directory
-        samples_dir = BASE_DIR / 'samples'
-        doc_file = samples_dir / 'AddressIQ API - Batch Address Standardization.docx'
-        
-        if not doc_file.exists():
-            return jsonify({'error': 'Batch Address API documentation file not found'}), 404
-        
-        return send_file(
-            str(doc_file),
-            as_attachment=True,
-            download_name='AddressIQ_Batch_Address_API_Guide.docx',
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-    except Exception as e:
-        return jsonify({'error': f'Batch Address API documentation download failed: {str(e)}'}), 500
-
-@app.route('/api/v1/docs/download-compare-guide', methods=['GET'])
-def get_compare_upload_api_documentation_file():
-    """Download Compare Upload Processing Postman testing guide (.docx)"""
-    try:
-        # Path to the Word documentation file in samples directory
-        samples_dir = BASE_DIR / 'samples'
-        doc_file = samples_dir / 'AddressIQ API - Compare Upload Processing.docx'
-        
-        if not doc_file.exists():
-            return jsonify({'error': 'Compare Upload API documentation file not found'}), 404
-        
-        return send_file(
-            str(doc_file),
-            as_attachment=True,
-            download_name='AddressIQ_Compare_Upload_API_Guide.docx',
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-    except Exception as e:
-        return jsonify({'error': f'Compare Upload API documentation download failed: {str(e)}'}), 500
-
-@app.route('/api/v1/docs/download-database-table-guide', methods=['GET'])
-def get_database_table_api_documentation_file():
-    """Download Database Connection Table Mode Postman testing guide (.docx)"""
-    try:
-        # Path to the Word documentation file in samples directory
-        samples_dir = BASE_DIR / 'samples'
-        doc_file = samples_dir / 'AddressIQ API - Database Connection Table Mode.docx'
-        
-        if not doc_file.exists():
-            return jsonify({'error': 'Database Table Mode API documentation file not found'}), 404
-        
-        return send_file(
-            str(doc_file),
-            as_attachment=True,
-            download_name='AddressIQ_Database_Table_Mode_API_Guide.docx',
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-    except Exception as e:
-        return jsonify({'error': f'Database Table Mode API documentation download failed: {str(e)}'}), 500
-
-@app.route('/api/v1/docs/download-database-query-guide', methods=['GET'])
-def get_database_query_api_documentation_file():
-    """Download Database Connection Query Mode Postman testing guide (.docx)"""
-    try:
-        # Path to the Word documentation file in samples directory
-        samples_dir = BASE_DIR / 'samples'
-        doc_file = samples_dir / 'AddressIQ API - Database Connection Query Mode.docx'
-        
-        if not doc_file.exists():
-            return jsonify({'error': 'Database Query Mode API documentation file not found'}), 404
-        
-        return send_file(
-            str(doc_file),
-            as_attachment=True,
-            download_name='AddressIQ_Database_Query_Mode_API_Guide.docx',
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
-    except Exception as e:
-        return jsonify({'error': f'Database Query Mode API documentation download failed: {str(e)}'}), 500
 
 # File Processing API endpoints
 @app.route('/api/v1/files/upload', methods=['POST'])

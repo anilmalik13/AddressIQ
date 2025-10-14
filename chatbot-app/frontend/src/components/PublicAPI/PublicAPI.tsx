@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './PublicAPI.css';
+import { downloadDocumentationGuide as downloadDocGuideAPI, downloadSampleFile } from '../../services/api';
 
 interface APIEndpoint {
   id: string;
@@ -19,8 +20,6 @@ interface AccordionState {
 
 const PublicAPI: React.FC = () => {
   const [activeAccordion, setActiveAccordion] = useState<AccordionState>({});
-  const [testResults, setTestResults] = useState<{ [key: string]: any }>({});
-  const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
 
   const apiEndpoints: APIEndpoint[] = [
     {
@@ -185,138 +184,24 @@ const PublicAPI: React.FC = () => {
     }));
   };
 
-  const testEndpoint = async (endpoint: APIEndpoint) => {
-    setLoading(prev => ({ ...prev, [endpoint.id]: true }));
-    
+
+
+  const downloadSample = async (sampleUrl: string, filename: string) => {
     try {
-      let requestData: any = {};
-      let requestMethod = endpoint.method;
-      let requestUrl = `http://localhost:5001${endpoint.endpoint}`;
-      let headers: any = {};
-
-      switch (endpoint.id) {
-        case 'address-single':
-          requestData = { address: "123 Main Street, New York, NY 10001" };
-          headers['Content-Type'] = 'application/json';
-          break;
-        case 'address-batch':
-          requestData = { 
-            addresses: [
-              "123 Main Street, New York, NY 10001",
-              "456 Oak Avenue, Los Angeles, CA 90210"
-            ]
-          };
-          headers['Content-Type'] = 'application/json';
-          break;
-        case 'database-connect':
-          requestData = {
-            server: "test-server",
-            database: "test-db",
-            query: "SELECT address FROM test_table LIMIT 5",
-            limit: 5
-          };
-          headers['Content-Type'] = 'application/json';
-          break;
-        case 'file-upload':
-        case 'compare-upload':
-          setTestResults(prev => ({
-            ...prev,
-            [endpoint.id]: {
-              note: "File upload testing requires actual file selection. Use the cURL example or upload a file through the interface.",
-              example_response: endpoint.responseExample
-            }
-          }));
-          return;
-      }
-
-      const response = await fetch(requestUrl, {
-        method: requestMethod,
-        headers: headers,
-        body: JSON.stringify(requestData)
-      });
-
-      const result = await response.json();
-      setTestResults(prev => ({
-        ...prev,
-        [endpoint.id]: {
-          status: response.status,
-          response: result
-        }
-      }));
-
+      await downloadSampleFile(sampleUrl, filename);
     } catch (error) {
-      setTestResults(prev => ({
-        ...prev,
-        [endpoint.id]: {
-          error: `Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }
-      }));
-    } finally {
-      setLoading(prev => ({ ...prev, [endpoint.id]: false }));
+      console.error('Failed to download sample file:', error);
+      // Could add user notification here if needed
     }
   };
 
-  const downloadSample = (sampleUrl: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = `http://localhost:5001${sampleUrl}`;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const downloadDocumentation = () => {
-    const link = document.createElement('a');
-    link.href = 'http://localhost:5001/api/v1/docs/download';
-    link.download = 'AddressIQ_API_Postman_Guide.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const downloadAddressGuide = () => {
-    const link = document.createElement('a');
-    link.href = 'http://localhost:5001/api/v1/docs/download-address-guide';
-    link.download = 'AddressIQ_Single_Address_API_Guide.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const downloadBatchGuide = () => {
-    const link = document.createElement('a');
-    link.href = 'http://localhost:5001/api/v1/docs/download-batch-guide';
-    link.download = 'AddressIQ_Batch_Address_API_Guide.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const downloadCompareGuide = () => {
-    const link = document.createElement('a');
-    link.href = 'http://localhost:5001/api/v1/docs/download-compare-guide';
-    link.download = 'AddressIQ_Compare_Upload_API_Guide.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const downloadDatabaseTableGuide = () => {
-    const link = document.createElement('a');
-    link.href = 'http://localhost:5001/api/v1/docs/download-database-table-guide';
-    link.download = 'AddressIQ_Database_Table_Mode_API_Guide.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const downloadDatabaseQueryGuide = () => {
-    const link = document.createElement('a');
-    link.href = 'http://localhost:5001/api/v1/docs/download-database-query-guide';
-    link.download = 'AddressIQ_Database_Query_Mode_API_Guide.docx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadDocumentationGuide = async (guideType: string, downloadName: string) => {
+    try {
+      await downloadDocGuideAPI(guideType, downloadName);
+    } catch (error) {
+      console.error('Failed to download documentation guide:', error);
+      // Could add user notification here if needed
+    }
   };
 
   return (
@@ -388,7 +273,7 @@ const PublicAPI: React.FC = () => {
                       <h4>📖 Postman Testing Guide:</h4>
                       <button 
                         className="documentation-download-btn"
-                        onClick={downloadDocumentation}
+                        onClick={() => downloadDocumentationGuide('file-upload', 'AddressIQ_API_Postman_Guide.docx')}
                         title="Download step-by-step Postman testing instructions"
                       >
                         📄 Download Postman API Guide (.docx)
@@ -404,7 +289,7 @@ const PublicAPI: React.FC = () => {
                       <h4>📖 Postman Testing Guide:</h4>
                       <button 
                         className="documentation-download-btn"
-                        onClick={downloadAddressGuide}
+                        onClick={() => downloadDocumentationGuide('address-single', 'AddressIQ_Single_Address_API_Guide.docx')}
                         title="Download step-by-step Postman testing instructions for Single Address API"
                       >
                         📄 Download Address API Guide (.docx)
@@ -420,7 +305,7 @@ const PublicAPI: React.FC = () => {
                       <h4>📖 Postman Testing Guide:</h4>
                       <button 
                         className="documentation-download-btn"
-                        onClick={downloadBatchGuide}
+                        onClick={() => downloadDocumentationGuide('address-batch', 'AddressIQ_Batch_Address_API_Guide.docx')}
                         title="Download step-by-step Postman testing instructions for Batch Address API"
                       >
                         📄 Download Batch API Guide (.docx)
@@ -436,7 +321,7 @@ const PublicAPI: React.FC = () => {
                       <h4>📖 Postman Testing Guide:</h4>
                       <button 
                         className="documentation-download-btn"
-                        onClick={downloadCompareGuide}
+                        onClick={() => downloadDocumentationGuide('compare-upload', 'AddressIQ_Compare_Upload_API_Guide.docx')}
                         title="Download step-by-step Postman testing instructions for Compare Upload Processing API"
                       >
                         📄 Download Compare API Guide (.docx)
@@ -452,7 +337,7 @@ const PublicAPI: React.FC = () => {
                       <h4>📖 Postman Testing Guide:</h4>
                       <button 
                         className="documentation-download-btn"
-                        onClick={downloadDatabaseTableGuide}
+                        onClick={() => downloadDocumentationGuide('database-table', 'AddressIQ_Database_Table_Mode_API_Guide.docx')}
                         title="Download step-by-step Postman testing instructions for Database Table Mode API"
                       >
                         📄 Download Database Table Mode Guide (.docx)
@@ -468,7 +353,7 @@ const PublicAPI: React.FC = () => {
                       <h4>📖 Postman Testing Guide:</h4>
                       <button 
                         className="documentation-download-btn"
-                        onClick={downloadDatabaseQueryGuide}
+                        onClick={() => downloadDocumentationGuide('database-query', 'AddressIQ_Database_Query_Mode_API_Guide.docx')}
                         title="Download step-by-step Postman testing instructions for Database Query Mode API"
                       >
                         📄 Download Database Query Mode Guide (.docx)
@@ -493,24 +378,7 @@ const PublicAPI: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="test-section">
-                    <button 
-                      className="test-button"
-                      onClick={() => testEndpoint(endpoint)}
-                      disabled={loading[endpoint.id]}
-                    >
-                      {loading[endpoint.id] ? 'Testing...' : 'Test This Endpoint'}
-                    </button>
-                    
-                    {testResults[endpoint.id] && (
-                      <div className="test-results">
-                        <h5>Test Results:</h5>
-                        <div className="code-block">
-                          <pre>{JSON.stringify(testResults[endpoint.id], null, 2)}</pre>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+
                 </div>
               </div>
             )}
