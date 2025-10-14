@@ -226,6 +226,109 @@ def _build_sqlserver_odbc_conn_str(raw: str) -> tuple[str, dict, list]:
     conn_out = ';'.join(parts)
     return conn_out, canon, warnings
 
+def _execute_database_query_sync(connection_string: str, source_type: str, data: dict, limit: int) -> dict:
+    """Execute database query synchronously and return results directly"""
+    try:
+        import pyodbc
+        import pandas as pd
+        import numpy as np
+        
+        # Normalize/validate connection string
+        final_conn_str, canon, warns = _build_sqlserver_odbc_conn_str(connection_string)
+        
+        if warns and any(w.startswith('Missing required attributes') for w in warns):
+            return {
+                'success': False,
+                'error': f'Invalid connection string: {"; ".join(warns)}',
+                'data': [],
+                'row_count': 0,
+                'columns': [],
+                'warnings': warns
+            }
+        
+        # Connect to database and execute query
+        with pyodbc.connect(final_conn_str) as conn:
+            df = None
+            executed_query = ""
+            
+            if source_type == 'table':
+                # Build query from table and columns
+                table_name = data.get('tableName', '').strip()
+                column_names = data.get('columnNames', [])
+                unique_id = data.get('uniqueId', '').strip()
+                
+                # Prepare columns list
+                cols = []
+                if unique_id:
+                    cols.append(unique_id)
+                for c in column_names:
+                    if not c:
+                        continue
+                    c_clean = str(c).strip()
+                    if unique_id and c_clean.lower() == unique_id.lower():
+                        continue
+                    cols.append(c_clean)
+                
+                # Build SQL query
+                safe_cols = ', '.join([_safe_ident(c) for c in cols]) if cols else '*'
+                safe_table = _safe_ident(table_name)
+                top_clause = f"TOP {limit} " if limit else ''
+                executed_query = f"SELECT {top_clause}{safe_cols} FROM {safe_table}"
+                
+                df = pd.read_sql_query(executed_query, conn)
+                
+            else:  # source_type == 'query'
+                # Execute provided SQL query
+                query_text = data.get('query', '')
+                executed_query = query_text
+                raw = pd.read_sql_query(query_text, conn)
+                df = raw.head(limit) if limit and limit > 0 else raw
+        
+        if df is None or df.empty:
+            return {
+                'success': True,
+                'message': 'Query executed successfully but returned no data',
+                'data': [],
+                'row_count': 0,
+                'columns': [],
+                'query_executed': executed_query
+            }
+        
+        # Convert DataFrame to JSON-serializable format
+        data_records = df.to_dict('records')
+        
+        # Clean up NaN values and convert to JSON-serializable types
+        for record in data_records:
+            for key, value in record.items():
+                if pd.isna(value):
+                    record[key] = None
+                elif isinstance(value, (pd.Timestamp, datetime)):
+                    record[key] = value.isoformat()
+                elif isinstance(value, (np.integer, np.int64)):
+                    record[key] = int(value)
+                elif isinstance(value, (np.floating, np.float64)):
+                    record[key] = float(value)
+        
+        return {
+            'success': True,
+            'message': f'Query executed successfully. Retrieved {len(data_records)} records.',
+            'data': data_records,
+            'row_count': len(data_records),
+            'columns': list(df.columns),
+            'query_executed': executed_query,
+            'warnings': warns if warns else []
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'Database query failed: {str(e)}',
+            'data': [],
+            'row_count': 0,
+            'columns': [],
+            'query_executed': executed_query if 'executed_query' in locals() else 'N/A'
+        }
+
 def process_db_task(processing_id: str, payload: dict):
     """Background task: fetch from DB (table/query), save to inbound, process to outbound."""
     try:
@@ -1258,13 +1361,77 @@ def get_api_docs():
                 "description": "Database connection and processing",
                 "endpoints": {
                     "POST /api/v1/database/connect": {
-                        "description": "Connect to database and process addresses",
+                        "description": "Connect to database and get query results directly",
                         "parameters": {
-                            "connection": "Database connection details",
-                            "query": "SQL query for address extraction",
-                            "options": "Processing options"
+                            "connectionString": "Database connection string (required)",
+                            "sourceType": "Data source type: 'table' or 'query' (required)",
+                            "tableName": "Table name (required if sourceType='table')",
+                            "columnNames": "Array of column names (required if sourceType='table', at least one)",
+                            "uniqueId": "Unique identifier column name (optional if sourceType='table')",
+                            "query": "SQL query (required if sourceType='query')",
+                            "limit": "Maximum number of records to return (optional, default: 10)"
                         },
-                        "returns": "Processing ID and connection status"
+                        "returns": "Direct query results with data array, row count, columns, and success status",
+                        "table_mode": {
+                            "description": "Fetch specific columns from a database table",
+                            "required_parameters": ["connectionString", "sourceType", "tableName", "columnNames"],
+                            "optional_parameters": ["uniqueId", "limit"],
+                            "request_example": {
+                                "connectionString": "Server=localhost;Database=MyDB;User Id=user;Password=pass;TrustServerCertificate=True;",
+                                "sourceType": "table",
+                                "tableName": "Mast_Site",
+                                "columnNames": ["Site_Name", "Site_Address_1", "Site_City", "Site_Country"],
+                                "uniqueId": "Site_PK",
+                                "limit": 50
+                            },
+                            "response_example": {
+                                "success": True,
+                                "message": "Query executed successfully. Retrieved 3 records.",
+                                "data": [
+                                    {"Site_PK": 1001, "Site_Name": "Main Office", "Site_Address_1": "123 Business Park Dr", "Site_City": "New York", "Site_Country": "USA"},
+                                    {"Site_PK": 1002, "Site_Name": "West Coast Branch", "Site_Address_1": "456 Technology Blvd", "Site_City": "Los Angeles", "Site_Country": "USA"},
+                                    {"Site_PK": 1003, "Site_Name": "Regional Hub", "Site_Address_1": "789 Commerce Ave", "Site_City": "Chicago", "Site_Country": "USA"}
+                                ],
+                                "row_count": 3,
+                                "columns": ["Site_PK", "Site_Name", "Site_Address_1", "Site_City", "Site_Country"],
+                                "query_executed": "SELECT TOP 50 Site_PK, Site_Name, Site_Address_1, Site_City, Site_Country FROM Mast_Site"
+                            }
+                        },
+                        "query_mode": {
+                            "description": "Execute a custom SQL query to fetch address data",
+                            "required_parameters": ["connectionString", "sourceType", "query"],
+                            "optional_parameters": ["limit"],
+                            "request_example": {
+                                "connectionString": "Server=localhost;Database=MyDB;User Id=user;Password=pass;TrustServerCertificate=True;",
+                                "sourceType": "query",
+                                "query": "SELECT TOP 3 Site_Address_1 as address FROM Mast_Site",
+                                "limit": 3
+                            },
+                            "response_example": {
+                                "success": True,
+                                "message": "Query executed successfully. Retrieved 3 records.",
+                                "data": [
+                                    {"address": "123 Business Park Dr"},
+                                    {"address": "456 Technology Blvd"},
+                                    {"address": "789 Commerce Ave"}
+                                ],
+                                "row_count": 3,
+                                "columns": ["address"],
+                                "query_executed": "SELECT TOP 3 Site_Address_1 as address FROM Mast_Site"
+                            }
+                        },
+                        "response_format": {
+                            "success": True,
+                            "message": "Query executed successfully. Retrieved 3 records.",
+                            "data": [
+                                {"id": 1, "address": "123 Main St", "city": "New York"},
+                                {"id": 2, "address": "456 Oak Ave", "city": "Los Angeles"},
+                                {"id": 3, "address": "789 Pine Rd", "city": "Chicago"}
+                            ],
+                            "row_count": 3,
+                            "columns": ["id", "address", "city"],
+                            "query_executed": "SELECT TOP 10 id, address, city FROM customers"
+                        }
                     }
                 }
             }
@@ -1291,6 +1458,14 @@ def get_api_docs():
                 "GET /api/v1/docs/download-compare-guide": {
                     "description": "Download Compare Upload Processing Postman testing guide (.docx file)",
                     "returns": "Microsoft Word document with step-by-step Postman instructions for compare upload processing"
+                },
+                "GET /api/v1/docs/download-database-table-guide": {
+                    "description": "Download Database Connection Table Mode Postman testing guide (.docx file)",
+                    "returns": "Microsoft Word document with step-by-step Postman instructions for database table mode connection"
+                },
+                "GET /api/v1/docs/download-database-query-guide": {
+                    "description": "Download Database Connection Query Mode Postman testing guide (.docx file)",
+                    "returns": "Microsoft Word document with step-by-step Postman instructions for database query mode connection"
                 }
             }
         },
@@ -1381,6 +1556,46 @@ def get_compare_upload_api_documentation_file():
         )
     except Exception as e:
         return jsonify({'error': f'Compare Upload API documentation download failed: {str(e)}'}), 500
+
+@app.route('/api/v1/docs/download-database-table-guide', methods=['GET'])
+def get_database_table_api_documentation_file():
+    """Download Database Connection Table Mode Postman testing guide (.docx)"""
+    try:
+        # Path to the Word documentation file in samples directory
+        samples_dir = BASE_DIR / 'samples'
+        doc_file = samples_dir / 'AddressIQ API - Database Connection Table Mode.docx'
+        
+        if not doc_file.exists():
+            return jsonify({'error': 'Database Table Mode API documentation file not found'}), 404
+        
+        return send_file(
+            str(doc_file),
+            as_attachment=True,
+            download_name='AddressIQ_Database_Table_Mode_API_Guide.docx',
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        return jsonify({'error': f'Database Table Mode API documentation download failed: {str(e)}'}), 500
+
+@app.route('/api/v1/docs/download-database-query-guide', methods=['GET'])
+def get_database_query_api_documentation_file():
+    """Download Database Connection Query Mode Postman testing guide (.docx)"""
+    try:
+        # Path to the Word documentation file in samples directory
+        samples_dir = BASE_DIR / 'samples'
+        doc_file = samples_dir / 'AddressIQ API - Database Connection Query Mode.docx'
+        
+        if not doc_file.exists():
+            return jsonify({'error': 'Database Query Mode API documentation file not found'}), 404
+        
+        return send_file(
+            str(doc_file),
+            as_attachment=True,
+            download_name='AddressIQ_Database_Query_Mode_API_Guide.docx',
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        return jsonify({'error': f'Database Query Mode API documentation download failed: {str(e)}'}), 500
 
 # File Processing API endpoints
 @app.route('/api/v1/files/upload', methods=['POST'])
@@ -1760,44 +1975,89 @@ def compare_file_background(processing_id, filename):
 # Database Processing API endpoints
 @app.route('/api/v1/database/connect', methods=['POST'])
 def api_v1_database_connect():
-    """v1 API: Connect to database and process addresses"""
+    """v1 API: Connect to database and get results directly"""
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Reuse existing database connection logic with v1 response format
     try:
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Request body is required'}), 400
         
-        # Validate required fields
-        required_fields = ['server', 'database', 'query']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
+        # Support both legacy format and new enhanced format
+        connection_string = data.get('connectionString')
+        source_type = data.get('sourceType')
         
-        processing_id = str(uuid.uuid4())
+        # Enhanced format validation
+        if connection_string and source_type:
+            # New enhanced format with connection string and flexible query options
+            if not connection_string.strip():
+                return jsonify({'error': 'connectionString cannot be empty'}), 400
+            
+            if source_type not in ['table', 'query']:
+                return jsonify({'error': 'sourceType must be either "table" or "query"'}), 400
+            
+            if source_type == 'table':
+                # Table mode: require tableName and at least one columnName
+                table_name = data.get('tableName', '').strip()
+                column_names = data.get('columnNames', [])
+                
+                if not table_name:
+                    return jsonify({'error': 'tableName is required when sourceType is "table"'}), 400
+                
+                # Ensure columnNames is a list and has at least one valid entry
+                if not isinstance(column_names, list) or not any(str(col).strip() for col in column_names):
+                    return jsonify({'error': 'At least one columnName is required when sourceType is "table"'}), 400
+                
+            elif source_type == 'query':
+                # Query mode: require query
+                query = data.get('query', '').strip()
+                if not query:
+                    return jsonify({'error': 'query is required when sourceType is "query"'}), 400
+        
+        else:
+            # Legacy format: maintain backward compatibility
+            required_fields = ['server', 'database', 'query']
+            for field in required_fields:
+                if field not in data:
+                    return jsonify({'error': f'Missing required field: {field}'}), 400
+            
+            # Convert legacy format to enhanced format for internal processing
+            server = data.get('server', '')
+            database = data.get('database', '')
+            username = data.get('username', '')
+            password = data.get('password', '')
+            query = data.get('query', '')
+            
+            # Build connection string from individual parameters
+            if username and password:
+                connection_string = f"Server={server};Database={database};User Id={username};Password={password};TrustServerCertificate=True;"
+            else:
+                connection_string = f"Server={server};Database={database};Integrated Security=True;TrustServerCertificate=True;"
+            
+            # Set as query mode
+            source_type = 'query'
+            data['connectionString'] = connection_string
+            data['sourceType'] = source_type
+            data['query'] = query
         
         # Set default limit if not provided
-        data['limit'] = int(data.get('limit', 10))
+        limit = int(data.get('limit', 10))
         
-        # Start background database processing
-        _update_status(processing_id, status='queued', message='Database connection queued', progress=0)
+        # Execute database query synchronously and return results directly
+        result = _execute_database_query_sync(connection_string, source_type, data, limit)
         
-        thread = threading.Thread(target=process_db_task, args=(processing_id, data))
-        thread.daemon = True
-        thread.start()
-        
-        return jsonify({
-            'success': True,
-            'processing_id': processing_id,
-            'status': 'queued',
-            'message': 'Database processing started successfully'
-        }), 200
+        return jsonify(result), 200 if result.get('success') else 400
         
     except Exception as e:
-        return jsonify({'error': f'Database connection failed: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'error': f'Database connection failed: {str(e)}',
+            'data': [],
+            'row_count': 0,
+            'columns': []
+        }), 500
 
 # Sample file download endpoints
 @app.route('/api/v1/samples/file-upload', methods=['GET'])

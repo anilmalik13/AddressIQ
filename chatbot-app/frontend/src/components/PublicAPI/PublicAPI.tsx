@@ -117,26 +117,63 @@ const PublicAPI: React.FC = () => {
       sampleDownload: '/api/v1/samples/compare-upload'
     },
     {
-      id: 'database-connect',
-      title: 'Database Connection & Processing',
-      description: 'Connect to external databases and process address data',
+      id: 'database-connect-table',
+      title: 'Database Connection - Table Mode',
+      description: 'Connect to database and fetch data from a specific table with selected columns',
       method: 'POST',
       endpoint: '/api/v1/database/connect',
       parameters: {
-        server: 'Database server address',
-        database: 'Database name',
-        query: 'SQL query to fetch addresses',
-        limit: 'Maximum number of records (optional, default: 10)'
+        connectionString: 'Database connection string (required)',
+        sourceType: 'Must be "table" for table mode (required)',
+        tableName: 'Name of the database table (required)',
+        columnNames: 'Array of column names to fetch (required, at least one)',
+        uniqueId: 'Primary key or unique identifier column (optional)',
+        limit: 'Maximum number of records to return (optional, default: 10)'
       },
       example: {
-        description: 'Connect to database and process addresses',
-        curl: 'curl -X POST -H "Content-Type: application/json" -d \'{"server": "localhost", "database": "addresses_db", "query": "SELECT address FROM customers LIMIT 100"}\' http://localhost:5001/api/v1/database/connect'
+        description: 'Fetch specific columns from a database table',
+        curl: 'curl -X POST -H "Content-Type: application/json" -H "X-API-Key: your-api-key" -d \'{"connectionString": "Server=localhost;Database=MyDB;User Id=user;Password=pass;TrustServerCertificate=True;", "sourceType": "table", "tableName": "Mast_Site", "columnNames": ["Site_Name", "Site_Address_1", "Site_City", "Site_Country"], "uniqueId": "Site_PK", "limit": 50}\' http://localhost:5001/api/v1/database/connect'
       },
       responseExample: {
         success: true,
-        processing_id: "789e1234-e89b-12d3-a456-426614174002",
-        status: "queued",
-        message: "Database processing started successfully"
+        message: "Query executed successfully. Retrieved 3 records.",
+        data: [
+          { Site_PK: 1001, Site_Name: "Main Office", Site_Address_1: "123 Business Park Dr", Site_City: "New York", Site_Country: "USA" },
+          { Site_PK: 1002, Site_Name: "West Coast Branch", Site_Address_1: "456 Technology Blvd", Site_City: "Los Angeles", Site_Country: "USA" },
+          { Site_PK: 1003, Site_Name: "Regional Hub", Site_Address_1: "789 Commerce Ave", Site_City: "Chicago", Site_Country: "USA" }
+        ],
+        row_count: 3,
+        columns: ["Site_PK", "Site_Name", "Site_Address_1", "Site_City", "Site_Country"],
+        query_executed: "SELECT TOP 50 Site_PK, Site_Name, Site_Address_1, Site_City, Site_Country FROM Mast_Site"
+      }
+    },
+    {
+      id: 'database-connect-query',
+      title: 'Database Connection - Query Mode',
+      description: 'Connect to database and execute a custom SQL query to fetch data',
+      method: 'POST',
+      endpoint: '/api/v1/database/connect',
+      parameters: {
+        connectionString: 'Database connection string (required)',
+        sourceType: 'Must be "query" for query mode (required)',
+        query: 'Custom SQL query to execute (required)',
+        limit: 'Maximum number of records to return (optional, default: 10)'
+      },
+      example: {
+        description: 'Execute a custom SQL query to fetch address data',
+        curl: 'curl -X POST -H "Content-Type: application/json" -H "X-API-Key: your-api-key" -d \'{"connectionString": "Server=localhost;Database=MyDB;User Id=user;Password=pass;TrustServerCertificate=True;", "sourceType": "query", "query": "SELECT TOP 3 Site_Address_1 as address FROM Mast_Site", "limit": 3}\' http://localhost:5001/api/v1/database/connect'
+      },
+      responseExample: {
+        success: true,
+        message: "Query executed successfully. Retrieved 3 records.",
+        data: [
+          { address: "123 Business Park Dr" },
+          { address: "456 Technology Blvd" },
+          { address: "789 Commerce Ave" }
+        ],
+        row_count: 3,
+        columns: ["address"],
+        query_executed: "SELECT TOP 3 Site_Address_1 as address FROM Mast_Site"
       }
     }
   ];
@@ -259,6 +296,24 @@ const PublicAPI: React.FC = () => {
     const link = document.createElement('a');
     link.href = 'http://localhost:5001/api/v1/docs/download-compare-guide';
     link.download = 'AddressIQ_Compare_Upload_API_Guide.docx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadDatabaseTableGuide = () => {
+    const link = document.createElement('a');
+    link.href = 'http://localhost:5001/api/v1/docs/download-database-table-guide';
+    link.download = 'AddressIQ_Database_Table_Mode_API_Guide.docx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadDatabaseQueryGuide = () => {
+    const link = document.createElement('a');
+    link.href = 'http://localhost:5001/api/v1/docs/download-database-query-guide';
+    link.download = 'AddressIQ_Database_Query_Mode_API_Guide.docx';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -388,6 +443,38 @@ const PublicAPI: React.FC = () => {
                       </button>
                       <p className="documentation-description">
                         Complete step-by-step instructions for testing the Compare Upload Processing API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'database-connect-table' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={downloadDatabaseTableGuide}
+                        title="Download step-by-step Postman testing instructions for Database Table Mode API"
+                      >
+                        📄 Download Database Table Mode Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Database Connection Table Mode API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'database-connect-query' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={downloadDatabaseQueryGuide}
+                        title="Download step-by-step Postman testing instructions for Database Query Mode API"
+                      >
+                        📄 Download Database Query Mode Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Database Connection Query Mode API with Postman, including screenshots and troubleshooting tips.
                       </p>
                     </div>
                   )}
