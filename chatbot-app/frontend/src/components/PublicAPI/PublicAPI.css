@@ -199,6 +199,52 @@
   transform: translateY(-1px);
 }
 
+/* Documentation Download Styles */
+.documentation-download {
+  margin: 15px 0;
+  padding: 15px;
+  background: #e6f3ff;
+  border-radius: 6px;
+  border-left: 4px solid #0066cc;
+}
+
+.documentation-download h4 {
+  margin: 0 0 10px 0;
+  color: #0066cc;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.documentation-download-btn {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.documentation-download-btn:hover {
+  background: #0052a3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 102, 204, 0.3);
+}
+
+.documentation-description {
+  margin: 10px 0 0 0;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+  font-style: italic;
+}
+
 .example-section, .response-section {
   background: #f8f9fa;
   padding: 15px;

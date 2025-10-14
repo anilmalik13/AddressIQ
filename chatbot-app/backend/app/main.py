@@ -226,6 +226,109 @@ def _build_sqlserver_odbc_conn_str(raw: str) -> tuple[str, dict, list]:
     conn_out = ';'.join(parts)
     return conn_out, canon, warnings
 
+def _execute_database_query_sync(connection_string: str, source_type: str, data: dict, limit: int) -> dict:
+    """Execute database query synchronously and return results directly"""
+    try:
+        import pyodbc
+        import pandas as pd
+        import numpy as np
+        
+        # Normalize/validate connection string
+        final_conn_str, canon, warns = _build_sqlserver_odbc_conn_str(connection_string)
+        
+        if warns and any(w.startswith('Missing required attributes') for w in warns):
+            return {
+                'success': False,
+                'error': f'Invalid connection string: {"; ".join(warns)}',
+                'data': [],
+                'row_count': 0,
+                'columns': [],
+                'warnings': warns
+            }
+        
+        # Connect to database and execute query
+        with pyodbc.connect(final_conn_str) as conn:
+            df = None
+            executed_query = ""
+            
+            if source_type == 'table':
+                # Build query from table and columns
+                table_name = data.get('tableName', '').strip()
+                column_names = data.get('columnNames', [])
+                unique_id = data.get('uniqueId', '').strip()
+                
+                # Prepare columns list
+                cols = []
+                if unique_id:
+                    cols.append(unique_id)
+                for c in column_names:
+                    if not c:
+                        continue
+                    c_clean = str(c).strip()
+                    if unique_id and c_clean.lower() == unique_id.lower():
+                        continue
+                    cols.append(c_clean)
+                
+                # Build SQL query
+                safe_cols = ', '.join([_safe_ident(c) for c in cols]) if cols else '*'
+                safe_table = _safe_ident(table_name)
+                top_clause = f"TOP {limit} " if limit else ''
+                executed_query = f"SELECT {top_clause}{safe_cols} FROM {safe_table}"
+                
+                df = pd.read_sql_query(executed_query, conn)
+                
+            else:  # source_type == 'query'
+                # Execute provided SQL query
+                query_text = data.get('query', '')
+                executed_query = query_text
+                raw = pd.read_sql_query(query_text, conn)
+                df = raw.head(limit) if limit and limit > 0 else raw
+        
+        if df is None or df.empty:
+            return {
+                'success': True,
+                'message': 'Query executed successfully but returned no data',
+                'data': [],
+                'row_count': 0,
+                'columns': [],
+                'query_executed': executed_query
+            }
+        
+        # Convert DataFrame to JSON-serializable format
+        data_records = df.to_dict('records')
+        
+        # Clean up NaN values and convert to JSON-serializable types
+        for record in data_records:
+            for key, value in record.items():
+                if pd.isna(value):
+                    record[key] = None
+                elif isinstance(value, (pd.Timestamp, datetime)):
+                    record[key] = value.isoformat()
+                elif isinstance(value, (np.integer, np.int64)):
+                    record[key] = int(value)
+                elif isinstance(value, (np.floating, np.float64)):
+                    record[key] = float(value)
+        
+        return {
+            'success': True,
+            'message': f'Query executed successfully. Retrieved {len(data_records)} records.',
+            'data': data_records,
+            'row_count': len(data_records),
+            'columns': list(df.columns),
+            'query_executed': executed_query,
+            'warnings': warns if warns else []
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'Database query failed: {str(e)}',
+            'data': [],
+            'row_count': 0,
+            'columns': [],
+            'query_executed': executed_query if 'executed_query' in locals() else 'N/A'
+        }
+
 def process_db_task(processing_id: str, payload: dict):
     """Background task: fetch from DB (table/query), save to inbound, process to outbound."""
     try:
@@ -1201,20 +1304,26 @@ def get_api_docs():
                 "description": "File upload and processing operations",
                 "endpoints": {
                     "POST /api/v1/files/upload": {
-                        "description": "Upload Excel/CSV file for address processing",
+                        "description": "Upload Excel/CSV file and get processed file immediately",
                         "parameters": {
-                            "file": "multipart/form-data file upload",
-                            "options": "JSON object with processing options"
+                            "file": "multipart/form-data file upload (CSV, XLS, XLSX)"
                         },
-                        "returns": "Processing ID and file information"
+                        "returns": "Directly returns the processed CSV file for download"
+                    },
+                    "POST /api/v1/files/upload-async": {
+                        "description": "Upload Excel/CSV file for asynchronous processing",
+                        "parameters": {
+                            "file": "multipart/form-data file upload"
+                        },
+                        "returns": "Processing ID for status checking"
                     },
                     "GET /api/v1/files/status/{processing_id}": {
-                        "description": "Get processing status and progress",
-                        "parameters": {"processing_id": "UUID from upload response"},
+                        "description": "Get processing status and progress (for async uploads)",
+                        "parameters": {"processing_id": "UUID from async upload response"},
                         "returns": "Status, progress percentage, and results"
                     },
                     "GET /api/v1/files/download/{filename}": {
-                        "description": "Download processed file",
+                        "description": "Download processed file (for async uploads)",
                         "parameters": {"filename": "Processed file name"},
                         "returns": "File download"
                     }
@@ -1252,14 +1361,99 @@ def get_api_docs():
                 "description": "Database connection and processing",
                 "endpoints": {
                     "POST /api/v1/database/connect": {
-                        "description": "Connect to database and process addresses",
+                        "description": "Connect to database and get query results directly",
                         "parameters": {
-                            "connection": "Database connection details",
-                            "query": "SQL query for address extraction",
-                            "options": "Processing options"
+                            "connectionString": "Database connection string (required)",
+                            "sourceType": "Data source type: 'table' or 'query' (required)",
+                            "tableName": "Table name (required if sourceType='table')",
+                            "columnNames": "Array of column names (required if sourceType='table', at least one)",
+                            "uniqueId": "Unique identifier column name (optional if sourceType='table')",
+                            "query": "SQL query (required if sourceType='query')",
+                            "limit": "Maximum number of records to return (optional, default: 10)"
                         },
-                        "returns": "Processing ID and connection status"
+                        "returns": "Direct query results with data array, row count, columns, and success status",
+                        "table_mode": {
+                            "description": "Fetch specific columns from a database table",
+                            "required_parameters": ["connectionString", "sourceType", "tableName", "columnNames"],
+                            "optional_parameters": ["uniqueId", "limit"],
+                            "request_example": {
+                                "connectionString": "Server=localhost;Database=MyDB;User Id=user;Password=pass;TrustServerCertificate=True;",
+                                "sourceType": "table",
+                                "tableName": "Mast_Site",
+                                "columnNames": ["Site_Name", "Site_Address_1", "Site_City", "Site_Country"],
+                                "uniqueId": "Site_PK",
+                                "limit": 50
+                            },
+                            "response_example": {
+                                "success": True,
+                                "message": "Query executed successfully. Retrieved 3 records.",
+                                "data": [
+                                    {"Site_PK": 1001, "Site_Name": "Main Office", "Site_Address_1": "123 Business Park Dr", "Site_City": "New York", "Site_Country": "USA"},
+                                    {"Site_PK": 1002, "Site_Name": "West Coast Branch", "Site_Address_1": "456 Technology Blvd", "Site_City": "Los Angeles", "Site_Country": "USA"},
+                                    {"Site_PK": 1003, "Site_Name": "Regional Hub", "Site_Address_1": "789 Commerce Ave", "Site_City": "Chicago", "Site_Country": "USA"}
+                                ],
+                                "row_count": 3,
+                                "columns": ["Site_PK", "Site_Name", "Site_Address_1", "Site_City", "Site_Country"],
+                                "query_executed": "SELECT TOP 50 Site_PK, Site_Name, Site_Address_1, Site_City, Site_Country FROM Mast_Site"
+                            }
+                        },
+                        "query_mode": {
+                            "description": "Execute a custom SQL query to fetch address data",
+                            "required_parameters": ["connectionString", "sourceType", "query"],
+                            "optional_parameters": ["limit"],
+                            "request_example": {
+                                "connectionString": "Server=localhost;Database=MyDB;User Id=user;Password=pass;TrustServerCertificate=True;",
+                                "sourceType": "query",
+                                "query": "SELECT TOP 3 Site_Address_1 as address FROM Mast_Site",
+                                "limit": 3
+                            },
+                            "response_example": {
+                                "success": True,
+                                "message": "Query executed successfully. Retrieved 3 records.",
+                                "data": [
+                                    {"address": "123 Business Park Dr"},
+                                    {"address": "456 Technology Blvd"},
+                                    {"address": "789 Commerce Ave"}
+                                ],
+                                "row_count": 3,
+                                "columns": ["address"],
+                                "query_executed": "SELECT TOP 3 Site_Address_1 as address FROM Mast_Site"
+                            }
+                        },
+                        "response_format": {
+                            "success": True,
+                            "message": "Query executed successfully. Retrieved 3 records.",
+                            "data": [
+                                {"id": 1, "address": "123 Main St", "city": "New York"},
+                                {"id": 2, "address": "456 Oak Ave", "city": "Los Angeles"},
+                                {"id": 3, "address": "789 Pine Rd", "city": "Chicago"}
+                            ],
+                            "row_count": 3,
+                            "columns": ["id", "address", "city"],
+                            "query_executed": "SELECT TOP 10 id, address, city FROM customers"
+                        }
                     }
+                }
+            }
+        },
+        "documentation": {
+            "description": "API documentation and guides",
+            "endpoints": {
+                "GET /api/v1/docs": {
+                    "description": "Get comprehensive API documentation (JSON format)",
+                    "returns": "Complete API documentation with all endpoints"
+                },
+                "GET /api/v1/docs/download": {
+                    "description": "Download Postman API testing guides (.docx files)",
+                    "parameters": {
+                        "guide": "Guide type (file-upload, address-single, address-batch, compare-upload, database-table, database-query)"
+                    },
+                    "returns": "Microsoft Word document with step-by-step Postman instructions for the specified API",
+                    "examples": [
+                        "/api/v1/docs/download?guide=file-upload",
+                        "/api/v1/docs/download?guide=address-single",
+                        "/api/v1/docs/download?guide=address-batch"
+                    ]
                 }
             }
         },
@@ -1271,16 +1465,135 @@ def get_api_docs():
     }
     return jsonify(docs), 200
 
+@app.route('/api/v1/docs/download', methods=['GET'])
+def get_api_documentation_file():
+    """Download Postman API testing documentation file based on guide parameter"""
+    try:
+        # Get the guide parameter from query string
+        guide_type = request.args.get('guide', 'file-upload')
+        
+        # Path to the documentation file in samples directory
+        samples_dir = BASE_DIR / 'samples'
+        
+        # Map guide types to file paths and download names
+        guide_mapping = {
+            'file-upload': {
+                'file': 'AddressIQ API - File Upload & Processing.docx',
+                'download_name': 'AddressIQ_API_Postman_Guide.docx'
+            },
+            'address-single': {
+                'file': 'AddressIQ API - Single Address Standardization.docx',
+                'download_name': 'AddressIQ_Single_Address_API_Guide.docx'
+            },
+            'address-batch': {
+                'file': 'AddressIQ API - Batch Address Standardization.docx',
+                'download_name': 'AddressIQ_Batch_Address_API_Guide.docx'
+            },
+            'compare-upload': {
+                'file': 'AddressIQ API - Compare Upload Processing.docx',
+                'download_name': 'AddressIQ_Compare_Upload_API_Guide.docx'
+            },
+            'database-table': {
+                'file': 'AddressIQ API - Database Connection Table Mode.docx',
+                'download_name': 'AddressIQ_Database_Table_Mode_API_Guide.docx'
+            },
+            'database-query': {
+                'file': 'AddressIQ API - Database Connection Query Mode.docx',
+                'download_name': 'AddressIQ_Database_Query_Mode_API_Guide.docx'
+            }
+        }
+        
+        if guide_type not in guide_mapping:
+            return jsonify({'error': f'Invalid guide type: {guide_type}'}), 400
+        
+        guide_info = guide_mapping[guide_type]
+        doc_file = samples_dir / guide_info['file']
+        
+        if not doc_file.exists():
+            return jsonify({'error': f'Documentation file not found for guide: {guide_type}'}), 404
+        
+        return send_file(
+            str(doc_file),
+            as_attachment=True,
+            download_name=guide_info['download_name'],
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        return jsonify({'error': f'Documentation download failed: {str(e)}'}), 500
+
 # File Processing API endpoints
 @app.route('/api/v1/files/upload', methods=['POST'])
 def api_v1_file_upload():
-    """v1 API: Upload file for address processing"""
+    """v1 API: Upload file for address processing and return processed file directly"""
     # Check API key for public access
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Reuse existing upload logic but with consistent v1 response format
+    # Process file synchronously and return the processed file
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not _allowed_file(file.filename):
+            return jsonify({'error': 'File type not allowed. Use .xlsx, .xls, or .csv'}), 400
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = secure_filename(file.filename)
+        name_part, ext_part = os.path.splitext(safe_filename)
+        unique_filename = f"{name_part}_{timestamp}{ext_part}"
+        
+        # Save file
+        file_path = os.path.join(app.config['INBOUND_FOLDER'], unique_filename)
+        file.save(file_path)
+        
+        # Process file synchronously
+        processor = CSVAddressProcessor(base_directory=str(BASE_DIR))
+        output_path = processor.process_csv_file(str(file_path))
+        
+        if not output_path or not os.path.exists(output_path):
+            # Clean up inbound file on error
+            try:
+                os.remove(file_path)
+            except:
+                pass
+            return jsonify({'error': 'File processing failed - no output generated'}), 500
+        
+        # Generate a user-friendly filename for download
+        original_name = os.path.splitext(safe_filename)[0]
+        download_filename = f"{original_name}_processed_{timestamp}.csv"
+        
+        # Return the processed file directly
+        return send_file(
+            output_path,
+            as_attachment=True,
+            download_name=download_filename,
+            mimetype='text/csv'
+        )
+        
+    except Exception as e:
+        # Clean up any temporary files on error
+        try:
+            if 'file_path' in locals() and os.path.exists(file_path):
+                os.remove(file_path)
+        except:
+            pass
+        return jsonify({'error': f'Upload and processing failed: {str(e)}'}), 500
+
+@app.route('/api/v1/files/upload-async', methods=['POST'])
+def api_v1_file_upload_async():
+    """v1 API: Upload file for asynchronous address processing (returns processing_id for status checking)"""
+    # Check API key for public access
+    auth_valid, auth_error = _check_api_key()
+    if not auth_valid:
+        return jsonify({'error': auth_error}), 401
+    
+    # Asynchronous processing (same as original implementation)
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -1389,7 +1702,7 @@ def api_v1_address_standardize():
         from csv_address_processor import CSVAddressProcessor
         processor = CSVAddressProcessor()
         
-        result = processor.process_single_address_input(address.strip())
+        result = processor.standardize_single_address(address.strip(), 0)
         
         return jsonify({
             'success': True,
@@ -1435,7 +1748,7 @@ def api_v1_addresses_batch_standardize():
                 continue
             
             try:
-                result = processor.process_single_address_input(addr)
+                result = processor.standardize_single_address(addr, idx)
                 results.append({
                     'index': idx,
                     'input_address': raw,
@@ -1463,12 +1776,12 @@ def api_v1_addresses_batch_standardize():
 # Compare Processing API endpoints
 @app.route('/api/v1/compare/upload', methods=['POST'])
 def api_v1_compare_upload():
-    """v1 API: Upload file for comparison processing"""
+    """v1 API: Upload file for comparison processing and return processed file directly"""
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Reuse existing compare upload logic with v1 response format
+    # Process file synchronously and return the processed file
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -1480,40 +1793,94 @@ def api_v1_compare_upload():
         if not _allowed_file(file.filename):
             return jsonify({'error': 'File type not allowed. Use .xlsx, .xls, or .csv'}), 400
         
-        # Generate unique filename and processing ID
-        processing_id = str(uuid.uuid4())
+        # Generate unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_filename = secure_filename(file.filename)
         name_part, ext_part = os.path.splitext(safe_filename)
         unique_filename = f"compare_{name_part}_{timestamp}{ext_part}"
         
-        # Save file
+        # Save file to inbound folder
         file_path = os.path.join(app.config['INBOUND_FOLDER'], unique_filename)
         file.save(file_path)
         
-        # Get file info
-        file_size = os.path.getsize(file_path)
-        
-        # Start background comparison processing
-        _update_status(processing_id, status='queued', message='File uploaded for comparison, processing queued', 
-                      filename=unique_filename, progress=0)
-        
-        # Note: You may need to implement compare_file_background similar to process_file_background
-        thread = threading.Thread(target=compare_file_background, args=(processing_id, unique_filename))
-        thread.daemon = True
-        thread.start()
-        
-        return jsonify({
-            'success': True,
-            'processing_id': processing_id,
-            'filename': unique_filename,
-            'file_size': file_size,
-            'status': 'queued',
-            'message': 'File uploaded successfully for comparison processing'
-        }), 200
+        # Run comparison processing synchronously
+        try:
+            # Use the same logic as process_compare_background but synchronously
+            inbound_file = INBOUND_FOLDER / unique_filename
+            if not inbound_file.exists():
+                raise Exception('Uploaded file not found on server')
+
+            # Snapshot outbound directory before run
+            before = {f.name: (OUTBOUND_FOLDER / f.name).stat().st_mtime for f in OUTBOUND_FOLDER.glob('*') if f.is_file()}
+            start_ts = time.time()
+
+            script_path = BASE_DIR / 'csv_address_processor.py'
+            # Target only the uploaded file to avoid interference from other inbound files
+            cmd = [
+                sys.executable,
+                str(script_path),
+                str(inbound_file),  # positional input_file per argparse spec
+                '--compare-csv',
+                '--batch-size', '5'
+            ]
+            
+            child_env = os.environ.copy()
+            child_env['PYTHONIOENCODING'] = 'utf-8'
+            result = subprocess.run(
+                cmd,
+                cwd=str(BASE_DIR),
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                env=child_env,
+                timeout=300  # 5 minute timeout
+            )
+            
+            if result.returncode != 0:
+                raise Exception(f'Comparison processing failed: {result.stderr}')
+
+            # Find new/updated files after start_ts
+            candidates = []
+            for p in OUTBOUND_FOLDER.glob('*.csv'):
+                try:
+                    mtime = p.stat().st_mtime
+                    if mtime >= start_ts and (p.name not in before or mtime > before.get(p.name, 0)):
+                        candidates.append((mtime, p))
+                except Exception:
+                    continue
+
+            if not candidates:
+                raise Exception('Comparison output not found - no new file in outbound directory')
+
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            output_file = candidates[0][1]
+            
+            # Generate a user-friendly filename for download
+            original_name = os.path.splitext(safe_filename)[0]
+            download_filename = f"{original_name}_compared_{timestamp}.csv"
+            
+            # Return the processed file directly
+            return send_file(
+                str(output_file),
+                as_attachment=True,
+                download_name=download_filename,
+                mimetype='text/csv'
+            )
+            
+        except subprocess.TimeoutExpired:
+            raise Exception('File processing timed out - file may be too large')
+        except Exception as processing_error:
+            raise Exception(f'File processing failed: {str(processing_error)}')
         
     except Exception as e:
-        return jsonify({'error': f'Compare upload failed: {str(e)}'}), 500
+        # Clean up any temporary files on error
+        try:
+            if 'file_path' in locals() and os.path.exists(file_path):
+                os.remove(file_path)
+        except:
+            pass
+        return jsonify({'error': f'Compare upload and processing failed: {str(e)}'}), 500
 
 def compare_file_background(processing_id, filename):
     """Background task for comparison processing"""
@@ -1532,44 +1899,89 @@ def compare_file_background(processing_id, filename):
 # Database Processing API endpoints
 @app.route('/api/v1/database/connect', methods=['POST'])
 def api_v1_database_connect():
-    """v1 API: Connect to database and process addresses"""
+    """v1 API: Connect to database and get results directly"""
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Reuse existing database connection logic with v1 response format
     try:
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Request body is required'}), 400
         
-        # Validate required fields
-        required_fields = ['server', 'database', 'query']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
+        # Support both legacy format and new enhanced format
+        connection_string = data.get('connectionString')
+        source_type = data.get('sourceType')
         
-        processing_id = str(uuid.uuid4())
+        # Enhanced format validation
+        if connection_string and source_type:
+            # New enhanced format with connection string and flexible query options
+            if not connection_string.strip():
+                return jsonify({'error': 'connectionString cannot be empty'}), 400
+            
+            if source_type not in ['table', 'query']:
+                return jsonify({'error': 'sourceType must be either "table" or "query"'}), 400
+            
+            if source_type == 'table':
+                # Table mode: require tableName and at least one columnName
+                table_name = data.get('tableName', '').strip()
+                column_names = data.get('columnNames', [])
+                
+                if not table_name:
+                    return jsonify({'error': 'tableName is required when sourceType is "table"'}), 400
+                
+                # Ensure columnNames is a list and has at least one valid entry
+                if not isinstance(column_names, list) or not any(str(col).strip() for col in column_names):
+                    return jsonify({'error': 'At least one columnName is required when sourceType is "table"'}), 400
+                
+            elif source_type == 'query':
+                # Query mode: require query
+                query = data.get('query', '').strip()
+                if not query:
+                    return jsonify({'error': 'query is required when sourceType is "query"'}), 400
+        
+        else:
+            # Legacy format: maintain backward compatibility
+            required_fields = ['server', 'database', 'query']
+            for field in required_fields:
+                if field not in data:
+                    return jsonify({'error': f'Missing required field: {field}'}), 400
+            
+            # Convert legacy format to enhanced format for internal processing
+            server = data.get('server', '')
+            database = data.get('database', '')
+            username = data.get('username', '')
+            password = data.get('password', '')
+            query = data.get('query', '')
+            
+            # Build connection string from individual parameters
+            if username and password:
+                connection_string = f"Server={server};Database={database};User Id={username};Password={password};TrustServerCertificate=True;"
+            else:
+                connection_string = f"Server={server};Database={database};Integrated Security=True;TrustServerCertificate=True;"
+            
+            # Set as query mode
+            source_type = 'query'
+            data['connectionString'] = connection_string
+            data['sourceType'] = source_type
+            data['query'] = query
         
         # Set default limit if not provided
-        data['limit'] = int(data.get('limit', 10))
+        limit = int(data.get('limit', 10))
         
-        # Start background database processing
-        _update_status(processing_id, status='queued', message='Database connection queued', progress=0)
+        # Execute database query synchronously and return results directly
+        result = _execute_database_query_sync(connection_string, source_type, data, limit)
         
-        thread = threading.Thread(target=process_db_task, args=(processing_id, data))
-        thread.daemon = True
-        thread.start()
-        
-        return jsonify({
-            'success': True,
-            'processing_id': processing_id,
-            'status': 'queued',
-            'message': 'Database processing started successfully'
-        }), 200
+        return jsonify(result), 200 if result.get('success') else 400
         
     except Exception as e:
-        return jsonify({'error': f'Database connection failed: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'error': f'Database connection failed: {str(e)}',
+            'data': [],
+            'row_count': 0,
+            'columns': []
+        }), 500
 
 # Sample file download endpoints
 @app.route('/api/v1/samples/file-upload', methods=['GET'])

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './PublicAPI.css';
+import { downloadDocumentationGuide as downloadDocGuideAPI, downloadSampleFile } from '../../services/api';
 
 interface APIEndpoint {
   id: string;
@@ -19,31 +20,26 @@ interface AccordionState {
 
 const PublicAPI: React.FC = () => {
   const [activeAccordion, setActiveAccordion] = useState<AccordionState>({});
-  const [testResults, setTestResults] = useState<{ [key: string]: any }>({});
-  const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
 
   const apiEndpoints: APIEndpoint[] = [
     {
       id: 'file-upload',
       title: 'File Upload & Processing', 
-      description: 'Upload Excel/CSV files for address standardization and processing',
+      description: 'Upload Excel/CSV files for address standardization and get processed file directly',
       method: 'POST',
       endpoint: '/api/v1/files/upload',
       parameters: {
-        file: 'File (Excel/CSV)',
-        options: 'Processing options (optional)'
+        file: 'File (Excel/CSV)'
       },
       example: {
-        description: 'Upload a file using multipart/form-data',
+        description: 'Upload a file using multipart/form-data and receive processed file',
         curl: 'curl -X POST -F "file=@addresses.xlsx" http://localhost:5001/api/v1/files/upload'
       },
       responseExample: {
-        success: true,
-        processing_id: "123e4567-e89b-12d3-a456-426614174000",
-        filename: "addresses_20230922_143022.xlsx",
-        file_size: 45632,
-        status: "queued",
-        message: "File uploaded successfully and processing started"
+        description: "Returns processed CSV file directly as download",
+        filename: "addresses_processed_20230922_143022.csv",
+        content_type: "text/csv",
+        note: "File is returned as attachment download, not JSON response"
       },
       sampleDownload: '/api/v1/samples/file-upload'
     },
@@ -90,53 +86,115 @@ const PublicAPI: React.FC = () => {
         success: true,
         total_addresses: 2,
         processed_addresses: 2,
-        results: []
+        results: [
+          {
+            index: 0,
+            input_address: "123 Main St, NY",
+            standardized_address: {
+              street_number: "123",
+              street_name: "Main Street",
+              city: "New York",
+              state: "NY",
+              postal_code: "10001",
+              country: "USA"
+            },
+            error: null
+          },
+          {
+            index: 1,
+            input_address: "456 Oak Ave, CA",
+            standardized_address: {
+              street_number: "456",
+              street_name: "Oak Avenue",
+              city: "Los Angeles",
+              state: "CA",
+              postal_code: "90210",
+              country: "USA"
+            },
+            error: null
+          }
+        ]
       }
     },
     {
       id: 'compare-upload',
       title: 'Compare Upload Processing',
-      description: 'Upload files for address comparison and analysis',
+      description: 'Upload files for address comparison and get processed results directly',
       method: 'POST',
       endpoint: '/api/v1/compare/upload',
       parameters: {
-        file: 'File for comparison processing',
-        options: 'Comparison options (optional)'
+        file: 'File for comparison processing (CSV/Excel)'
       },
       example: {
-        description: 'Upload a file for comparison',
+        description: 'Upload a file for comparison and receive processed file',
         curl: 'curl -X POST -F "file=@compare_addresses.csv" http://localhost:5001/api/v1/compare/upload'
       },
       responseExample: {
-        success: true,
-        processing_id: "456e7890-e89b-12d3-a456-426614174001",
-        filename: "compare_addresses_20230922_143025.csv",
-        status: "queued",
-        message: "Comparison file uploaded successfully"
+        description: "Returns processed comparison CSV file directly as download",
+        filename: "compare_addresses_processed_20230922_143025.csv",
+        content_type: "text/csv",
+        note: "File is returned as attachment download, not JSON response"
       },
       sampleDownload: '/api/v1/samples/compare-upload'
     },
     {
-      id: 'database-connect',
-      title: 'Database Connection & Processing',
-      description: 'Connect to external databases and process address data',
+      id: 'database-connect-table',
+      title: 'Database Connection - Table Mode',
+      description: 'Connect to database and fetch data from a specific table with selected columns',
       method: 'POST',
       endpoint: '/api/v1/database/connect',
       parameters: {
-        server: 'Database server address',
-        database: 'Database name',
-        query: 'SQL query to fetch addresses',
-        limit: 'Maximum number of records (optional, default: 10)'
+        connectionString: 'Database connection string (required)',
+        sourceType: 'Must be "table" for table mode (required)',
+        tableName: 'Name of the database table (required)',
+        columnNames: 'Array of column names to fetch (required, at least one non-empty)',
+        uniqueId: 'Primary key or unique identifier column (optional)',
+        limit: 'Maximum number of records to return (optional, default: 10)'
       },
       example: {
-        description: 'Connect to database and process addresses',
-        curl: 'curl -X POST -H "Content-Type: application/json" -d \'{"server": "localhost", "database": "addresses_db", "query": "SELECT address FROM customers LIMIT 100"}\' http://localhost:5001/api/v1/database/connect'
+        description: 'Fetch specific columns from a database table',
+        curl: 'curl -X POST -H "Content-Type: application/json" -H "X-API-Key: your-api-key" -d \'{"connectionString": "Server=localhost;Database=MyDB;User Id=user;Password=pass;TrustServerCertificate=True;", "sourceType": "table", "tableName": "Mast_Site", "columnNames": ["Site_Name", "Site_Address_1", "Site_City", "Site_Country"], "uniqueId": "Site_PK", "limit": 50}\' http://localhost:5001/api/v1/database/connect'
       },
       responseExample: {
         success: true,
-        processing_id: "789e1234-e89b-12d3-a456-426614174002",
-        status: "queued",
-        message: "Database processing started successfully"
+        message: "Query executed successfully. Retrieved 3 records.",
+        data: [
+          { Site_PK: 1001, Site_Name: "Main Office", Site_Address_1: "123 Business Park Dr", Site_City: "New York", Site_Country: "USA" },
+          { Site_PK: 1002, Site_Name: "West Coast Branch", Site_Address_1: "456 Technology Blvd", Site_City: "Los Angeles", Site_Country: "USA" },
+          { Site_PK: 1003, Site_Name: "Regional Hub", Site_Address_1: "789 Commerce Ave", Site_City: "Chicago", Site_Country: "USA" }
+        ],
+        row_count: 3,
+        columns: ["Site_PK", "Site_Name", "Site_Address_1", "Site_City", "Site_Country"],
+        query_executed: "SELECT TOP 50 Site_PK, Site_Name, Site_Address_1, Site_City, Site_Country FROM Mast_Site"
+      }
+    },
+    {
+      id: 'database-connect-query',
+      title: 'Database Connection - Query Mode',
+      description: 'Connect to database and execute a custom SQL query to fetch data',
+      method: 'POST',
+      endpoint: '/api/v1/database/connect',
+      parameters: {
+        connectionString: 'Database connection string (required)',
+        sourceType: 'Must be "query" for query mode (required)',
+        query: 'Custom SQL query to execute (required, cannot be empty)',
+        limit: 'Maximum number of records to return (optional, default: 10)'
+      },
+      example: {
+        description: 'Execute a custom SQL query to fetch address data',
+        curl: 'curl -X POST -H "Content-Type: application/json" -H "X-API-Key: your-api-key" -d \'{"connectionString": "Server=localhost;Database=MyDB;User Id=user;Password=pass;TrustServerCertificate=True;", "sourceType": "query", "query": "SELECT TOP 3 Site_Address_1 as address FROM Mast_Site", "limit": 3}\' http://localhost:5001/api/v1/database/connect'
+      },
+      responseExample: {
+        success: true,
+        message: "Query executed successfully. Retrieved 3 records.",
+        data: [
+          { address: "123 Business Park Dr" },
+          { address: "456 Technology Blvd" },
+          { address: "789 Commerce Ave" }
+        ],
+        row_count: 3,
+        columns: ["address"],
+        query_executed: "SELECT TOP 3 Site_Address_1 as address FROM Mast_Site"
       }
     }
   ];
@@ -148,84 +206,24 @@ const PublicAPI: React.FC = () => {
     }));
   };
 
-  const testEndpoint = async (endpoint: APIEndpoint) => {
-    setLoading(prev => ({ ...prev, [endpoint.id]: true }));
-    
+
+
+  const downloadSample = async (sampleUrl: string, filename: string) => {
     try {
-      let requestData: any = {};
-      let requestMethod = endpoint.method;
-      let requestUrl = `http://localhost:5001${endpoint.endpoint}`;
-      let headers: any = {};
-
-      switch (endpoint.id) {
-        case 'address-single':
-          requestData = { address: "123 Main Street, New York, NY 10001" };
-          headers['Content-Type'] = 'application/json';
-          break;
-        case 'address-batch':
-          requestData = { 
-            addresses: [
-              "123 Main Street, New York, NY 10001",
-              "456 Oak Avenue, Los Angeles, CA 90210"
-            ]
-          };
-          headers['Content-Type'] = 'application/json';
-          break;
-        case 'database-connect':
-          requestData = {
-            server: "test-server",
-            database: "test-db",
-            query: "SELECT address FROM test_table LIMIT 5",
-            limit: 5
-          };
-          headers['Content-Type'] = 'application/json';
-          break;
-        case 'file-upload':
-        case 'compare-upload':
-          setTestResults(prev => ({
-            ...prev,
-            [endpoint.id]: {
-              note: "File upload testing requires actual file selection. Use the cURL example or upload a file through the interface.",
-              example_response: endpoint.responseExample
-            }
-          }));
-          return;
-      }
-
-      const response = await fetch(requestUrl, {
-        method: requestMethod,
-        headers: headers,
-        body: JSON.stringify(requestData)
-      });
-
-      const result = await response.json();
-      setTestResults(prev => ({
-        ...prev,
-        [endpoint.id]: {
-          status: response.status,
-          response: result
-        }
-      }));
-
+      await downloadSampleFile(sampleUrl, filename);
     } catch (error) {
-      setTestResults(prev => ({
-        ...prev,
-        [endpoint.id]: {
-          error: `Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }
-      }));
-    } finally {
-      setLoading(prev => ({ ...prev, [endpoint.id]: false }));
+      console.error('Failed to download sample file:', error);
+      // Could add user notification here if needed
     }
   };
 
-  const downloadSample = (sampleUrl: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = `http://localhost:5001${sampleUrl}`;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadDocumentationGuide = async (guideType: string, downloadName: string) => {
+    try {
+      await downloadDocGuideAPI(guideType, downloadName);
+    } catch (error) {
+      console.error('Failed to download documentation guide:', error);
+      // Could add user notification here if needed
+    }
   };
 
   return (
@@ -292,6 +290,102 @@ const PublicAPI: React.FC = () => {
                     </div>
                   )}
 
+                  {endpoint.id === 'file-upload' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={() => downloadDocumentationGuide('file-upload', 'AddressIQ_API_Postman_Guide.docx')}
+                        title="Download step-by-step Postman testing instructions"
+                      >
+                        📄 Download Postman API Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing this API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'address-single' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={() => downloadDocumentationGuide('address-single', 'AddressIQ_Single_Address_API_Guide.docx')}
+                        title="Download step-by-step Postman testing instructions for Single Address API"
+                      >
+                        📄 Download Address API Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Single Address Standardization API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'address-batch' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={() => downloadDocumentationGuide('address-batch', 'AddressIQ_Batch_Address_API_Guide.docx')}
+                        title="Download step-by-step Postman testing instructions for Batch Address API"
+                      >
+                        📄 Download Batch API Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Batch Address Standardization API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'compare-upload' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={() => downloadDocumentationGuide('compare-upload', 'AddressIQ_Compare_Upload_API_Guide.docx')}
+                        title="Download step-by-step Postman testing instructions for Compare Upload Processing API"
+                      >
+                        📄 Download Compare API Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Compare Upload Processing API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'database-connect-table' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={() => downloadDocumentationGuide('database-table', 'AddressIQ_Database_Table_Mode_API_Guide.docx')}
+                        title="Download step-by-step Postman testing instructions for Database Table Mode API"
+                      >
+                        📄 Download Database Table Mode Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Database Connection Table Mode API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'database-connect-query' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={() => downloadDocumentationGuide('database-query', 'AddressIQ_Database_Query_Mode_API_Guide.docx')}
+                        title="Download step-by-step Postman testing instructions for Database Query Mode API"
+                      >
+                        📄 Download Database Query Mode Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Database Connection Query Mode API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="example-section">
                     <h4>Example Request:</h4>
                     <div className="code-block">
@@ -306,24 +400,7 @@ const PublicAPI: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="test-section">
-                    <button 
-                      className="test-button"
-                      onClick={() => testEndpoint(endpoint)}
-                      disabled={loading[endpoint.id]}
-                    >
-                      {loading[endpoint.id] ? 'Testing...' : 'Test This Endpoint'}
-                    </button>
-                    
-                    {testResults[endpoint.id] && (
-                      <div className="test-results">
-                        <h5>Test Results:</h5>
-                        <div className="code-block">
-                          <pre>{JSON.stringify(testResults[endpoint.id], null, 2)}</pre>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+
                 </div>
               </div>
             )}

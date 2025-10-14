@@ -280,4 +280,63 @@ export const downloadInboundFile = async (filename: string) => {
     return downloadFile(filename);
 };
 
+// Download API documentation guides
+export const downloadDocumentationGuide = async (guideType: string, downloadName: string) => {
+    try {
+        const response = await api.get(`/v1/docs/download`, {
+            params: { guide: guideType },
+            responseType: 'blob'
+        });
+        
+        // Create blob link to download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', downloadName);
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        return true;
+    } catch (error: any) {
+        console.error('Error downloading documentation guide:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Failed to download documentation guide');
+    }
+};
+
+// Download sample files
+export const downloadSampleFile = async (sampleUrl: string, filename: string) => {
+    try {
+        const response = await api.get(sampleUrl, {
+            responseType: 'blob'
+        });
+        
+        // Create blob link to download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        return true;
+    } catch (error: any) {
+        console.error('Error downloading sample file:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Failed to download sample file');
+    }
+};
+
 export default api;
