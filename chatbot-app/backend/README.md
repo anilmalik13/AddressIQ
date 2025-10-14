@@ -42,7 +42,10 @@ The AddressIQ backend serves as the core processing engine for address standardi
 - `POST /api/v1/compare/upload` — Upload files for address comparison analysis
 
 ### Database Integration
-- `POST /api/v1/database/connect` — Connect to database and process address data
+- `POST /api/v1/database/connect` — Connect to database and get query results directly
+  - **Table Mode**: Specify `connectionString`, `sourceType: "table"`, `tableName`, `columnNames[]`, optional `uniqueId`
+  - **Query Mode**: Specify `connectionString`, `sourceType: "query"`, `query`
+  - **Response**: Returns actual query results with data array, row count, columns, and success status
 
 ### Sample Files
 - `GET /api/v1/samples/file-upload` — Download sample upload file template
