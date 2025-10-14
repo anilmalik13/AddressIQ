@@ -255,6 +255,15 @@ const PublicAPI: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const downloadCompareGuide = () => {
+    const link = document.createElement('a');
+    link.href = 'http://localhost:5001/api/v1/docs/download-compare-guide';
+    link.download = 'AddressIQ_Compare_Upload_API_Guide.docx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="public-api-container">
       <div className="api-header">
@@ -363,6 +372,22 @@ const PublicAPI: React.FC = () => {
                       </button>
                       <p className="documentation-description">
                         Complete step-by-step instructions for testing the Batch Address Standardization API with Postman, including screenshots and troubleshooting tips.
+                      </p>
+                    </div>
+                  )}
+
+                  {endpoint.id === 'compare-upload' && (
+                    <div className="documentation-download">
+                      <h4>📖 Postman Testing Guide:</h4>
+                      <button 
+                        className="documentation-download-btn"
+                        onClick={downloadCompareGuide}
+                        title="Download step-by-step Postman testing instructions for Compare Upload Processing API"
+                      >
+                        📄 Download Compare API Guide (.docx)
+                      </button>
+                      <p className="documentation-description">
+                        Complete step-by-step instructions for testing the Compare Upload Processing API with Postman, including screenshots and troubleshooting tips.
                       </p>
                     </div>
                   )}

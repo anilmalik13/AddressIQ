@@ -1287,6 +1287,10 @@ def get_api_docs():
                 "GET /api/v1/docs/download-batch-guide": {
                     "description": "Download Batch Address Standardization Postman testing guide (.docx file)",
                     "returns": "Microsoft Word document with step-by-step Postman instructions for batch address standardization"
+                },
+                "GET /api/v1/docs/download-compare-guide": {
+                    "description": "Download Compare Upload Processing Postman testing guide (.docx file)",
+                    "returns": "Microsoft Word document with step-by-step Postman instructions for compare upload processing"
                 }
             }
         },
@@ -1357,6 +1361,26 @@ def get_batch_address_api_documentation_file():
         )
     except Exception as e:
         return jsonify({'error': f'Batch Address API documentation download failed: {str(e)}'}), 500
+
+@app.route('/api/v1/docs/download-compare-guide', methods=['GET'])
+def get_compare_upload_api_documentation_file():
+    """Download Compare Upload Processing Postman testing guide (.docx)"""
+    try:
+        # Path to the Word documentation file in samples directory
+        samples_dir = BASE_DIR / 'samples'
+        doc_file = samples_dir / 'AddressIQ API - Compare Upload Processing.docx'
+        
+        if not doc_file.exists():
+            return jsonify({'error': 'Compare Upload API documentation file not found'}), 404
+        
+        return send_file(
+            str(doc_file),
+            as_attachment=True,
+            download_name='AddressIQ_Compare_Upload_API_Guide.docx',
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        return jsonify({'error': f'Compare Upload API documentation download failed: {str(e)}'}), 500
 
 # File Processing API endpoints
 @app.route('/api/v1/files/upload', methods=['POST'])
@@ -1613,12 +1637,12 @@ def api_v1_addresses_batch_standardize():
 # Compare Processing API endpoints
 @app.route('/api/v1/compare/upload', methods=['POST'])
 def api_v1_compare_upload():
-    """v1 API: Upload file for comparison processing"""
+    """v1 API: Upload file for comparison processing and return processed file directly"""
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Reuse existing compare upload logic with v1 response format
+    # Process file synchronously and return the processed file
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -1630,40 +1654,94 @@ def api_v1_compare_upload():
         if not _allowed_file(file.filename):
             return jsonify({'error': 'File type not allowed. Use .xlsx, .xls, or .csv'}), 400
         
-        # Generate unique filename and processing ID
-        processing_id = str(uuid.uuid4())
+        # Generate unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_filename = secure_filename(file.filename)
         name_part, ext_part = os.path.splitext(safe_filename)
         unique_filename = f"compare_{name_part}_{timestamp}{ext_part}"
         
-        # Save file
+        # Save file to inbound folder
         file_path = os.path.join(app.config['INBOUND_FOLDER'], unique_filename)
         file.save(file_path)
         
-        # Get file info
-        file_size = os.path.getsize(file_path)
-        
-        # Start background comparison processing
-        _update_status(processing_id, status='queued', message='File uploaded for comparison, processing queued', 
-                      filename=unique_filename, progress=0)
-        
-        # Note: You may need to implement compare_file_background similar to process_file_background
-        thread = threading.Thread(target=compare_file_background, args=(processing_id, unique_filename))
-        thread.daemon = True
-        thread.start()
-        
-        return jsonify({
-            'success': True,
-            'processing_id': processing_id,
-            'filename': unique_filename,
-            'file_size': file_size,
-            'status': 'queued',
-            'message': 'File uploaded successfully for comparison processing'
-        }), 200
+        # Run comparison processing synchronously
+        try:
+            # Use the same logic as process_compare_background but synchronously
+            inbound_file = INBOUND_FOLDER / unique_filename
+            if not inbound_file.exists():
+                raise Exception('Uploaded file not found on server')
+
+            # Snapshot outbound directory before run
+            before = {f.name: (OUTBOUND_FOLDER / f.name).stat().st_mtime for f in OUTBOUND_FOLDER.glob('*') if f.is_file()}
+            start_ts = time.time()
+
+            script_path = BASE_DIR / 'csv_address_processor.py'
+            # Target only the uploaded file to avoid interference from other inbound files
+            cmd = [
+                sys.executable,
+                str(script_path),
+                str(inbound_file),  # positional input_file per argparse spec
+                '--compare-csv',
+                '--batch-size', '5'
+            ]
+            
+            child_env = os.environ.copy()
+            child_env['PYTHONIOENCODING'] = 'utf-8'
+            result = subprocess.run(
+                cmd,
+                cwd=str(BASE_DIR),
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                env=child_env,
+                timeout=300  # 5 minute timeout
+            )
+            
+            if result.returncode != 0:
+                raise Exception(f'Comparison processing failed: {result.stderr}')
+
+            # Find new/updated files after start_ts
+            candidates = []
+            for p in OUTBOUND_FOLDER.glob('*.csv'):
+                try:
+                    mtime = p.stat().st_mtime
+                    if mtime >= start_ts and (p.name not in before or mtime > before.get(p.name, 0)):
+                        candidates.append((mtime, p))
+                except Exception:
+                    continue
+
+            if not candidates:
+                raise Exception('Comparison output not found - no new file in outbound directory')
+
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            output_file = candidates[0][1]
+            
+            # Generate a user-friendly filename for download
+            original_name = os.path.splitext(safe_filename)[0]
+            download_filename = f"{original_name}_compared_{timestamp}.csv"
+            
+            # Return the processed file directly
+            return send_file(
+                str(output_file),
+                as_attachment=True,
+                download_name=download_filename,
+                mimetype='text/csv'
+            )
+            
+        except subprocess.TimeoutExpired:
+            raise Exception('File processing timed out - file may be too large')
+        except Exception as processing_error:
+            raise Exception(f'File processing failed: {str(processing_error)}')
         
     except Exception as e:
-        return jsonify({'error': f'Compare upload failed: {str(e)}'}), 500
+        # Clean up any temporary files on error
+        try:
+            if 'file_path' in locals() and os.path.exists(file_path):
+                os.remove(file_path)
+        except:
+            pass
+        return jsonify({'error': f'Compare upload and processing failed: {str(e)}'}), 500
 
 def compare_file_background(processing_id, filename):
     """Background task for comparison processing"""
