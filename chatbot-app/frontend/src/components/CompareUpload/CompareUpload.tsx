@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { uploadCompareFile, checkProcessingStatus, downloadFile, previewResultFile } from '../../services/api';
+import { uploadCompareFile, checkProcessingStatus, downloadFile, previewResultFile, downloadSampleFile } from '../../services/api';
 import '../FileUpload/FileUpload.css';
 import './CompareUpload.css';
 
@@ -67,7 +67,9 @@ const CompareUpload: React.FC = () => {
     const allowedExtensions = ['.xlsx', '.xls', '.csv'];
     const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
     if (!allowedExtensions.includes(ext)) {
-      alert('Please select a valid Excel (.xlsx, .xls) or CSV (.csv) file');
+      setError('Invalid file type. Please select a valid Excel (.xlsx, .xls) or CSV (.csv) file.');
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
     setSelectedFile(file);
@@ -86,7 +88,22 @@ const CompareUpload: React.FC = () => {
       setProcessingId(res.processing_id);
       setUploadProgress(100);
     } catch (e: any) {
-      setError(e.message || 'Upload failed');
+      const errorMsg = e.message || 'Upload failed';
+      setError(errorMsg);
+      
+      // Reset file if it's an empty file error or invalid headers
+      if (errorMsg.toLowerCase().includes('no data rows') || 
+          errorMsg.toLowerCase().includes('no columns') || 
+          errorMsg.toLowerCase().includes('no records') ||
+          errorMsg.toLowerCase().includes('missing required columns') ||
+          errorMsg.toLowerCase().includes('invalid headers')) {
+        // Auto-reset after showing error
+        setTimeout(() => {
+          setSelectedFile(null);
+          setUploadProgress(0);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }, 100);
+      }
     } finally {
       setUploading(false);
     }
@@ -111,6 +128,14 @@ const CompareUpload: React.FC = () => {
       downloadFile(processingStatus.output_file);
     }
   }, [processingStatus?.output_file]);
+
+  const handleDownloadSample = useCallback(async () => {
+    try {
+      await downloadSampleFile('/v1/samples/compare-upload', 'compare-upload-sample.csv');
+    } catch (error) {
+      console.error('Failed to download sample file:', error);
+    }
+  }, []);
 
   // Load preview after completion
   useEffect(() => {
@@ -189,7 +214,71 @@ const CompareUpload: React.FC = () => {
     <div className="file-upload-container">
       <div className="file-upload-card">
         <h1>Batch Compare Upload</h1>
-        <p>Upload your Excel or CSV to run address comparison. The transformed file will be available to download.</p>
+        <p>Upload your Excel (.xlsx, .xls) or CSV (.csv) file to run address comparison. The transformed file will be available to download.</p>
+        
+        <div className="info-note" style={{ 
+          background: '#e3f2fd', 
+          border: '1px solid #2196f3', 
+          borderRadius: '8px', 
+          padding: '12px 16px', 
+          margin: '16px 0',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px'
+        }}>
+          <span style={{ color: '#1976d2', fontSize: '20px', fontWeight: 'bold' }}>ℹ️</span>
+          <div style={{ flex: 1 }}>
+            <strong style={{ color: '#1565c0', display: 'block', marginBottom: '4px' }}>Processing Information</strong>
+            <span style={{ color: '#424242', fontSize: '14px' }}>
+              Records are processed in batches of 5 for optimal performance. Your entire file will be processed regardless of size, 
+              but the comparison operations are performed on 5 records at a time. Processing time varies and directly depends upon the number of records in your file.
+            </span>
+          </div>
+        </div>
+
+        <div className="info-note" style={{ 
+          background: '#fff3e0', 
+          border: '1px solid #ff9800', 
+          borderRadius: '8px', 
+          padding: '12px 16px', 
+          margin: '16px 0',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px'
+        }}>
+          <span style={{ color: '#f57c00', fontSize: '20px', fontWeight: 'bold' }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <strong style={{ color: '#e65100', display: 'block', marginBottom: '4px' }}>Required File Headers</strong>
+            <span style={{ color: '#424242', fontSize: '13px' }}>
+              Your file must contain these columns (case-insensitive): 
+              <strong> Site_Name, Site_Address_Line1, Site_Address_line2, Site_Address_line3, Site_Address_Line4, 
+              Site_City, Site_State, Site_PostCode, Site_country</strong>. Download the sample file to see the correct format.
+            </span>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <button 
+            onClick={handleDownloadSample}
+            style={{ 
+              background: 'none',
+              border: 'none',
+              color: '#1976d2', 
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              padding: 0,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
+            onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+          >
+            📥 Download Sample Compare File
+          </button>
+        </div>
 
         <div className="upload-section">
           <div className="file-input-wrapper">

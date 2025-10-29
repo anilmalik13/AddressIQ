@@ -1,6 +1,2 @@
-Site_Name,Site_Address_Line1,Site_Address_line2,Site_Address_line3,Site_Address_Line4,Site_City,Site_State,Site_PostCode,Site_country
-Office Building A,123 Main Street,Suite 100,,Building A,New York,NY,10001,USA
-Shopping Center B,456 Oak Avenue,Unit 200,Floor 2,,Los Angeles,CA,90210,USA
-Warehouse C,789 Industrial Blvd,Loading Dock 3,,,Chicago,IL,60601,USA
-Corporate Campus D,321 Tech Drive,Building D,Suite 400,,San Francisco,CA,94105,USA
-Retail Store E,654 Commerce Street,,,Shop E,Boston,MA,02101,USA
+Address Line 1/Street,Postcode,City/Municipality,Region,Country
+123 Main Street,SW1A 1AA,London,Greater London,United Kingdom

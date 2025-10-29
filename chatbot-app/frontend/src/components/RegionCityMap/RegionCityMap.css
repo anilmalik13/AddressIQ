@@ -95,6 +95,30 @@
 .map-container {
     flex-grow: 1;
     position: relative;
+    min-height: 500px;
+    background-color: #f8f9fa;
+}
+
+/* Improve map rendering performance */
+.leaflet-container {
+    background-color: #f8f9fa;
+    outline: none;
+}
+
+.leaflet-tile-container {
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Prevent flash of unstyled content */
+.leaflet-container .leaflet-tile {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-in forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
 }
 
 /* Leaflet popup customization */
@@ -111,6 +135,12 @@
 .leaflet-popup-content small {
     color: #6c757d;
     font-size: 12px;
+}
+
+/* Spinner animation for loading state */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Responsive design */
