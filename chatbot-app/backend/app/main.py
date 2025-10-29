@@ -24,14 +24,17 @@ CORS(app)  # Enable CORS for frontend communication
 BASE_DIR = Path(__file__).parent.parent  # Points to backend folder
 INBOUND_FOLDER = BASE_DIR / 'inbound'
 OUTBOUND_FOLDER = BASE_DIR / 'outbound'
+SAMPLES_FOLDER = BASE_DIR / 'samples'
 ALLOWED_EXTENSIONS = {'xlsx', 'xls', 'csv'}
 app.config['INBOUND_FOLDER'] = str(INBOUND_FOLDER)
 app.config['OUTBOUND_FOLDER'] = str(OUTBOUND_FOLDER)
+app.config['SAMPLES_FOLDER'] = str(SAMPLES_FOLDER)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
 # Ensure directories exist
 os.makedirs(INBOUND_FOLDER, exist_ok=True)
 os.makedirs(OUTBOUND_FOLDER, exist_ok=True)
+os.makedirs(SAMPLES_FOLDER, exist_ok=True)
 
 # Store processing status
 processing_status = {}
@@ -66,6 +69,126 @@ def _sanitize_address(addr: str) -> str:
     if len(addr) > 500:
         addr = addr[:500]
     return addr
+
+def _validate_file_upload_headers(df: pd.DataFrame) -> dict:
+    """
+    Validate headers for File Upload component.
+    Case-insensitive comparison.
+    
+    Required headers:
+    - Address Line 1/Street
+    - Postcode
+    - City/Municipality
+    - Region
+    - Country
+    
+    Returns:
+        dict with 'valid' (bool) and 'error' (str) keys
+    """
+    required_headers = [
+        'Address Line 1/Street',
+        'Postcode',
+        'City/Municipality',
+        'Region',
+        'Country'
+    ]
+    
+    # Get actual headers from dataframe
+    actual_headers = df.columns.tolist()
+    
+    # Convert to lowercase for case-insensitive comparison
+    actual_headers_lower = [str(h).lower().strip() for h in actual_headers]
+    required_headers_lower = [h.lower().strip() for h in required_headers]
+    
+    # Check if all required headers are present
+    missing_headers = []
+    for req_header in required_headers:
+        req_lower = req_header.lower().strip()
+        if req_lower not in actual_headers_lower:
+            missing_headers.append(req_header)
+    
+    if missing_headers:
+        return {
+            'valid': False,
+            'error': f"Missing required columns: {', '.join(missing_headers)}. Please ensure your file contains all required headers.",
+            'missing_headers': missing_headers,
+            'actual_headers': actual_headers
+        }
+    
+    return {
+        'valid': True,
+        'error': None,
+        'missing_headers': [],
+        'actual_headers': actual_headers
+    }
+
+def _validate_compare_upload_headers(df: pd.DataFrame) -> dict:
+    """
+    Validate headers for Compare Upload component.
+    Case-insensitive comparison.
+    
+    Required headers:
+    - Site_Name
+    - Site_Address_Line1
+    - Site_Address_line2
+    - Site_Address_line3
+    - Site_Address_Line4
+    - Site_City
+    - Site_State
+    - Site_PostCode
+    - Site_country
+    
+    Returns:
+        dict with 'valid' (bool) and 'error' (str) keys
+    """
+    required_headers = [
+        'Site_Name',
+        'Site_Address_Line1',
+        'Site_Address_line2',
+        'Site_Address_line3',
+        'Site_Address_Line4',
+        'Site_City',
+        'Site_State',
+        'Site_PostCode',
+        'Site_country'
+    ]
+    
+    # Get actual headers from dataframe
+    actual_headers = df.columns.tolist()
+    
+    # Convert to lowercase for case-insensitive comparison
+    actual_headers_lower = [str(h).lower().strip() for h in actual_headers]
+    required_headers_lower = [h.lower().strip() for h in required_headers]
+    
+    # Check if all required headers are present
+    missing_headers = []
+    for req_header in required_headers:
+        req_lower = req_header.lower().strip()
+        if req_lower not in actual_headers_lower:
+            missing_headers.append(req_header)
+    
+    if missing_headers:
+        return {
+            'valid': False,
+            'error': f"Missing required columns: {', '.join(missing_headers)}. Please ensure your file contains all required headers.",
+            'missing_headers': missing_headers,
+            'actual_headers': actual_headers
+        }
+    
+    # Check for extra headers (optional - just for information)
+    extra_headers = []
+    for actual_header in actual_headers:
+        actual_lower = str(actual_header).lower().strip()
+        if actual_lower not in required_headers_lower:
+            extra_headers.append(actual_header)
+    
+    return {
+        'valid': True,
+        'error': None,
+        'missing_headers': [],
+        'extra_headers': extra_headers,
+        'actual_headers': actual_headers
+    }
 
 # Helper for consistent status updates and lightweight logging
 def _update_status(processing_id: str, **fields):
@@ -105,7 +228,8 @@ def health_check():
             '/api/process-address',
             '/api/process-addresses',
             '/api/public/standardize',
-            '/api/coordinates'
+            '/api/coordinates',
+            '/api/countries'
         ]
     }), 200
 
@@ -147,7 +271,8 @@ def _df_to_inbound_csv(df: pd.DataFrame, base_filename: str) -> str:
     file_path = INBOUND_FOLDER / filename
     # normalize columns to strings
     df.columns = [str(c) for c in df.columns]
-    df.to_csv(file_path, index=False, encoding='utf-8')
+    # Use UTF-8-BOM to ensure proper Unicode handling for special characters
+    df.to_csv(file_path, index=False, encoding='utf-8-sig')
     return filename
 
 # --- Connection string utilities -------------------------------------------------
@@ -784,18 +909,45 @@ def upload_excel():
         
         # Validate file content by trying to read it
         try:
-            if filename.lower().endswith('.csv'):
+            if ext.lower() in ['.csv', '.txt']:
                 # Use robust encoding detection to handle non-UTF-8 CSVs
                 df = read_csv_with_encoding_detection(file_path)
-                # Use a small sample for file info to keep consistent with Excel path
-                df_sample = df.head(5)
             else:
-                df_sample = pd.read_excel(file_path, nrows=5)
+                df = pd.read_excel(file_path)
+
+            # Check if file is empty (no data rows)
+            if df.shape[0] == 0:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                return jsonify({'error': 'The uploaded file contains no data rows. Please upload a file with at least one record.'}), 400
+            
+            # Check if file has no columns
+            if df.shape[1] == 0:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                return jsonify({'error': 'The uploaded file contains no columns. Please upload a valid file with data.'}), 400
+
+            # Validate required headers
+            validation_result = _validate_file_upload_headers(df)
+            if not validation_result['valid']:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                return jsonify({
+                    'error': validation_result['error'],
+                    'missing_headers': validation_result.get('missing_headers', []),
+                    'actual_headers': validation_result.get('actual_headers', [])
+                }), 400
 
             file_info = {
-                'rows': int(getattr(df_sample, 'shape', [0, 0])[0]),
-                'columns': int(getattr(df_sample, 'shape', [0, 0])[1]),
-                'column_names': getattr(df_sample, 'columns', []).tolist() if hasattr(df_sample, 'columns') else []
+                'rows': int(df.shape[0]),
+                'columns': int(df.shape[1]),
+                'column_names': df.columns.tolist() if hasattr(df, 'columns') else []
             }
 
         except Exception as e:
@@ -804,7 +956,14 @@ def upload_excel():
                 os.remove(file_path)
             except Exception:
                 pass
-            return jsonify({'error': f'Invalid file format or corrupted file: {str(e)}'}), 400
+            error_msg = str(e)
+            # Provide more specific error messages for common issues
+            if 'Error tokenizing data' in error_msg or 'ParserError' in error_msg:
+                return jsonify({'error': f'Failed to parse the file. Please ensure it is a valid Excel or CSV file. Error: {error_msg}'}), 400
+            elif 'XLRDError' in error_msg or 'BadZipFile' in error_msg:
+                return jsonify({'error': f'The Excel file appears to be corrupted or in an unsupported format. Please try re-saving the file and uploading again. Error: {error_msg}'}), 400
+            else:
+                return jsonify({'error': f'Invalid file format or corrupted file: {error_msg}'}), 400
         
         # Generate processing ID for tracking
         processing_id = f"proc_{timestamp}_{hash(unique_filename) % 10000}"
@@ -875,22 +1034,58 @@ def upload_compare():
         # Validate quick read with robust CSV encoding handling
         file_info = None
         try:
-            if filename.lower().endswith('.csv'):
+            if ext.lower() in ['.csv', '.txt']:
                 df = read_csv_with_encoding_detection(file_path)
-                df_sample = df.head(5)
             else:
-                df_sample = pd.read_excel(file_path, nrows=5)
+                df = pd.read_excel(file_path)
+            
+            # Check if file is empty (no data rows)
+            if df.shape[0] == 0:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                return jsonify({'error': 'The uploaded file contains no data rows. Please upload a file with at least one record.'}), 400
+            
+            # Check if file has no columns
+            if df.shape[1] == 0:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                return jsonify({'error': 'The uploaded file contains no columns. Please upload a valid file with data.'}), 400
+            
+            # Validate required headers
+            validation_result = _validate_compare_upload_headers(df)
+            if not validation_result['valid']:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                return jsonify({
+                    'error': validation_result['error'],
+                    'missing_headers': validation_result.get('missing_headers', []),
+                    'actual_headers': validation_result.get('actual_headers', [])
+                }), 400
+            
             file_info = {
-                'rows': int(getattr(df_sample, 'shape', [0, 0])[0]),
-                'columns': int(getattr(df_sample, 'shape', [0, 0])[1]),
-                'column_names': getattr(df_sample, 'columns', []).tolist() if hasattr(df_sample, 'columns') else []
+                'rows': int(df.shape[0]),
+                'columns': int(df.shape[1]),
+                'column_names': df.columns.tolist() if hasattr(df, 'columns') else []
             }
         except Exception as ve:
             try:
                 os.remove(file_path)
             except Exception:
                 pass
-            return jsonify({'error': f'Invalid file: {str(ve)}'}), 400
+            error_msg = str(ve)
+            # Provide more specific error messages for common issues
+            if 'Error tokenizing data' in error_msg or 'ParserError' in error_msg:
+                return jsonify({'error': f'Failed to parse the file. Please ensure it is a valid Excel or CSV file. Error: {error_msg}'}), 400
+            elif 'XLRDError' in error_msg or 'BadZipFile' in error_msg:
+                return jsonify({'error': f'The Excel file appears to be corrupted or in an unsupported format. Please try re-saving the file and uploading again. Error: {error_msg}'}), 400
+            else:
+                return jsonify({'error': f'Invalid file: {error_msg}'}), 400
 
         processing_id = f"cmp_{timestamp}_{hash(unique_filename) % 10000}"
         processing_status[processing_id] = {
@@ -1264,28 +1459,189 @@ def list_uploaded_files():
 
 @app.route('/api/coordinates', methods=['GET'])
 def get_coordinates():
-    """Get coordinates for region and country"""
+    """Get coordinates for sites with valid latitude and longitude from Mast_Site table"""
     try:
-        region = request.args.get('region')
         country = request.args.get('country')
         
-        if not region or not country:
-            return jsonify({'error': 'Both region and country parameters are required'}), 400
+        if not country:
+            return jsonify({'error': 'Country parameter is required'}), 400
         
-        # This is a placeholder - you can integrate with your geographical data source
-        # For now, return mock coordinates
-        coordinates = {
-            'region': region,
+        # Database connection string for Azure SQL
+        connection_string = (
+            "DRIVER={ODBC Driver 17 for SQL Server};"
+            "SERVER=dev-server-sqldb.database.windows.net;"
+            "DATABASE=dev-aurora-sqldb;"
+            "UID=aurora;"
+            "PWD=rcqM4?nTZH+hpfX7;"
+            "TrustServerCertificate=yes;"
+        )
+        
+        # Connect to database
+        conn = pyodbc.connect(connection_string)
+        cursor = conn.cursor()
+        
+        # Query to fetch sites with valid coordinates for the selected country
+        # Filter out records where Site_PK = 0 or coordinates are NULL/empty/zero
+        # Note: Site_Latitude and Site_Longitude are VARCHAR, so we check for non-empty strings
+        query = """
+            SELECT 
+                Site_PK,
+                Site_Name,
+                Site_Address_1,
+                Site_Address_2,
+                Site_Address_3,
+                Site_Address_4,
+                Site_City,
+                Site_State,
+                Site_PostCode,
+                Site_Country,
+                Site_Latitude,
+                Site_Longitude
+            FROM [dbo].[Mast_Site]
+            WHERE Site_PK != 0
+                AND Site_Country = ?
+                AND Site_Latitude IS NOT NULL
+                AND Site_Longitude IS NOT NULL
+                AND LTRIM(RTRIM(CAST(Site_Latitude AS VARCHAR(50)))) != ''
+                AND LTRIM(RTRIM(CAST(Site_Longitude AS VARCHAR(50)))) != ''
+                AND LTRIM(RTRIM(CAST(Site_Latitude AS VARCHAR(50)))) != '0'
+                AND LTRIM(RTRIM(CAST(Site_Longitude AS VARCHAR(50)))) != '0'
+                AND LTRIM(RTRIM(CAST(Site_Latitude AS VARCHAR(50)))) != '0.000000'
+                AND LTRIM(RTRIM(CAST(Site_Longitude AS VARCHAR(50)))) != '0.000000'
+                AND TRY_CAST(Site_Latitude AS FLOAT) IS NOT NULL
+                AND TRY_CAST(Site_Longitude AS FLOAT) IS NOT NULL
+                AND TRY_CAST(Site_Latitude AS FLOAT) != 0
+                AND TRY_CAST(Site_Longitude AS FLOAT) != 0
+            ORDER BY Site_Name
+        """
+        
+        cursor.execute(query, (country,))
+        rows = cursor.fetchall()
+        
+        # Build full address and coordinates list
+        coordinates = []
+        for row in rows:
+            # Construct full address from components
+            address_parts = []
+            if row.Site_Address_1:
+                address_parts.append(row.Site_Address_1.strip())
+            if row.Site_Address_2:
+                address_parts.append(row.Site_Address_2.strip())
+            if row.Site_Address_3:
+                address_parts.append(row.Site_Address_3.strip())
+            if row.Site_Address_4:
+                address_parts.append(row.Site_Address_4.strip())
+            if row.Site_City:
+                address_parts.append(row.Site_City.strip())
+            if row.Site_State:
+                address_parts.append(row.Site_State.strip())
+            if row.Site_PostCode:
+                address_parts.append(row.Site_PostCode.strip())
+            if row.Site_Country:
+                address_parts.append(row.Site_Country.strip())
+            
+            full_address = ', '.join(address_parts)
+            
+            coordinates.append({
+                'site_pk': row.Site_PK,
+                'site_name': row.Site_Name or '',
+                'full_address': full_address,
+                'latitude': float(row.Site_Latitude),
+                'longitude': float(row.Site_Longitude)
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        print(f"[INFO] Fetched {len(coordinates)} locations for {country}")
+        
+        return jsonify({
             'country': country,
-            'latitude': 0.0,
-            'longitude': 0.0,
-            'message': 'Coordinate lookup functionality to be implemented'
-        }
+            'count': len(coordinates),
+            'coordinates': coordinates
+        }), 200
         
-        return jsonify(coordinates), 200
-        
+    except pyodbc.Error as db_error:
+        print(f"[ERROR] Database error: {str(db_error)}")
+        return jsonify({
+            'error': f'Database error: {str(db_error)}',
+            'type': 'database_error'
+        }), 500
     except Exception as e:
-        return jsonify({'error': f'Coordinate lookup failed: {str(e)}'}), 500
+        print(f"[ERROR] Coordinate lookup failed: {str(e)}")
+        return jsonify({
+            'error': f'Coordinate lookup failed: {str(e)}',
+            'type': 'general_error'
+        }), 500
+
+@app.route('/api/countries', methods=['GET'])
+def get_countries():
+    """Get list of all countries that have sites with valid coordinates"""
+    try:
+        # Database connection string for Azure SQL
+        connection_string = (
+            "DRIVER={ODBC Driver 17 for SQL Server};"
+            "SERVER=dev-server-sqldb.database.windows.net;"
+            "DATABASE=dev-aurora-sqldb;"
+            "UID=aurora;"
+            "PWD=rcqM4?nTZH+hpfX7;"
+            "TrustServerCertificate=yes;"
+        )
+        
+        # Connect to database
+        conn = pyodbc.connect(connection_string)
+        cursor = conn.cursor()
+        
+        # Query to get distinct countries with valid coordinates
+        # Note: Site_Latitude and Site_Longitude are VARCHAR, so we check for non-empty strings
+        query = """
+            SELECT DISTINCT Site_Country
+            FROM [dbo].[Mast_Site]
+            WHERE Site_PK != 0
+                AND Site_Country IS NOT NULL
+                AND Site_Country != ''
+                AND Site_Latitude IS NOT NULL
+                AND Site_Longitude IS NOT NULL
+                AND LTRIM(RTRIM(CAST(Site_Latitude AS VARCHAR(50)))) != ''
+                AND LTRIM(RTRIM(CAST(Site_Longitude AS VARCHAR(50)))) != ''
+                AND LTRIM(RTRIM(CAST(Site_Latitude AS VARCHAR(50)))) != '0'
+                AND LTRIM(RTRIM(CAST(Site_Longitude AS VARCHAR(50)))) != '0'
+                AND LTRIM(RTRIM(CAST(Site_Latitude AS VARCHAR(50)))) != '0.000000'
+                AND LTRIM(RTRIM(CAST(Site_Longitude AS VARCHAR(50)))) != '0.000000'
+                AND TRY_CAST(Site_Latitude AS FLOAT) IS NOT NULL
+                AND TRY_CAST(Site_Longitude AS FLOAT) IS NOT NULL
+                AND TRY_CAST(Site_Latitude AS FLOAT) != 0
+                AND TRY_CAST(Site_Longitude AS FLOAT) != 0
+            ORDER BY Site_Country
+        """
+        
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        
+        countries = [row.Site_Country for row in rows]
+        
+        cursor.close()
+        conn.close()
+        
+        print(f"[INFO] Found {len(countries)} countries with valid coordinates")
+        
+        return jsonify({
+            'count': len(countries),
+            'countries': countries
+        }), 200
+        
+    except pyodbc.Error as db_error:
+        print(f"[ERROR] Database error: {str(db_error)}")
+        return jsonify({
+            'error': f'Database error: {str(db_error)}',
+            'type': 'database_error'
+        }), 500
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch countries: {str(e)}")
+        return jsonify({
+            'error': f'Failed to fetch countries: {str(e)}',
+            'type': 'general_error'
+        }), 500
 
 # ================================
 # NEW API STRUCTURE - v1 Endpoints
@@ -1988,38 +2344,42 @@ def api_v1_database_connect():
 def download_file_upload_sample():
     """Download sample file for file upload processing"""
     try:
-        samples_dir = BASE_DIR / 'samples'
-        sample_file = samples_dir / 'file-upload-sample.csv'
+        # Use absolute hardcoded path to sample file
+        sample_file = SAMPLES_FOLDER / 'file-upload-sample.csv'
         
-        if sample_file.exists():
-            return send_file(
-                sample_file,
-                as_attachment=True,
-                download_name='file-upload-sample.csv',
-                mimetype='text/csv'
-            )
-        else:
-            return jsonify({'error': 'Sample file not found'}), 404
+        if not sample_file.exists():
+            app.logger.error(f'Sample file not found at: {sample_file}')
+            return jsonify({'error': f'Sample file not found at: {sample_file}'}), 404
+        
+        return send_file(
+            str(sample_file),  # Convert Path to string
+            as_attachment=True,
+            download_name='file-upload-sample.csv',
+            mimetype='text/csv'
+        )
     except Exception as e:
+        app.logger.error(f'Failed to download file upload sample: {str(e)}')
         return jsonify({'error': f'Failed to download sample: {str(e)}'}), 500
 
 @app.route('/api/v1/samples/compare-upload', methods=['GET'])
 def download_compare_upload_sample():
     """Download sample file for compare upload processing"""
     try:
-        samples_dir = BASE_DIR / 'samples'
-        sample_file = samples_dir / 'compare-upload-sample.csv'
+        # Use absolute hardcoded path to sample file
+        sample_file = SAMPLES_FOLDER / 'compare-upload-sample.csv'
         
-        if sample_file.exists():
-            return send_file(
-                sample_file,
-                as_attachment=True,
-                download_name='compare-upload-sample.csv',
-                mimetype='text/csv'
-            )
-        else:
-            return jsonify({'error': 'Sample file not found'}), 404
+        if not sample_file.exists():
+            app.logger.error(f'Sample file not found at: {sample_file}')
+            return jsonify({'error': f'Sample file not found at: {sample_file}'}), 404
+        
+        return send_file(
+            str(sample_file),  # Convert Path to string
+            as_attachment=True,
+            download_name='compare-upload-sample.csv',
+            mimetype='text/csv'
+        )
     except Exception as e:
+        app.logger.error(f'Failed to download compare upload sample: {str(e)}')
         return jsonify({'error': f'Failed to download sample: {str(e)}'}), 500
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { uploadFileRequest, resetUploadState, checkProcessingStatus, downloadProcessedFile } from '../../store/slices/fileUploadSlice';
+import { uploadFileRequest, uploadFileFailure, resetUploadState, checkProcessingStatus, downloadProcessedFile } from '../../store/slices/fileUploadSlice';
+import { downloadSampleFile } from '../../services/api';
 import './FileUpload.css';
 
 // Human-readable file size formatter to avoid showing 0.00 MB for small files
@@ -75,7 +76,11 @@ const FileUpload: React.FC = () => {
             const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
             
             if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-                alert('Please select a valid Excel (.xlsx, .xls) or CSV (.csv) file');
+                // Show error via Redux state instead of alert
+                dispatch(uploadFileFailure('Invalid file type. Please select a valid Excel (.xlsx, .xls) or CSV (.csv) file.'));
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
                 return;
             }
 
@@ -83,6 +88,26 @@ const FileUpload: React.FC = () => {
             dispatch(resetUploadState());
         }
     }, [dispatch]);
+
+    // Auto-reset file if upload fails due to empty file or invalid headers
+    useEffect(() => {
+        if (error && (
+            error.toLowerCase().includes('no data rows') || 
+            error.toLowerCase().includes('no columns') || 
+            error.toLowerCase().includes('no records') ||
+            error.toLowerCase().includes('missing required columns') ||
+            error.toLowerCase().includes('invalid headers')
+        )) {
+            // Reset file after a brief delay to show the error message first
+            const timer = setTimeout(() => {
+                setSelectedFile(null);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [error]);
 
     const handleUpload = useCallback(() => {
         if (selectedFile) {
@@ -109,6 +134,14 @@ const FileUpload: React.FC = () => {
         }
     }, [dispatch, processingStatus?.output_file]);
 
+    const handleDownloadSample = useCallback(async () => {
+        try {
+            await downloadSampleFile('/v1/samples/file-upload', 'file-upload-sample.csv');
+        } catch (error) {
+            console.error('Failed to download sample file:', error);
+        }
+    }, []);
+
     const isProcessing = processingStatus && ['uploaded', 'processing'].includes(processingStatus.status);
     const isCompleted = processingStatus?.status === 'completed';
     const hasError = processingStatus?.status === 'error' || !!error;
@@ -123,6 +156,69 @@ const FileUpload: React.FC = () => {
                 <h1>File Upload</h1>
                 <p>Upload your Excel (.xlsx, .xls) or CSV (.csv) file to process address data</p>
                 
+                <div className="info-note" style={{ 
+                    background: '#e3f2fd', 
+                    border: '1px solid #2196f3', 
+                    borderRadius: '8px', 
+                    padding: '12px 16px', 
+                    margin: '16px 0',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px'
+                }}>
+                    <span style={{ color: '#1976d2', fontSize: '20px', fontWeight: 'bold' }}>ℹ️</span>
+                    <div style={{ flex: 1 }}>
+                        <strong style={{ color: '#1565c0', display: 'block', marginBottom: '4px' }}>Processing Information</strong>
+                        <span style={{ color: '#424242', fontSize: '14px' }}>
+                            Records are processed in batches of 5 for optimal performance. Your entire file will be processed regardless of size, 
+                            but the operations are performed on 5 records at a time. Processing time varies and directly depends upon the number of records in your file.
+                        </span>
+                    </div>
+                </div>
+
+                <div className="info-note" style={{ 
+                    background: '#fff3e0', 
+                    border: '1px solid #ff9800', 
+                    borderRadius: '8px', 
+                    padding: '12px 16px', 
+                    margin: '16px 0',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px'
+                }}>
+                    <span style={{ color: '#f57c00', fontSize: '20px', fontWeight: 'bold' }}>⚠️</span>
+                    <div style={{ flex: 1 }}>
+                        <strong style={{ color: '#e65100', display: 'block', marginBottom: '4px' }}>Required File Headers</strong>
+                        <span style={{ color: '#424242', fontSize: '13px' }}>
+                            Your file must contain these columns (case-insensitive): 
+                            <strong> Address Line 1/Street, Postcode, City/Municipality, Region, Country</strong>. Download the sample file to see the correct format.
+                        </span>
+                    </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                    <button 
+                        onClick={handleDownloadSample}
+                        style={{ 
+                            background: 'none',
+                            border: 'none',
+                            color: '#1976d2', 
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            padding: 0,
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                        onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+                    >
+                        📥 Download Sample Upload File
+                    </button>
+                </div>
+
                 <div className="upload-section">
                     <div className="file-input-wrapper">
                         <input

@@ -41,7 +41,7 @@ const PublicAPI: React.FC = () => {
         content_type: "text/csv",
         note: "File is returned as attachment download, not JSON response"
       },
-      sampleDownload: '/api/v1/samples/file-upload'
+      sampleDownload: '/v1/samples/file-upload'
     },
     {
       id: 'address-single',
@@ -135,7 +135,7 @@ const PublicAPI: React.FC = () => {
         content_type: "text/csv",
         note: "File is returned as attachment download, not JSON response"
       },
-      sampleDownload: '/api/v1/samples/compare-upload'
+      sampleDownload: '/v1/samples/compare-upload'
     },
     {
       id: 'database-connect-table',

@@ -37,24 +37,34 @@ const App: React.FC = () => {
     }, [sidebarCollapsed]);
     const toggleSidebar = () => setSidebarCollapsed((v) => !v);
 
-    const renderActiveView = () => {
-        switch (activeView) {
-            case 'upload':
-                return <FileUpload />;
-            case 'compare':
-                return <CompareUpload />;
-            case 'processing':
-                return <AddressProcessing />;
-            case 'map':
-                return <RegionCityMap />;
-            case 'publicapi':
-                return <PublicAPI />;
-            case 'dbconnect':
-                return <DatabaseConnect />;
-            default:
-                return <FileUpload />;
-        }
-    };
+    // Render all views but hide inactive ones to preserve state across tab switches.
+    // This approach keeps components mounted so that:
+    // - Upload/processing state is retained when switching tabs
+    // - Background polling continues for active operations
+    // - User can switch tabs and come back without losing progress
+    // Components are hidden with display:none but remain in the DOM
+    const renderAllViews = () => (
+        <>
+            <div style={{ display: activeView === 'upload' ? 'block' : 'none' }}>
+                <FileUpload />
+            </div>
+            <div style={{ display: activeView === 'compare' ? 'block' : 'none' }}>
+                <CompareUpload />
+            </div>
+            <div style={{ display: activeView === 'processing' ? 'block' : 'none' }}>
+                <AddressProcessing />
+            </div>
+            <div style={{ display: activeView === 'map' ? 'block' : 'none' }}>
+                <RegionCityMap />
+            </div>
+            <div style={{ display: activeView === 'publicapi' ? 'block' : 'none' }}>
+                <PublicAPI />
+            </div>
+            <div style={{ display: activeView === 'dbconnect' ? 'block' : 'none' }}>
+                <DatabaseConnect />
+            </div>
+        </>
+    );
 
     // page title is rendered by inner components; no top-level header text needed
 
@@ -199,7 +209,7 @@ const App: React.FC = () => {
                     <main className="content" role="main">
                         <div className="content__container">
                             <section className="card card--fill">
-                                {renderActiveView()}
+                                {renderAllViews()}
                             </section>
                         </div>
                     </main>

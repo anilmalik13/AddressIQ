@@ -1449,10 +1449,10 @@ class CSVAddressProcessor:
                         batch_size: int = 10, use_free_apis: bool = True, 
                         enable_batch_processing: bool = True) -> str:
         """
-        Process a CSV file and standardize addresses using efficient batch processing
+        Process a CSV or Excel file and standardize addresses using efficient batch processing
         
         Args:
-            input_file: Path to input CSV file
+            input_file: Path to input CSV or Excel file (.csv, .xlsx, .xls)
             output_file: Path to output CSV file (optional)
             address_column: Specific column name containing addresses (optional)
             address_columns: List of column names to combine into address (optional)
@@ -1468,14 +1468,24 @@ class CSVAddressProcessor:
         if not os.path.exists(input_file):
             raise FileNotFoundError(f"Input file not found: {input_file}")
         
-        # Load CSV
+        # Load CSV or Excel file based on file extension
+        file_ext = os.path.splitext(input_file)[1].lower()
         try:
-            df = pd.read_csv(input_file, encoding='utf-8')
-        except UnicodeDecodeError:
-            try:
-                df = pd.read_csv(input_file, encoding='latin-1')
-            except Exception as e:
-                raise Exception(f"Could not read CSV file: {str(e)}")
+            if file_ext in ['.xlsx', '.xls']:
+                # Read Excel file
+                print(f"📊 Reading Excel file: {input_file}")
+                df = pd.read_excel(input_file)
+            elif file_ext in ['.csv', '.txt']:
+                # Read CSV file with encoding detection
+                print(f"📄 Reading CSV file: {input_file}")
+                try:
+                    df = pd.read_csv(input_file, encoding='utf-8')
+                except UnicodeDecodeError:
+                    df = pd.read_csv(input_file, encoding='latin-1')
+            else:
+                raise Exception(f"Unsupported file format: {file_ext}. Supported formats: .csv, .xlsx, .xls")
+        except Exception as e:
+            raise Exception(f"Could not read file: {str(e)}")
         
         print(f"Loaded CSV with {len(df)} rows and {len(df.columns)} columns")
         print(f"Columns: {', '.join(df.columns.tolist())}")
@@ -2066,11 +2076,17 @@ class CSVAddressProcessor:
             output_file = str(self.outbound_dir / output_path.name)
         
         # Save results with proper CSV escaping to handle commas in addresses
+        # Always use UTF-8 with BOM to properly handle Unicode characters (accented letters, etc.)
+        # UTF-8 BOM ensures Excel and other tools correctly interpret the encoding
         try:
-            df.to_csv(output_file, index=False, encoding='utf-8', quoting=1)  # quoting=1 means QUOTE_ALL
+            df.to_csv(output_file, index=False, encoding='utf-8-sig', quoting=1)  # utf-8-sig adds BOM
+            print(f"✅ File saved with UTF-8 encoding (supports all Unicode characters)")
         except Exception as e:
-            # Fallback to latin-1 encoding if utf-8 fails
-            df.to_csv(output_file, index=False, encoding='latin-1', quoting=1)
+            # Log the error but don't fallback to latin-1 as it corrupts Unicode characters
+            print(f"⚠️ Error saving file with UTF-8: {e}")
+            # Retry with standard UTF-8 without BOM as a fallback
+            df.to_csv(output_file, index=False, encoding='utf-8', quoting=1)
+            print(f"✅ File saved with UTF-8 encoding (no BOM)")
         
         # Print summary
         print(f"\n{'='*60}")
@@ -2838,8 +2854,10 @@ Return JSON with: overall_score, match_level, likely_same_address, confidence, e
                 column_order = ['id'] + [col for col in results_df.columns if col != 'id']
                 results_df = results_df[column_order]
             
-            # Save results
-            results_df.to_csv(output_file, index=False, encoding='utf-8')
+            # Save results with UTF-8-BOM encoding to properly handle Unicode characters
+            # UTF-8-BOM ensures Excel and other tools correctly interpret special characters
+            results_df.to_csv(output_file, index=False, encoding='utf-8-sig')
+            print(f"✅ Comparison results saved with UTF-8 encoding (supports all Unicode characters)")
             
             # Calculate summary statistics
             elapsed_time = time.time() - start_time
