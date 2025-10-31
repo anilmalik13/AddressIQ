@@ -15,7 +15,13 @@ import re
 import sys
 import json
 import pyodbc
+import requests  # for webhook notifications
 # no external encoding detector here; rely on utf-8 replacement for preview
+
+# Import database job manager
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from database import job_manager
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -36,7 +42,8 @@ os.makedirs(INBOUND_FOLDER, exist_ok=True)
 os.makedirs(OUTBOUND_FOLDER, exist_ok=True)
 os.makedirs(SAMPLES_FOLDER, exist_ok=True)
 
-# Store processing status
+# DEPRECATED: In-memory storage - now using database
+# Store processing status (kept for backwards compatibility during migration)
 processing_status = {}
 
 # Simple API key security for public standardization endpoint
@@ -192,20 +199,91 @@ def _validate_compare_upload_headers(df: pd.DataFrame) -> dict:
 
 # Helper for consistent status updates and lightweight logging
 def _update_status(processing_id: str, **fields):
-    entry = processing_status.get(processing_id)
-    if not entry:
-        return
-    now_iso = datetime.utcnow().isoformat() + 'Z'
-    entry['updated_at'] = now_iso
+    """
+    Update job status in database (and legacy in-memory dict for backwards compatibility)
+    """
+    # Handle log messages
     log_message = fields.pop('log', None)
-    for k, v in fields.items():
-        entry[k] = v
+    
+    # Update database
     if log_message:
-        logs = entry.setdefault('logs', [])
-        logs.append({'ts': now_iso, 'message': log_message, 'progress': entry.get('progress')})
-        # Keep only last 100 log entries
-        if len(logs) > 100:
-            del logs[:-100]
+        job_manager.add_log(processing_id, log_message, fields.get('progress'))
+    
+    if fields:
+        job_manager.update_job(processing_id, **fields)
+    
+    # Send webhook if job completed or failed
+    if fields.get('status') in ['completed', 'failed', 'error']:
+        _send_webhook_notification(processing_id)
+    
+    # LEGACY: Also update in-memory dict for backwards compatibility
+    entry = processing_status.get(processing_id)
+    if entry:
+        now_iso = datetime.utcnow().isoformat() + 'Z'
+        entry['updated_at'] = now_iso
+        for k, v in fields.items():
+            entry[k] = v
+        if log_message:
+            logs = entry.setdefault('logs', [])
+            logs.append({'ts': now_iso, 'message': log_message, 'progress': entry.get('progress')})
+            if len(logs) > 100:
+                del logs[:-100]
+
+def _send_webhook_notification(job_id: str):
+    """
+    Send webhook notification when job completes or fails
+    Runs in background thread to not block processing
+    """
+    def send_webhook():
+        try:
+            job = job_manager.get_job(job_id)
+            if not job or not job.get('callback_url'):
+                return
+            
+            # Prepare webhook payload
+            payload = {
+                'job_id': job_id,
+                'status': job['status'],
+                'progress': job.get('progress', 0),
+                'message': job.get('message'),
+                'error': job.get('error'),
+                'filename': job.get('original_filename'),
+                'created_at': job.get('created_at'),
+                'finished_at': job.get('finished_at'),
+                'expires_at': job.get('expires_at')
+            }
+            
+            # Add download URL if completed successfully
+            if job['status'] == 'completed' and job.get('output_file'):
+                # Construct full download URL
+                base_url = request.url_root if request else 'http://localhost:5000/'
+                payload['download_url'] = f"{base_url}api/v1/files/download/{job['output_file']}"
+                payload['output_file'] = job['output_file']
+            
+            # Send POST request to callback URL
+            response = requests.post(
+                job['callback_url'],
+                json=payload,
+                timeout=10,
+                headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'AddressIQ-Webhook/1.0'
+                }
+            )
+            response.raise_for_status()
+            
+            print(f"✅ Webhook sent successfully for job {job_id} to {job['callback_url']}")
+            
+        except requests.exceptions.Timeout:
+            print(f"⚠️ Webhook timeout for job {job_id}")
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️ Webhook failed for job {job_id}: {e}")
+        except Exception as e:
+            print(f"❌ Unexpected error sending webhook for job {job_id}: {e}")
+    
+    # Run webhook in background thread
+    thread = threading.Thread(target=send_webhook, daemon=True)
+    thread.start()
 
 @app.route('/api/processing-status/<processing_id>/logs', methods=['GET'])
 def get_processing_logs(processing_id):
@@ -694,12 +772,18 @@ def process_compare_background(processing_id, filename):
 
 @app.route('/api/processing-status/<processing_id>', methods=['GET'])
 def get_processing_status(processing_id):
-    """Get the status of file processing"""
+    """Get the status of file processing - now with database persistence"""
     try:
+        # Try database first
+        job = job_manager.get_job(processing_id)
+        if job:
+            return jsonify(job), 200
+        
+        # LEGACY: Fallback to in-memory dict for backwards compatibility
         if processing_id in processing_status:
             return jsonify(processing_status[processing_id]), 200
-        else:
-            return jsonify({'error': 'Processing ID not found'}), 404
+        
+        return jsonify({'error': 'Processing ID not found'}), 404
     except Exception as e:
         return jsonify({'error': f'Failed to get status: {str(e)}'}), 500
 
@@ -968,7 +1052,31 @@ def upload_excel():
         # Generate processing ID for tracking
         processing_id = f"proc_{timestamp}_{hash(unique_filename) % 10000}"
         
-        # Initialize processing status
+        # Create job in database
+        job_manager.create_job(
+            job_id=processing_id,
+            filename=unique_filename,
+            original_filename=filename,
+            component='upload',
+            file_size=os.path.getsize(file_path),
+            file_rows=file_info['rows'],
+            file_columns=file_info['columns'],
+            file_info=file_info,
+            progress=10,
+            message='File uploaded successfully',
+            user_ip=request.remote_addr,
+            steps=[
+                {'name': 'upload', 'label': 'Upload', 'target': 10},
+                {'name': 'initialize', 'label': 'Initialize', 'target': 20},
+                {'name': 'read', 'label': 'Read File', 'target': 35},
+                {'name': 'standardize', 'label': 'Standardize', 'target': 55},
+                {'name': 'finalize', 'label': 'Finalize', 'target': 85},
+                {'name': 'complete', 'label': 'Complete', 'target': 100}
+            ],
+            logs=[{'ts': datetime.utcnow().isoformat() + 'Z', 'message': 'Upload received', 'progress': 10}]
+        )
+        
+        # LEGACY: Also initialize in-memory status for backwards compatibility
         processing_status[processing_id] = {
             'status': 'uploaded',
             'message': 'File uploaded successfully',
@@ -1943,13 +2051,12 @@ def api_v1_file_upload():
 
 @app.route('/api/v1/files/upload-async', methods=['POST'])
 def api_v1_file_upload_async():
-    """v1 API: Upload file for asynchronous address processing (returns processing_id for status checking)"""
+    """v1 API: Upload file for asynchronous address processing with database persistence and webhook support"""
     # Check API key for public access
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Asynchronous processing (same as original implementation)
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -1961,8 +2068,8 @@ def api_v1_file_upload_async():
         if not _allowed_file(file.filename):
             return jsonify({'error': 'File type not allowed. Use .xlsx, .xls, or .csv'}), 400
         
-        # Generate unique filename and processing ID
-        processing_id = str(uuid.uuid4())
+        # Generate unique job ID and filename
+        job_id = str(uuid.uuid4())
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_filename = secure_filename(file.filename)
         name_part, ext_part = os.path.splitext(safe_filename)
@@ -1972,52 +2079,121 @@ def api_v1_file_upload_async():
         file_path = os.path.join(app.config['INBOUND_FOLDER'], unique_filename)
         file.save(file_path)
         
-        # Get file info
+        # Get optional webhook callback URL from form data
+        callback_url = request.form.get('callback_url')
+        
+        # Get file size
         file_size = os.path.getsize(file_path)
         
-        # Start background processing
-        _update_status(processing_id, status='queued', message='File uploaded, processing queued', 
-                      filename=unique_filename, progress=0)
+        # Create job in database
+        job_manager.create_job(
+            job_id=job_id,
+            filename=unique_filename,
+            original_filename=safe_filename,
+            component='compare',
+            file_size=file_size,
+            callback_url=callback_url,
+            api_key=request.headers.get('X-API-Key'),
+            user_ip=request.remote_addr,
+            progress=0,
+            message='File uploaded, processing queued',
+            steps=[
+                {'name': 'upload', 'label': 'Upload', 'target': 10},
+                {'name': 'initialize', 'label': 'Initialize', 'target': 20},
+                {'name': 'read', 'label': 'Read File', 'target': 35},
+                {'name': 'standardize', 'label': 'Standardize', 'target': 55},
+                {'name': 'finalize', 'label': 'Finalize', 'target': 85},
+                {'name': 'complete', 'label': 'Complete', 'target': 100}
+            ],
+            logs=[{'ts': datetime.utcnow().isoformat() + 'Z', 'message': 'File uploaded', 'progress': 0}]
+        )
         
-        thread = threading.Thread(target=process_file_background, args=(processing_id, unique_filename))
+        # LEGACY: Also initialize in-memory for backwards compatibility
+        processing_status[job_id] = {
+            'status': 'queued',
+            'message': 'File uploaded, processing queued',
+            'filename': unique_filename,
+            'progress': 0
+        }
+        
+        # Start background processing
+        thread = threading.Thread(target=process_file_background, args=(job_id, unique_filename))
         thread.daemon = True
         thread.start()
         
         return jsonify({
             'success': True,
-            'processing_id': processing_id,
+            'job_id': job_id,
             'filename': unique_filename,
             'file_size': file_size,
             'status': 'queued',
-            'message': 'File uploaded successfully and processing started'
+            'message': 'File uploaded successfully and processing started',
+            'status_url': f'/api/v1/files/status/{job_id}',
+            'estimated_time_seconds': 60
         }), 200
         
     except Exception as e:
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
-@app.route('/api/v1/files/status/<processing_id>', methods=['GET'])
-def api_v1_file_status(processing_id):
-    """v1 API: Get file processing status"""
+@app.route('/api/v1/files/status/<job_id>', methods=['GET'])
+def api_v1_file_status(job_id):
+    """v1 API: Get file processing status with enhanced details from database"""
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Reuse existing status logic
-    if processing_id not in processing_status:
-        return jsonify({'error': 'Processing ID not found'}), 404
+    # Get job from database
+    job = job_manager.get_job(job_id)
+    if not job:
+        # LEGACY: Fallback to in-memory dict
+        if job_id in processing_status:
+            status_data = processing_status[job_id]
+            return jsonify({
+                'job_id': job_id,
+                'status': status_data.get('status', 'unknown'),
+                'progress': status_data.get('progress', 0),
+                'message': status_data.get('message', ''),
+                'filename': status_data.get('filename'),
+                'error': status_data.get('error'),
+                'output_file': status_data.get('output_file'),
+                'created_at': status_data.get('created_at'),
+                'finished_at': status_data.get('finished_at')
+            }), 200
+        return jsonify({'error': 'Job not found'}), 404
     
-    status_data = processing_status[processing_id]
-    return jsonify({
-        'processing_id': processing_id,
-        'status': status_data.get('status', 'unknown'),
-        'progress': status_data.get('progress', 0),
-        'message': status_data.get('message', ''),
-        'filename': status_data.get('filename'),
-        'error': status_data.get('error'),
-        'result_file': status_data.get('result_file'),
-        'created_at': status_data.get('created_at'),
-        'completed_at': status_data.get('completed_at')
-    }), 200
+    # Build response from database job
+    response = {
+        'job_id': job_id,
+        'status': job['status'],
+        'progress': job.get('progress', 0),
+        'message': job.get('message'),
+        'error': job.get('error'),
+        'filename': job.get('original_filename'),
+        'created_at': job.get('created_at'),
+        'started_at': job.get('started_at'),
+        'updated_at': job.get('updated_at'),
+        'finished_at': job.get('finished_at'),
+        'expires_at': job.get('expires_at'),
+        'steps': job.get('steps', []),
+        'logs': job.get('logs', [])[-10:]  # Last 10 logs only
+    }
+    
+    # Add download URL if completed
+    if job['status'] == 'completed' and job.get('output_file'):
+        response['download_url'] = f'/api/v1/files/download/{job["output_file"]}'
+        response['output_file'] = job['output_file']
+    
+    # Add file info if available
+    if job.get('file_info'):
+        response['file_info'] = job['file_info']
+    elif job.get('file_rows'):
+        response['file_info'] = {
+            'rows': job['file_rows'],
+            'columns': job['file_columns'],
+            'size': job.get('file_size')
+        }
+    
+    return jsonify(response), 200
 
 @app.route('/api/v1/files/download/<filename>', methods=['GET'])
 def api_v1_file_download(filename):
@@ -2035,6 +2211,76 @@ def api_v1_file_download(filename):
         return send_file(file_path, as_attachment=True, download_name=filename)
     except Exception as e:
         return jsonify({'error': f'Download failed: {str(e)}'}), 500
+
+@app.route('/api/v1/files/jobs', methods=['GET'])
+def api_v1_list_jobs():
+    """v1 API: List user's jobs with pagination"""
+    auth_valid, auth_error = _check_api_key()
+    if not auth_valid:
+        return jsonify({'error': auth_error}), 401
+    
+    try:
+        # Get query parameters
+        status = request.args.get('status')  # Filter by status (optional)
+        limit = int(request.args.get('limit', 100))
+        offset = int(request.args.get('offset', 0))
+        
+        # Get jobs from database
+        jobs = job_manager.get_jobs(status=status, limit=limit, offset=offset)
+        
+        # Format response
+        jobs_list = []
+        for job in jobs:
+            job_data = {
+                'job_id': job['job_id'],
+                'status': job['status'],
+                'filename': job['original_filename'],
+                'component': job.get('component', 'upload'),
+                'progress': job.get('progress', 0),
+                'created_at': job.get('created_at'),
+                'finished_at': job.get('finished_at'),
+                'expires_at': job.get('expires_at')
+            }
+            
+            # Add download URL if completed
+            if job['status'] == 'completed' and job.get('output_file'):
+                job_data['download_url'] = f'/api/v1/files/download/{job["output_file"]}'
+                job_data['output_file'] = job['output_file']
+            
+            # Add error if failed
+            if job['status'] in ['failed', 'error']:
+                job_data['error'] = job.get('error')
+            
+            jobs_list.append(job_data)
+        
+        return jsonify({
+            'jobs': jobs_list,
+            'count': len(jobs_list),
+            'limit': limit,
+            'offset': offset
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to list jobs: {str(e)}'}), 500
+
+@app.route('/api/v1/admin/stats', methods=['GET'])
+def api_v1_admin_stats():
+    """v1 API: Get database statistics (basic access)"""
+    try:
+        stats = job_manager.get_stats()
+        return jsonify(stats), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to get stats: {str(e)}'}), 500
+
+@app.route('/api/v1/admin/cleanup', methods=['POST'])
+def api_v1_admin_cleanup():
+    """v1 API: Cleanup expired jobs and files (basic access)"""
+    try:
+        dry_run = request.args.get('dry_run', 'false').lower() == 'true'
+        result = job_manager.cleanup_expired_jobs(dry_run=dry_run)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': f'Cleanup failed: {str(e)}'}), 500
 
 # Address Processing API endpoints  
 @app.route('/api/v1/addresses/standardize', methods=['POST'])
