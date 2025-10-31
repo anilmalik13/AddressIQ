@@ -9,11 +9,21 @@ The AddressIQ backend serves as the core processing engine for address standardi
 ## Features
 
 ### API Endpoints (v1)
+- **Async File Processing**: Upload files with asynchronous background processing and job tracking
+- **Job Management**: Track processing jobs with status monitoring and 7-day retention
 - **File Processing**: Upload and process Excel/CSV files for batch address standardization
 - **Address Standardization**: Single and batch address processing with AI-powered analysis
 - **Compare Processing**: Upload and analyze files for address comparison
 - **Database Integration**: Connect to SQL Server/Azure SQL for direct data processing
+- **Admin Tools**: Job statistics, cleanup, and management endpoints
 - **Sample Downloads**: Downloadable template files for testing and development
+
+### Job Persistence
+- **SQLite Database**: Persistent job tracking with automatic initialization
+- **Database Migration**: Automatic schema updates for existing databases
+- **Job History**: Track all processing jobs with status, component, and expiration
+- **Automatic Cleanup**: Scheduled cleanup of expired jobs (7-day retention)
+- **Webhook Support**: Optional webhook notifications for job completion
 
 ### CLI Tools
 - **CSV Processing**: Advanced command-line tools for processing address files
@@ -30,8 +40,15 @@ The AddressIQ backend serves as the core processing engine for address standardi
 ## API v1 Endpoints
 
 ### File Processing
-- `POST /api/v1/files/upload` — Upload Excel/CSV files for address processing
-- `GET /api/v1/files/status/<processing_id>` — Check file processing status
+- `POST /api/v1/files/upload` — Upload Excel/CSV files for synchronous address processing
+- `POST /api/v1/files/upload-async` — Upload files for asynchronous background processing
+  - **Body**: `file` (multipart), optional `webhook_url` (string), optional `component` (string: 'upload' or 'compare')
+  - **Response**: `{"processing_id": "abc123", "status": "processing", "job_id": 1}`
+- `GET /api/v1/files/status/<processing_id>` — Check async job processing status
+  - **Response**: Job details with status (processing/completed/failed), progress, output_file, created_at, expires_at
+- `GET /api/v1/files/jobs` — Retrieve job history with optional filtering
+  - **Query Params**: `status` (all/completed/processing/failed), `component` (upload/compare)
+  - **Response**: Array of job objects with full details
 - `GET /api/v1/files/download/<filename>` — Download processed files
 
 ### Address Standardization
@@ -46,6 +63,12 @@ The AddressIQ backend serves as the core processing engine for address standardi
   - **Table Mode**: Specify `connectionString`, `sourceType: "table"`, `tableName`, `columnNames[]`, optional `uniqueId`
   - **Query Mode**: Specify `connectionString`, `sourceType: "query"`, `query`
   - **Response**: Returns actual query results with data array, row count, columns, and success status
+
+### Admin Endpoints
+- `GET /api/v1/admin/stats` — View job statistics and metrics
+  - **Response**: Total jobs, status breakdown, component breakdown, average processing time
+- `POST /api/v1/admin/cleanup` — Manually trigger cleanup of expired jobs
+  - **Response**: Count of deleted jobs
 
 ### Sample Files
 - `GET /api/v1/samples/file-upload` — Download sample upload file template
@@ -189,6 +212,9 @@ backend/
 │   ├── config/               # Configuration files
 │   ├── models/               # Data models
 │   └── services/             # Business logic services
+├── database/                 # SQLite job database
+│   ├── job_manager.py       # Job persistence and management module
+│   └── jobs.db              # SQLite database (auto-created on first run)
 ├── inbound/                  # File upload directory
 ├── outbound/                 # Processed file output
 ├── archive/                  # Archived processed files
@@ -196,7 +222,58 @@ backend/
 └── __pycache__/             # Python cache files
 ```
 
-## Database Integration
+## Job Database
+
+### SQLite Persistence Layer
+The application uses SQLite for persistent job tracking:
+
+```python
+# Database location
+database/jobs.db  # Auto-created on first run
+
+# Schema
+CREATE TABLE jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    processing_id TEXT UNIQUE NOT NULL,
+    status TEXT NOT NULL,
+    component TEXT DEFAULT 'upload',
+    input_file TEXT NOT NULL,
+    output_file TEXT,
+    webhook_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    error_message TEXT,
+    expires_at TIMESTAMP
+)
+```
+
+### Job Manager Module
+The `database/job_manager.py` module provides:
+
+**Core Functions:**
+- `create_job(processing_id, input_file, component='upload', webhook_url=None)` - Create new job
+- `update_job_status(processing_id, status, output_file=None, error_message=None)` - Update job
+- `get_job(processing_id)` - Retrieve single job by ID
+- `get_jobs(status=None, component=None)` - List jobs with optional filtering
+- `cleanup_expired_jobs()` - Remove jobs past retention period
+- `get_job_stats()` - Get statistics on job counts and processing times
+
+**Features:**
+- Automatic database initialization on first run
+- Schema migration for existing databases (adds `component` column)
+- 7-day retention policy (configurable via `JOB_RETENTION_DAYS` env var)
+- Thread-safe operations for async processing
+- Webhook support for job completion notifications
+
+### Job Lifecycle
+1. **Creation**: Job created with `processing` status when file uploaded
+2. **Processing**: Background thread processes file
+3. **Completion**: Status updated to `completed` or `failed`
+4. **Expiration**: Jobs expire 7 days after creation
+5. **Cleanup**: Automatic cleanup removes expired jobs
+
+## Database Integration (SQL Server/Azure SQL)
 
 ### Connection String Format
 ```
@@ -258,6 +335,26 @@ Server=tcp:yourserver.database.windows.net,1433;Database=yourdatabase;User ID=us
 
 ## Configuration
 
+### Environment Variables
+Create a `.env` file with the following settings:
+```bash
+# Azure OpenAI Configuration
+CLIENT_ID=your_client_id_here
+CLIENT_SECRET=your_client_secret_here
+WSO2_AUTH_URL=https://api-test.cbre.com:443/token
+AZURE_OPENAI_DEPLOYMENT_ID=your_deployment_id
+
+# Job Retention Configuration
+JOB_RETENTION_DAYS=7  # Number of days to retain completed jobs
+```
+
+### Job Manager Configuration
+The `database/job_manager.py` module provides:
+- **Automatic Database Initialization**: Creates `jobs.db` on first run
+- **Schema Migration**: Automatically updates existing databases with new columns
+- **Job CRUD Operations**: Create, read, update, delete operations for job tracking
+- **Cleanup Scheduling**: Automatic cleanup of expired jobs based on retention policy
+
 ### Address Processing Configuration
 The system uses configurable prompts and settings in `app/config/address_config.py`:
 
@@ -271,6 +368,7 @@ The system uses configurable prompts and settings in `app/config/address_config.
 - **Maximum File Size**: 50MB default (configurable)
 - **Processing Limits**: Configurable batch sizes and record limits
 - **Output Locations**: Automatic file organization in inbound/outbound/archive
+- **Async Processing**: Background processing with threading for non-blocking operations
 
 ## Error Handling
 

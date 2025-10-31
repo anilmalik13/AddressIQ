@@ -8,8 +8,11 @@ import {
     checkProcessingStatusRequest,
     updateProcessingStatus,
     downloadProcessedFileRequest,
+    loadJobHistoryRequest,
+    loadJobHistorySuccess,
+    loadJobHistoryFailure,
 } from '../slices/fileUploadSlice';
-import { uploadExcelFile, checkProcessingStatus, downloadFile } from '../../services/api';
+import { uploadExcelFile, checkProcessingStatus, downloadFile, getJobHistory } from '../../services/api';
 import { RootState } from '../../types';
 import { AnyAction } from '@reduxjs/toolkit';
 
@@ -80,6 +83,23 @@ export const downloadFileEpic: Epic<AnyAction, AnyAction, RootState> = (action$)
                     catchError((error) => {
                         console.error('Download failed:', error);
                         return of({ type: 'DOWNLOAD_FAILURE', payload: error.message });
+                    })
+                );
+            }
+            return of();
+        })
+    );
+
+// Epic for loading full job history
+export const loadJobHistoryEpic: Epic<AnyAction, AnyAction, RootState> = (action$) =>
+    action$.pipe(
+        mergeMap((action) => {
+            if (loadJobHistoryRequest.match(action)) {
+                return from(getJobHistory()).pipe(
+                    map((jobs) => loadJobHistorySuccess(jobs)),
+                    catchError((error) => {
+                        console.error('Failed to load job history:', error);
+                        return of(loadJobHistoryFailure());
                     })
                 );
             }

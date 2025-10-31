@@ -273,6 +273,13 @@ const FileUpload: React.FC = () => {
                         )}
                     </div>
 
+                    {/* Guidance message for async processing */}
+                    {isProcessing && (
+                        <div className="guidance-message">
+                            💡 <strong>Tip:</strong> You can click Reset and continue processing other files. Completed files will appear in Processing History.
+                        </div>
+                    )}
+
                     {(uploading || isProcessing) && (
                         <div className="progress-section">
                             <div className="progress-bar">

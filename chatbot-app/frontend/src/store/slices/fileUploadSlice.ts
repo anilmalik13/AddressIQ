@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { FileUploadState, ProcessingStatus } from '../../types';
+import { FileUploadState, ProcessingStatus, Job } from '../../types';
 
 const initialState: FileUploadState = {
     uploading: false,
@@ -8,6 +8,9 @@ const initialState: FileUploadState = {
     error: null,
     processingId: null,
     processingStatus: null,
+    // Job history tracking
+    jobHistory: [],
+    loadingJobs: false,
 };
 
 const fileUploadSlice = createSlice({
@@ -55,6 +58,17 @@ const fileUploadSlice = createSlice({
             state.processingId = null;
             state.processingStatus = null;
         },
+        // Job history actions
+        loadJobHistoryRequest: (state) => {
+            state.loadingJobs = true;
+        },
+        loadJobHistorySuccess: (state, action: PayloadAction<Job[]>) => {
+            state.jobHistory = action.payload;
+            state.loadingJobs = false;
+        },
+        loadJobHistoryFailure: (state) => {
+            state.loadingJobs = false;
+        },
     },
 });
 
@@ -67,6 +81,9 @@ export const {
     updateProcessingStatus,
     downloadProcessedFileRequest,
     resetUploadState,
+    loadJobHistoryRequest,
+    loadJobHistorySuccess,
+    loadJobHistoryFailure,
 } = fileUploadSlice.actions;
 
 // Action creators for use in epics
@@ -75,5 +92,7 @@ export const checkProcessingStatus = (processingId: string) =>
 
 export const downloadProcessedFile = (filename: string) => 
     downloadProcessedFileRequest(filename);
+
+export const loadJobHistory = () => loadJobHistoryRequest();
 
 export default fileUploadSlice.reducer;

@@ -9,12 +9,14 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 ## Features
 
 ### Core Functionality
-- **Excel/CSV File Upload & Processing**: Upload and process files containing address data for batch standardization
+- **Async File Upload & Processing**: Upload Excel/CSV files with asynchronous background processing - continue working while files process
+- **Processing History**: Track and manage all file processing jobs with status monitoring, automatic cleanup, and 7-day retention
 - **Database Connect (Table/Query)**: Fetch rows directly from SQL Server/Azure SQL using connection strings, then standardize and preview results with pagination
-- **Compare Upload Processing**: Upload files for address comparison and analysis between datasets
+- **Compare Upload Processing**: Upload files for address comparison and analysis between datasets with async processing
 - **AI-Powered Address Standardization**: Advanced address parsing and standardization using Azure OpenAI with confidence scoring
 - **Single & Batch Address Processing**: Process individual addresses or multiple addresses in real-time
 - **Interactive Geographic Mapping**: Visual representation of addresses using Leaflet maps with regional filtering
+- **Job Management**: View job history, filter by status, download completed files, and monitor expiration times
 
 ### Public API
 - **RESTful API v1**: Comprehensive API endpoints for programmatic access to all features
@@ -23,12 +25,15 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 - **No Authentication Required**: Simplified access for public API endpoints
 
 ### Technical Features
+- **Asynchronous Processing**: Non-blocking file uploads with background processing using Python threading
+- **SQLite Job Database**: Persistent job tracking with automatic cleanup and database migration support
+- **Webhook Notifications**: Optional webhook callbacks for job completion events
 - **Backend CLI Tools**: Powerful CSV processor with batch modes, address comparison, and directory management
 - **Regional Analysis**: Filter and visualize addresses by region and country
 - **Modern React UI**: Responsive interface with tabbed navigation and real-time updates
-- **Redux State Management**: Comprehensive state management with Redux Toolkit
+- **Redux State Management**: Comprehensive state management with Redux Toolkit and RxJS epics
 - **WSO2 Integration**: Secure authentication through WSO2 gateway for Azure OpenAI services
-- **CBRE Branding**: Modern green theme with professional styling
+- **CBRE Branding**: Modern green theme (#003f2d) with professional styling
 
 ## Architecture
 
@@ -36,27 +41,34 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 - **React 18** with TypeScript and modern hooks
 - **Redux Toolkit** with Redux Observable for state management
 - **Main Components**:
-  - **File Upload**: Excel/CSV file processing with drag-and-drop functionality
+  - **File Upload**: Excel/CSV file processing with drag-and-drop functionality and async processing
   - **Address Processing**: Real-time individual address standardization
-  - **Compare Upload**: File comparison and analysis functionality
+  - **Compare Upload**: File comparison and analysis functionality with async processing
   - **Database Connect**: Table/Query mode to pull data from databases and run standardization pipeline with preview/download
   - **Public API**: Interactive API documentation and testing interface with accordion UI
   - **Region City Map**: Interactive geographic visualization with Leaflet
+  - **Processing History**: Full job tracking with filtering, status monitoring, and file downloads
 - **Responsive Design**: Cross-platform compatibility with tabbed navigation
 - **API Integration**: Axios-based service layer with proxy configuration
-- **CBRE Theme**: Modern green styling with professional design
+- **CBRE Theme**: Modern green styling (#003f2d) with professional design
 
 ### Backend (`/chatbot-app/backend`)
 - **Python Flask** application with modular architecture
 - **Azure OpenAI Integration** through WSO2 gateway with OAuth2 authentication
 - **Address Processing Engine**: AI-powered standardization with confidence scoring
 - **RESTful API v1**: Comprehensive endpoints for all features including:
-  - `/api/v1/files/upload` - File upload and processing
+  - `/api/v1/files/upload` - Synchronous file upload and processing
+  - `/api/v1/files/upload-async` - Asynchronous file upload with background processing
+  - `/api/v1/files/status/<processing_id>` - Check async job status
+  - `/api/v1/files/jobs` - Retrieve job history and management
   - `/api/v1/addresses/standardize` - Single address standardization
   - `/api/v1/addresses/batch-standardize` - Batch address processing
   - `/api/v1/compare/upload` - File comparison processing
   - `/api/v1/database/connect` - Database connection and processing
   - `/api/v1/samples/*` - Sample file downloads
+  - `/api/v1/admin/stats` - Job statistics and metrics
+  - `/api/v1/admin/cleanup` - Manual cleanup of expired jobs
+- **SQLite Job Persistence**: Automatic job tracking with database migration support
 - **Configuration Management**: Flexible prompt and system configuration
 - **Data Processing**: CSV handling and batch address processing capabilities
 - **Database Integration**: Support for SQL Server/Azure SQL connections
@@ -96,6 +108,9 @@ AddressIQ/
 │       │   ├── config/         # Configuration files
 │       │   ├── models/         # Data models
 │       │   └── services/       # Business logic services
+│       ├── database/           # SQLite job database
+│       │   ├── job_manager.py  # Job persistence and management
+│       │   └── jobs.db         # SQLite database (auto-created)
 │       ├── inbound/            # File upload directory
 │       ├── outbound/           # Processed file output
 │       ├── archive/            # Archived files
@@ -139,6 +154,7 @@ AddressIQ/
    - Frontend: http://localhost:3003
    - Backend API: http://localhost:5001
    - API Documentation: http://localhost:3003 (Public API tab)
+   - Processing History: http://localhost:3003 (Processing History tab)
 
 ### Using the Public API
 
@@ -148,13 +164,18 @@ AddressIQ provides a comprehensive RESTful API for programmatic access to all fe
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/files/upload` | POST | Upload Excel/CSV files for processing |
+| `/api/v1/files/upload` | POST | Upload Excel/CSV files for synchronous processing |
+| `/api/v1/files/upload-async` | POST | Upload files for async background processing |
+| `/api/v1/files/status/<processing_id>` | GET | Check status of async job |
+| `/api/v1/files/jobs` | GET | Retrieve job history (supports filtering by status/component) |
 | `/api/v1/addresses/standardize` | POST | Standardize a single address |
 | `/api/v1/addresses/batch-standardize` | POST | Standardize multiple addresses |
 | `/api/v1/compare/upload` | POST | Upload files for comparison analysis |
 | `/api/v1/database/connect` | POST | Connect to database and process addresses |
 | `/api/v1/samples/file-upload` | GET | Download sample upload file |
 | `/api/v1/samples/compare-upload` | GET | Download sample compare file |
+| `/api/v1/admin/stats` | GET | View job statistics and metrics |
+| `/api/v1/admin/cleanup` | POST | Manually trigger cleanup of expired jobs |
 
 #### Example API Usage
 
@@ -165,10 +186,27 @@ curl -X POST -H "Content-Type: application/json" \
   http://localhost:5001/api/v1/addresses/standardize
 ```
 
-**File Upload:**
+**Synchronous File Upload:**
 ```bash
 curl -X POST -F "file=@addresses.xlsx" \
   http://localhost:5001/api/v1/files/upload
+```
+
+**Asynchronous File Upload:**
+```bash
+curl -X POST -F "file=@addresses.xlsx" -F "webhook_url=https://your-webhook.com/callback" \
+  http://localhost:5001/api/v1/files/upload-async
+# Returns: {"processing_id": "abc123", "status": "processing"}
+```
+
+**Check Job Status:**
+```bash
+curl http://localhost:5001/api/v1/files/status/abc123
+```
+
+**Get Job History:**
+```bash
+curl http://localhost:5001/api/v1/files/jobs?status=completed&component=upload
 ```
 
 For complete API documentation and interactive testing, visit the **Public API** tab in the web interface.
