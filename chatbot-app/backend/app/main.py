@@ -2202,8 +2202,25 @@ def api_v1_file_download(filename):
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
     
-    # Reuse existing download logic
+    # Check if file is expired before allowing download
     try:
+        # Find job by output filename
+        all_jobs = job_manager.get_jobs(limit=1000)  # Get recent jobs
+        job_for_file = None
+        for job in all_jobs:
+            if job.get('output_file') == filename:
+                job_for_file = job
+                break
+        
+        # If job found, check expiration
+        if job_for_file:
+            expires_at = job_for_file.get('expires_at')
+            if expires_at:
+                from datetime import datetime
+                expiry_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                if datetime.utcnow() > expiry_date.replace(tzinfo=None):
+                    return jsonify({'error': 'File has expired and is no longer available for download'}), 410
+        
         file_path = OUTBOUND_FOLDER / filename
         if not file_path.exists():
             return jsonify({'error': 'File not found'}), 404

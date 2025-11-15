@@ -261,6 +261,20 @@
     font-weight: 500;
 }
 
+.expired-indicator {
+    color: #999;
+    font-size: 13px;
+    font-weight: 500;
+    font-style: italic;
+}
+
+.file-not-available-indicator {
+    color: #ff6b6b;
+    font-size: 13px;
+    font-weight: 500;
+    font-style: italic;
+}
+
 /* Dark theme support */
 [data-theme='dark'] .job-history-container {
     color: #e0e0e0;

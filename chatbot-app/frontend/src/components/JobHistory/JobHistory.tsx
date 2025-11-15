@@ -8,6 +8,7 @@ const JobHistory: React.FC = () => {
     const dispatch = useAppDispatch();
     const { jobHistory, loadingJobs } = useAppSelector((state) => state.fileUpload);
     const [filter, setFilter] = useState<string>('all');
+    const [fileNotAvailable, setFileNotAvailable] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         // Load job history on mount
@@ -21,9 +22,20 @@ const JobHistory: React.FC = () => {
     const handleDownload = async (filename: string) => {
         try {
             await downloadFile(filename);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Download failed:', error);
-            alert('Failed to download file');
+            const errorMsg = error?.response?.data?.error || error?.message || 'Failed to download file';
+            const status = error?.response?.status;
+            
+            if (status === 410) {
+                alert('This file has expired and is no longer available for download');
+            } else if (status === 404) {
+                // Mark file as not available
+                setFileNotAvailable(prev => new Set(prev).add(filename));
+                alert('File not found. It may have been deleted or is no longer available.');
+            } else {
+                alert(errorMsg);
+            }
         }
     };
 
@@ -101,6 +113,17 @@ const JobHistory: React.FC = () => {
         }
     };
 
+    const isExpired = (expiresAt?: string) => {
+        if (!expiresAt) return false;
+        try {
+            const expires = new Date(expiresAt);
+            const now = new Date();
+            return now.getTime() > expires.getTime();
+        } catch {
+            return false;
+        }
+    };
+
     const filteredJobs = filter === 'all' 
         ? jobHistory 
         : jobHistory.filter(job => job.status === filter);
@@ -115,6 +138,34 @@ const JobHistory: React.FC = () => {
                 <button onClick={handleRefresh} className="refresh-button" disabled={loadingJobs}>
                     {loadingJobs ? 'Refreshing...' : 'Refresh'}
                 </button>
+            </div>
+
+            {/* Info message about file retention and status indicators */}
+            <div style={{ 
+                background: '#e8f5e9', 
+                border: '1px solid #4caf50', 
+                borderRadius: '8px', 
+                padding: '12px 16px', 
+                margin: '16px 0',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px'
+            }}>
+                <span style={{ color: '#2e7d32', fontSize: '20px', fontWeight: 'bold' }}>ℹ️</span>
+                <div style={{ flex: 1 }}>
+                    <strong style={{ color: '#1b5e20', display: 'block', marginBottom: '6px' }}>File Retention Policy</strong>
+                    <span style={{ color: '#424242', fontSize: '13px' }}>
+                        Processed files are automatically deleted <strong>7 days</strong> after creation. 
+                        Please download your files promptly as <strong>deleted files cannot be recovered</strong>. 
+                        The "Expires" column shows the time remaining before automatic deletion.
+                    </span>
+                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#424242' }}>
+                        <strong style={{ color: '#1b5e20' }}>Status Indicators:</strong>{' '}
+                        <span style={{ color: '#4caf50' }}>Download</span> (file available) • {' '}
+                        <span style={{ color: '#999', fontStyle: 'italic' }}>Expired</span> (retention period passed) • {' '}
+                        <span style={{ color: '#ff6b6b', fontStyle: 'italic' }}>File Not Available</span> (file missing from server)
+                    </div>
+                </div>
             </div>
 
             <div className="filter-bar">
@@ -210,11 +261,21 @@ const JobHistory: React.FC = () => {
                                     </td>
                                     <td>
                                         <div className="action-buttons">
-                                            {job.status === 'completed' && job.output_file && (
+                                            {job.status === 'completed' && job.output_file && fileNotAvailable.has(job.output_file) && (
+                                                <span className="file-not-available-indicator" title="File not found on server">
+                                                    File Not Available
+                                                </span>
+                                            )}
+                                            {job.status === 'completed' && job.output_file && !fileNotAvailable.has(job.output_file) && isExpired(job.expires_at) && (
+                                                <span className="expired-indicator" title="File has expired and been deleted">
+                                                    Expired
+                                                </span>
+                                            )}
+                                            {job.status === 'completed' && job.output_file && !fileNotAvailable.has(job.output_file) && !isExpired(job.expires_at) && (
                                                 <button
                                                     onClick={() => handleDownload(job.output_file!)}
                                                     className="download-btn"
-                                                    title="Download processed file"
+                                                    title="Download processed file (expires in specified time)"
                                                 >
                                                     Download
                                                 </button>

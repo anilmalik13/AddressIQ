@@ -308,7 +308,7 @@ const CompareUpload: React.FC = () => {
             <button onClick={handleUpload} disabled={!selectedFile || uploading || !!isProcessing} className="upload-button">
               {uploading ? 'Uploading...' : isProcessing ? 'Processing...' : 'Upload & Compare'}
             </button>
-            <button onClick={handleReset} disabled={uploading || !!isProcessing} className="reset-button">Reset</button>
+            <button onClick={handleReset} disabled={uploading} className="reset-button">Reset</button>
             {isCompleted && processingStatus?.output_file && (
               <button onClick={handleDownload} className="download-button">Download Result</button>
             )}
