@@ -257,7 +257,7 @@ const FileUpload: React.FC = () => {
                         
                         <button
                             onClick={handleReset}
-                            disabled={uploading || !!isProcessing}
+                            disabled={uploading}
                             className="reset-button"
                         >
                             Reset

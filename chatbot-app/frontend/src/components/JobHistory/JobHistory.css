@@ -1,0 +1,361 @@
+.job-history-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.job-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.job-history-header h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    color: #666;
+}
+
+.job-history-header p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.refresh-button {
+    padding: 10px 20px;
+    background: #003f2d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.refresh-button:hover:not(:disabled) {
+    background: #218838;
+}
+
+.refresh-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.filter-button {
+    padding: 8px 16px;
+    background: white;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.filter-button:hover {
+    background: #e8f5e9;
+    color: #003f2d;
+}
+
+.filter-button.active {
+    background: #003f2d;
+    color: white;
+    border-color: #003f2d;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 20px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #003f2d;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    background: #f9f9f9;
+    border-radius: 12px;
+    border: 2px dashed #ddd;
+}
+
+.empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px 0;
+    color: #333;
+}
+
+.empty-state p {
+    margin: 0;
+    color: #666;
+}
+
+.jobs-table-wrapper {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0;
+    overflow-x: auto;
+}
+
+.jobs-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1000px;
+}
+
+.jobs-table thead {
+    background: #f8f9fa;
+}
+
+.jobs-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    font-size: 13px;
+    border: 1px solid #dee2e6;
+    white-space: nowrap;
+}
+
+.jobs-table tbody tr {
+    transition: background 0.2s;
+}
+
+.jobs-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.jobs-table td {
+    padding: 12px;
+    color: #495057;
+    font-size: 13px;
+    border: 1px solid #dee2e6;
+}
+
+.filename-cell {
+    max-width: 250px;
+}
+
+.filename {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    color: #495057;
+}
+
+.progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mini-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 80px;
+}
+
+.mini-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #003f2d, #28a745);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #666;
+    min-width: 35px;
+}
+
+.expires-badge {
+    padding: 4px 8px;
+    background: #fff3e0;
+    color: #f57c00;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
+    line-height: 1.4;
+}
+
+.component-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #e8f5e9;
+    color: #003f2d;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.download-btn {
+    padding: 6px 14px;
+    background: #003f2d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.download-btn:hover {
+    background: #218838;
+}
+
+.download-btn:active {
+    transform: scale(0.98);
+}
+
+.error-indicator {
+    color: #f44336;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.processing-indicator {
+    color: #ff9800;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.expired-indicator {
+    color: #999;
+    font-size: 13px;
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Dark theme support */
+[data-theme='dark'] .job-history-container {
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .job-history-header h1 {
+    color: #ffffff;
+}
+
+[data-theme='dark'] .job-history-header p {
+    color: #b0b0b0;
+}
+
+[data-theme='dark'] .filter-bar {
+    background: #2a2a2a;
+}
+
+[data-theme='dark'] .filter-button {
+    background: #3a3a3a;
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .filter-button:hover {
+    background: #1e3a5f;
+}
+
+[data-theme='dark'] .empty-state {
+    background: #2a2a2a;
+    border-color: #444;
+}
+
+[data-theme='dark'] .jobs-table-wrapper {
+    background: #2a2a2a;
+}
+
+[data-theme='dark'] .jobs-table thead {
+    background: #333;
+}
+
+[data-theme='dark'] .jobs-table th {
+    color: #e0e0e0;
+    border-bottom-color: #444;
+}
+
+[data-theme='dark'] .jobs-table tbody tr {
+    border-bottom-color: #333;
+}
+
+[data-theme='dark'] .jobs-table tbody tr:hover {
+    background: #333;
+}
+
+[data-theme='dark'] .jobs-table td {
+    color: #e0e0e0;
+}
+
+[data-theme='dark'] .mini-progress-bar {
+    background: #444;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .jobs-table {
+        font-size: 13px;
+    }
+    
+    .jobs-table th,
+    .jobs-table td {
+        padding: 12px 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    .job-history-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .filter-bar {
+        flex-wrap: wrap;
+    }
+    
+    .jobs-table-wrapper {
+        overflow-x: auto;
+    }
+    
+    .jobs-table {
+        min-width: 800px;
+    }
+}

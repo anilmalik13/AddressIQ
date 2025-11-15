@@ -41,7 +41,13 @@ const MapUpdater: React.FC<{ center: [number, number]; zoom: number }> = ({ cent
   useEffect(() => {
     // Invalidate size when component mounts or updates
     const invalidateMap = () => {
+      // Call invalidateSize multiple times to ensure map renders properly
       map.invalidateSize();
+      
+      // Additional invalidation after a short delay
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
       
       // Fly to new position smoothly if there are locations
       if (center[0] !== 20 || center[1] !== 0) {
@@ -202,6 +208,15 @@ const RegionCityMap: React.FC = () => {
       mapInitialized.current = true;
     }
   }, [locations]);
+
+  // Fix for initial map render - force invalidate size on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="region-city-map-container">

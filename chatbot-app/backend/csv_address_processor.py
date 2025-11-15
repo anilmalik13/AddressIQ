@@ -1104,11 +1104,47 @@ class CSVAddressProcessor:
                     else:
                         print(f"   ⚠️  Found cached address but it's fallback data (ID: {existing_address['id']}) - processing with AI...")
             
-            # If not in database, process with AI model
+            # NEW: Try geocoding FIRST if enabled (for incomplete addresses)
+            geocoding_result = None
+            if use_free_apis:
+                # Check if address looks incomplete (missing city, state, or zip)
+                address_lower = address_str.lower()
+                has_state_abbr = any(f' {state.lower()} ' in f' {address_lower} ' or f' {state.lower()},' in f' {address_lower} ' 
+                                    for state in ['al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'ga', 
+                                                 'hi', 'id', 'il', 'in', 'ia', 'ks', 'ky', 'la', 'me', 'md',
+                                                 'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne', 'nv', 'nh', 'nj',
+                                                 'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc',
+                                                 'sd', 'tn', 'tx', 'ut', 'vt', 'va', 'wa', 'wv', 'wi', 'wy'])
+                has_zip = any(c.isdigit() for c in address_str) and len([c for c in address_str if c.isdigit()]) >= 5
+                has_comma = ',' in address_str
+                
+                # If address appears incomplete, try geocoding first
+                if not (has_state_abbr and has_zip and has_comma):
+                    print(f"   🌐 Address appears incomplete, trying geocoding first...")
+                    
+                    if self.free_apis['nominatim']['enabled']:
+                        time.sleep(self.free_apis['nominatim']['rate_limit'])
+                        geocoding_result = self.geocode_with_nominatim(address_str)
+                        
+                        if geocoding_result.get('success'):
+                            print(f"   ✅ Geocoding found complete address: {geocoding_result.get('formatted_address', '')[:80]}")
+                            # Use geocoded address as the enriched input for AI standardization
+                            enriched_address = geocoding_result.get('formatted_address', address_str)
+                        else:
+                            print(f"   ⚠️  Geocoding failed, will process with AI only")
+                            enriched_address = address_str
+                    else:
+                        enriched_address = address_str
+                else:
+                    enriched_address = address_str
+            else:
+                enriched_address = address_str
+            
+            # Process with AI model (using enriched address if geocoding succeeded)
             print(f"   🤖 Processing with AI model...")
             if target_country:
                 print(f"   🌍 Using country-specific formatting for: {target_country}")
-            result = standardize_address(address_str, target_country)
+            result = standardize_address(enriched_address if geocoding_result and geocoding_result.get('success') else address_str, target_country)
             
             if isinstance(result, dict) and 'formatted_address' in result:
                 enhanced_result = {
@@ -1135,13 +1171,18 @@ class CSVAddressProcessor:
                     'oblast': str(result.get('oblast', '') or ''),
                     'confidence': result.get('confidence', 'unknown'),
                     'issues': ', '.join(result.get('issues', [])) if result.get('issues') else '',
-                    'api_source': 'azure_openai',
+                    'api_source': 'geocoding_then_azure_openai' if (geocoding_result and geocoding_result.get('success')) else 'azure_openai',
                     'latitude': '',
                     'longitude': '',
                     'from_cache': False
                 }
                 
-                # Try to enhance with free APIs if enabled
+                # If geocoding provided coordinates, use them
+                if geocoding_result and geocoding_result.get('success'):
+                    enhanced_result['latitude'] = geocoding_result.get('latitude', '')
+                    enhanced_result['longitude'] = geocoding_result.get('longitude', '')
+                
+                # Still try to enhance with free APIs if coordinates missing or other components missing
                 if use_free_apis:
                     enhanced_result = self.fill_missing_components_with_free_apis(address_str, enhanced_result)
                 
