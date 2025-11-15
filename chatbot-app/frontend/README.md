@@ -22,16 +22,19 @@ The AddressIQ frontend is a single-page application that provides an intuitive i
 - **CBRE Green Theme**: Professional styling with #003f2d color scheme
 - **Responsive Design**: Works across desktop and mobile devices
 - **Real-time Feedback**: Progress indicators, status updates, and error handling
+- **Smart File Management**: Automatic file availability detection with visual indicators
+- **Status Indicators**: Clear visual feedback (Download/Expired/File Not Available)
 - **Sample Downloads**: Built-in sample file downloads for testing
 
 ### Technical Features
 - **Redux State Management**: Comprehensive state management with Redux Toolkit and Redux Observable (RxJS epics)
 - **Async Processing**: Non-blocking file uploads with background job tracking and status polling
+- **File Validation**: Client-side tracking of file availability with 404/410 error detection
 - **TypeScript**: Full type safety throughout the application
 - **API Integration**: Clean service layer for backend communication with async support
 - **SQLite Job Tracking**: Persistent job history with automatic cleanup (7-day retention)
-- **Error Handling**: User-friendly error messages and recovery options
-- **Performance Optimization**: Efficient rendering and state updates
+- **Error Handling**: User-friendly error messages with specific handling for expired/missing files
+- **Performance Optimization**: Efficient rendering and state updates with map tile loading fixes
 
 ## Project Structure
 
@@ -174,11 +177,16 @@ frontend/
   - 8-column table with status monitoring
   - Component source tracking (File Upload vs Compare Upload)
   - Expiration countdown (7-day retention)
-  - Download buttons for completed files
+  - Smart download management with three status indicators:
+    - **Download** (green) - File available and not expired
+    - **Expired** (gray, italic) - File passed 7-day retention (410 status)
+    - **File Not Available** (red, italic) - File missing from server (404 status)
+  - File existence validation on download attempts
   - Refresh functionality
   - Green-themed bordered table design
-- **API Integration**: `/api/v1/files/jobs` endpoint
-- **State Management**: `jobHistorySlice.ts` with polling for active jobs
+  - Inline status legend for user guidance
+- **API Integration**: `/api/v1/files/jobs` and `/api/v1/files/download/<filename>` endpoints
+- **State Management**: `jobHistorySlice.ts` with polling for active jobs and file availability tracking
 
 ## Setup and Development
 

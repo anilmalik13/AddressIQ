@@ -11,9 +11,11 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 ### Core Functionality
 - **Async File Upload & Processing**: Upload Excel/CSV files with asynchronous background processing - continue working while files process
 - **Processing History**: Track and manage all file processing jobs with status monitoring, automatic cleanup, and 7-day retention
+- **Smart File Management**: File existence validation with three status indicators (Download/Expired/File Not Available)
 - **Database Connect (Table/Query)**: Fetch rows directly from SQL Server/Azure SQL using connection strings, then standardize and preview results with pagination
 - **Compare Upload Processing**: Upload files for address comparison and analysis between datasets with async processing
 - **AI-Powered Address Standardization**: Advanced address parsing and standardization using Azure OpenAI with confidence scoring
+- **Geocoding-First Enhancement**: Incomplete addresses automatically query Nominatim geocoding database before AI processing for complete results
 - **Single & Batch Address Processing**: Process individual addresses or multiple addresses in real-time
 - **Interactive Geographic Mapping**: Visual representation of addresses using Leaflet maps with regional filtering
 - **Job Management**: View job history, filter by status, download completed files, and monitor expiration times
@@ -27,6 +29,8 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 ### Technical Features
 - **Asynchronous Processing**: Non-blocking file uploads with background processing using Python threading
 - **SQLite Job Database**: Persistent job tracking with automatic cleanup and database migration support
+- **File Existence Validation**: Backend checks file availability before download (404/410 status codes)
+- **Smart Address Detection**: Automatically identifies incomplete addresses and applies geocoding-first approach
 - **Webhook Notifications**: Optional webhook callbacks for job completion events
 - **Backend CLI Tools**: Powerful CSV processor with batch modes, address comparison, and directory management
 - **Regional Analysis**: Filter and visualize addresses by region and country
@@ -61,7 +65,8 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
   - `/api/v1/files/upload-async` - Asynchronous file upload with background processing
   - `/api/v1/files/status/<processing_id>` - Check async job status
   - `/api/v1/files/jobs` - Retrieve job history and management
-  - `/api/v1/addresses/standardize` - Single address standardization
+  - `/api/v1/files/download/<filename>` - Download files with expiration and existence validation (returns 410 for expired, 404 for missing)
+  - `/api/v1/addresses/standardize` - Single address standardization with geocoding-first for incomplete addresses
   - `/api/v1/addresses/batch-standardize` - Batch address processing
   - `/api/v1/compare/upload` - File comparison processing
   - `/api/v1/database/connect` - Database connection and processing
@@ -244,9 +249,11 @@ For complete API documentation and interactive testing, visit the **Public API**
 
 ### 🏠 Address Standardization
 - **AI-Powered Processing**: Azure OpenAI for intelligent address parsing
+- **Geocoding-First Enhancement**: Incomplete addresses (e.g., "3506 94TH ST") automatically query Nominatim geocoding database for complete data
+- **Smart Detection**: Automatically detects incomplete addresses by checking for state abbreviations, ZIP codes, and commas
 - **Single & Batch Modes**: Process individual addresses or multiple addresses
 - **Confidence Scoring**: Quality assessment for processed addresses
-- **Global Support**: Multi-country address standardization
+- **Global Support**: Multi-country address standardization with OpenStreetMap Nominatim integration
 
 ### 📊 Compare & Analysis
 - **File Comparison**: Upload and compare address datasets

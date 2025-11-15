@@ -12,7 +12,9 @@ The AddressIQ backend serves as the core processing engine for address standardi
 - **Async File Processing**: Upload files with asynchronous background processing and job tracking
 - **Job Management**: Track processing jobs with status monitoring and 7-day retention
 - **File Processing**: Upload and process Excel/CSV files for batch address standardization
+- **File Download Validation**: Download endpoint checks file expiration (410) and existence (404) before serving files
 - **Address Standardization**: Single and batch address processing with AI-powered analysis
+- **Geocoding-First Enhancement**: Incomplete addresses automatically query Nominatim before AI processing
 - **Compare Processing**: Upload and analyze files for address comparison
 - **Database Integration**: Connect to SQL Server/Azure SQL for direct data processing
 - **Admin Tools**: Job statistics, cleanup, and management endpoints
@@ -49,7 +51,11 @@ The AddressIQ backend serves as the core processing engine for address standardi
 - `GET /api/v1/files/jobs` — Retrieve job history with optional filtering
   - **Query Params**: `status` (all/completed/processing/failed), `component` (upload/compare)
   - **Response**: Array of job objects with full details
-- `GET /api/v1/files/download/<filename>` — Download processed files
+- `GET /api/v1/files/download/<filename>` — Download processed files with validation
+  - **Returns**: File download if available
+  - **410 Gone**: File has expired (past 7-day retention)
+  - **404 Not Found**: File does not exist on server
+  - **Validation**: Checks job expiration before allowing download
 
 ### Address Standardization
 - `POST /api/v1/addresses/standardize` — Standardize a single address
@@ -79,6 +85,32 @@ The AddressIQ backend serves as the core processing engine for address standardi
 - `GET /api/processing-status/<id>` — Processing status (legacy)
 - `GET /api/preview/<filename>` — File preview (legacy)
 - `GET /api/download/<filename>` — File download (legacy)
+
+## Address Processing Enhancement
+
+### Geocoding-First Approach for Incomplete Addresses
+
+The system now intelligently handles incomplete addresses by querying geocoding databases first:
+
+**How It Works:**
+1. **Smart Detection**: Checks if address contains state abbreviations, ZIP codes, or commas
+2. **Incomplete Address Identified**: Address lacks these components (e.g., "3506 94TH ST")
+3. **Geocoding Query**: Queries OpenStreetMap Nominatim API for complete address data
+4. **AI Standardization**: Uses enriched geocoded result with Azure OpenAI for final formatting
+5. **Complete Result**: Returns full address with city, state, ZIP (like Google Maps)
+
+**Benefits:**
+- Handles partial addresses that only contain street information
+- Provides Google Maps-like address enrichment
+- Backward compatible - complete addresses skip geocoding
+- Uses free OpenStreetMap Nominatim API (1-second rate limiting)
+- Tracks source with 'geocoding_then_azure_openai' tag
+
+**Example:**
+```
+Input:  "3506 94TH ST"
+Output: "3506 94th Street, Lubbock, TX 79423, USA"
+```
 
 ## CLI Usage Guide
 
