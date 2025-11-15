@@ -16,6 +16,9 @@ import sys
 import json
 import pyodbc
 import requests  # for webhook notifications
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import atexit
 # no external encoding detector here; rely on utf-8 replacement for preview
 
 # Import database job manager
@@ -45,6 +48,67 @@ os.makedirs(SAMPLES_FOLDER, exist_ok=True)
 # DEPRECATED: In-memory storage - now using database
 # Store processing status (kept for backwards compatibility during migration)
 processing_status = {}
+
+# Initialize automatic cleanup scheduler
+scheduler = BackgroundScheduler(daemon=True)
+
+# Configuration for cleanup schedule
+CLEANUP_HOUR = int(os.getenv('CLEANUP_HOUR', '2'))  # Default: 2 AM
+CLEANUP_MINUTE = int(os.getenv('CLEANUP_MINUTE', '0'))  # Default: 0 minutes
+CLEANUP_ENABLED = os.getenv('CLEANUP_ENABLED', 'true').lower() == 'true'  # Default: enabled
+
+def automatic_cleanup_job():
+    """Background job to automatically clean up expired files and jobs"""
+    try:
+        print(f"\n🧹 [Automatic Cleanup] Starting scheduled cleanup at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        result = job_manager.cleanup_expired_jobs(dry_run=False)
+        
+        deleted_count = result.get('deleted_count', 0)
+        errors = result.get('errors', [])
+        
+        if deleted_count > 0:
+            print(f"✅ [Automatic Cleanup] Successfully deleted {deleted_count} expired job(s)")
+            print(f"   Deleted jobs: {', '.join(result.get('deleted_jobs', [])[:5])}{'...' if deleted_count > 5 else ''}")
+        else:
+            print("✅ [Automatic Cleanup] No expired jobs found")
+        
+        if errors:
+            print(f"⚠️  [Automatic Cleanup] {len(errors)} error(s) occurred:")
+            for err in errors[:3]:  # Show first 3 errors
+                print(f"   - Job {err.get('job_id')}: {err.get('error')}")
+        
+        print(f"🧹 [Automatic Cleanup] Completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        return result
+        
+    except Exception as e:
+        print(f"❌ [Automatic Cleanup] Failed: {str(e)}")
+        return {'error': str(e), 'deleted_count': 0}
+
+if CLEANUP_ENABLED:
+    # Schedule cleanup to run daily at configured time (default: 2 AM)
+    scheduler.add_job(
+        func=automatic_cleanup_job,
+        trigger=CronTrigger(hour=CLEANUP_HOUR, minute=CLEANUP_MINUTE),
+        id='automatic_cleanup',
+        name='Automatic Expired Files Cleanup',
+        replace_existing=True
+    )
+    
+    # Start the scheduler
+    scheduler.start()
+    print(f"✅ Automatic cleanup scheduler started (runs daily at {CLEANUP_HOUR:02d}:{CLEANUP_MINUTE:02d})")
+    print(f"   Next cleanup: {scheduler.get_job('automatic_cleanup').next_run_time}")
+    
+    # Run cleanup immediately on startup (in background thread to not block startup)
+    print("🚀 [Startup Cleanup] Running initial cleanup on application start...")
+    import threading
+    startup_cleanup = threading.Thread(target=automatic_cleanup_job, daemon=True)
+    startup_cleanup.start()
+    
+    # Shut down the scheduler when exiting the app
+    atexit.register(lambda: scheduler.shutdown(wait=False))
+else:
+    print("⚠️  Automatic cleanup is DISABLED (set CLEANUP_ENABLED=true to enable)")
 
 # Simple API key security for public standardization endpoint
 PUBLIC_API_KEY = os.getenv('ADDRESSIQ_PUBLIC_API_KEY')  # set in environment / .env

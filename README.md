@@ -29,6 +29,7 @@ AddressIQ is a full-stack web application that combines a React TypeScript front
 ### Technical Features
 - **Asynchronous Processing**: Non-blocking file uploads with background processing using Python threading
 - **SQLite Job Database**: Persistent job tracking with automatic cleanup and database migration support
+- **Automatic Cleanup Scheduler**: Background job runs daily at 2 AM to delete expired files (configurable)
 - **File Existence Validation**: Backend checks file availability before download (404/410 status codes)
 - **Smart Address Detection**: Automatically identifies incomplete addresses and applies geocoding-first approach
 - **Webhook Notifications**: Optional webhook callbacks for job completion events
