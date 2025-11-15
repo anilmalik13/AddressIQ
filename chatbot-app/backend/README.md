@@ -24,7 +24,8 @@ The AddressIQ backend serves as the core processing engine for address standardi
 - **SQLite Database**: Persistent job tracking with automatic initialization
 - **Database Migration**: Automatic schema updates for existing databases
 - **Job History**: Track all processing jobs with status, component, and expiration
-- **Automatic Cleanup**: Scheduled cleanup of expired jobs (7-day retention)
+- **Automatic Cleanup Scheduler**: Background job runs daily at 2 AM (configurable) to delete expired files and jobs
+- **7-Day Retention**: Files automatically expire 7 days after creation
 - **Webhook Support**: Optional webhook notifications for job completion
 
 ### CLI Tools
@@ -85,6 +86,60 @@ The AddressIQ backend serves as the core processing engine for address standardi
 - `GET /api/processing-status/<id>` — Processing status (legacy)
 - `GET /api/preview/<filename>` — File preview (legacy)
 - `GET /api/download/<filename>` — File download (legacy)
+
+## Automatic Cleanup Scheduler
+
+### Overview
+The backend includes an automatic background scheduler that cleans up expired jobs and files daily.
+
+### How It Works
+- **Schedule**: Runs daily at 2:00 AM by default (configurable)
+- **What Gets Cleaned**:
+  - Jobs past their 7-day expiration period
+  - Associated output files from `outbound/` directory
+  - Database records for expired jobs
+- **Non-blocking**: Runs in background without affecting application performance
+- **Logging**: Cleanup results are logged with statistics
+
+### Configuration (Environment Variables)
+
+```bash
+# Enable/disable automatic cleanup (default: true)
+CLEANUP_ENABLED=true
+
+# Hour to run cleanup (0-23, default: 2 for 2 AM)
+CLEANUP_HOUR=2
+
+# Minute to run cleanup (0-59, default: 0)
+CLEANUP_MINUTE=0
+
+# Job retention period in days (default: 7)
+JOB_RETENTION_DAYS=7
+```
+
+### Scheduler Details
+- **Technology**: APScheduler (BackgroundScheduler)
+- **Trigger**: CronTrigger (daily at configured time)
+- **Automatic Start**: Starts when Flask application launches
+- **Graceful Shutdown**: Automatically stops when application exits
+
+### Manual Cleanup
+You can also trigger cleanup manually via API:
+
+```bash
+# Perform actual cleanup
+curl -X POST http://localhost:5001/api/v1/admin/cleanup
+
+# Dry run (preview what would be deleted)
+curl -X POST "http://localhost:5001/api/v1/admin/cleanup?dry_run=true"
+```
+
+### Monitoring
+Check application logs for cleanup activity:
+- Cleanup start/end times
+- Number of jobs deleted
+- Any errors encountered
+- Next scheduled run time
 
 ## Address Processing Enhancement
 

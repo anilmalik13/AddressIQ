@@ -29,6 +29,7 @@ The AddressIQ frontend is a single-page application that provides an intuitive i
 ### Technical Features
 - **Redux State Management**: Comprehensive state management with Redux Toolkit and Redux Observable (RxJS epics)
 - **Async Processing**: Non-blocking file uploads with background job tracking and status polling
+- **Automatic Cleanup**: Backend scheduler automatically deletes expired files daily at 2 AM
 - **File Validation**: Client-side tracking of file availability with 404/410 error detection
 - **TypeScript**: Full type safety throughout the application
 - **API Integration**: Clean service layer for backend communication with async support

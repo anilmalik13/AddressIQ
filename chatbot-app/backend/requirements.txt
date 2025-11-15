@@ -3,12 +3,13 @@ Flask-CORS==4.0.0
 requests==2.31.0
 python-dotenv==1.0.0
 openai==1.3.7
-pyodbc==4.0.39
+pyodbc==5.2.0  # Updated for Python 3.12 compatibility
 pandas==2.2.3
 numpy>=1.24.0,<2.4.0
 werkzeug==2.3.7
 openpyxl==3.1.2
 chardet==5.2.0
+APScheduler==3.10.4  # For automatic cleanup scheduling
 
 # Database connectors (optional - install as needed)
 mysql-connector-python>=8.0.32  # For MySQL
