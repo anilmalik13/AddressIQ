@@ -4,7 +4,7 @@ export interface User {
 }
 
 export interface ProcessingStatus {
-    status: 'uploaded' | 'processing' | 'completed' | 'error';
+    status: 'uploaded' | 'queued' | 'processing' | 'completed' | 'error' | 'failed';
     message: string;
     progress: number;
     output_file?: string;
@@ -15,8 +15,24 @@ export interface ProcessingStatus {
     started_at?: string;
     updated_at?: string;
     finished_at?: string | null;
+    expires_at?: string | null;
     logs?: { ts: string; message: string; progress?: number }[];
     steps?: { name: string; label: string; target: number }[];
+}
+
+export interface Job {
+    job_id: string;
+    status: 'queued' | 'processing' | 'completed' | 'failed' | 'error';
+    filename: string;
+    component?: string;
+    progress: number;
+    created_at: string;
+    updated_at?: string;
+    finished_at?: string;
+    expires_at?: string;
+    download_url?: string;
+    output_file?: string;
+    error?: string;
 }
 
 export interface FileUploadState {
@@ -26,6 +42,9 @@ export interface FileUploadState {
     error: string | null;
     processingId: string | null;
     processingStatus: ProcessingStatus | null;
+    // Job history tracking
+    jobHistory: Job[];
+    loadingJobs: boolean;
 }
 
 export interface AddressProcessingState {

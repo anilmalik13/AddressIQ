@@ -339,4 +339,35 @@ export const downloadSampleFile = async (sampleUrl: string, filename: string) =>
     }
 };
 
+// Job History API - NEW endpoints for async job management
+export const getJobHistory = async (status?: string, limit: number = 100, offset: number = 0): Promise<any[]> => {
+    try {
+        const params: any = { limit, offset };
+        if (status) {
+            params.status = status;
+        }
+        const response = await api.get('/v1/files/jobs', { params });
+        return response.data.jobs || [];
+    } catch (error: any) {
+        console.error('Error fetching job history:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Failed to fetch job history');
+    }
+};
+
+export const getJobStats = async (): Promise<any> => {
+    try {
+        const response = await api.get('/v1/admin/stats');
+        return response.data;
+    } catch (error: any) {
+        console.error('Error fetching job stats:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Failed to fetch job statistics');
+    }
+};
+
 export default api;

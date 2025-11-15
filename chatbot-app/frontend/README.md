@@ -9,12 +9,13 @@ The AddressIQ frontend is a single-page application that provides an intuitive i
 ## Features
 
 ### Core Components
-- **File Upload Component**: Upload Excel/CSV files with drag-and-drop functionality and progress tracking
+- **File Upload Component**: Upload Excel/CSV files with drag-and-drop, async processing, and progress tracking
 - **Address Processing Component**: AI-powered address standardization with real-time processing
-- **Compare Upload Component**: File comparison and analysis functionality
+- **Compare Upload Component**: File comparison and analysis functionality with async processing
 - **Database Connect Component**: Direct database connectivity with table/query modes and preview capabilities
 - **Public API Component**: Interactive API documentation and testing interface with accordion UI
 - **Region & City Map Component**: Interactive geographic visualization with Leaflet integration
+- **Processing History Component**: Job tracking with filtering, status monitoring, and download management
 
 ### User Experience
 - **Tabbed Navigation**: Seamless navigation between different application features
@@ -24,9 +25,11 @@ The AddressIQ frontend is a single-page application that provides an intuitive i
 - **Sample Downloads**: Built-in sample file downloads for testing
 
 ### Technical Features
-- **Redux State Management**: Comprehensive state management with Redux Toolkit and Redux Observable
+- **Redux State Management**: Comprehensive state management with Redux Toolkit and Redux Observable (RxJS epics)
+- **Async Processing**: Non-blocking file uploads with background job tracking and status polling
 - **TypeScript**: Full type safety throughout the application
-- **API Integration**: Clean service layer for backend communication
+- **API Integration**: Clean service layer for backend communication with async support
+- **SQLite Job Tracking**: Persistent job history with automatic cleanup (7-day retention)
 - **Error Handling**: User-friendly error messages and recovery options
 - **Performance Optimization**: Efficient rendering and state updates
 
@@ -68,17 +71,23 @@ frontend/
     │   │   ├── PublicAPI.tsx
     │   │   ├── PublicAPI.css
     │   │   └── index.ts
+    │   ├── JobHistory/        # Processing history and job tracking
+    │   │   ├── JobHistory.tsx
+    │   │   ├── JobHistory.css
+    │   │   └── index.ts
     │   └── RegionCityMap/     # Interactive map visualization
     │       ├── RegionCityMap.tsx
     │       ├── RegionCityMap.css
     │       └── index.ts
     ├── store/                 # Redux store configuration
     │   ├── index.ts          # Store setup and configuration
+    │   ├── epics.ts          # RxJS epic configuration for async actions
     │   └── slices/           # Redux Toolkit slices
     │       ├── fileUploadSlice.ts
     │       ├── addressProcessingSlice.ts
     │       ├── compareUploadSlice.ts
     │       ├── databaseConnectSlice.ts
+    │       ├── jobHistorySlice.ts
     │       └── mapSlice.ts
     ├── services/             # API service layer
     │   └── api.ts           # Axios configuration and API calls
@@ -94,11 +103,14 @@ frontend/
 - **Purpose**: Upload Excel/CSV files for batch address processing
 - **Features**: 
   - Drag-and-drop file selection
+  - Async processing with background job tracking
   - Progress tracking with visual indicators
   - File validation (format, size)
   - Real-time processing status updates
-- **API Integration**: `/api/v1/files/upload` endpoint
-- **State Management**: `fileUploadSlice.ts`
+  - Optional webhook notifications
+  - User guidance messages
+- **API Integration**: `/api/v1/files/upload-async` endpoint (with `/api/v1/files/status` polling)
+- **State Management**: `fileUploadSlice.ts` with RxJS epic for status polling
 
 ### 🏠 Address Processing Component
 - **Purpose**: Individual address standardization and processing
@@ -113,12 +125,14 @@ frontend/
 ### 📊 Compare Upload Component
 - **Purpose**: Upload and compare address datasets
 - **Features**:
-  - File comparison functionality
+  - File comparison functionality with async processing
   - Difference analysis visualization
   - Side-by-side comparison views
   - Export comparison results
-- **API Integration**: `/api/v1/compare/upload` endpoint
-- **State Management**: `compareUploadSlice.ts`
+  - Background job tracking
+  - User guidance messages
+- **API Integration**: `/api/v1/compare/upload` endpoint (async processing supported)
+- **State Management**: `compareUploadSlice.ts` with RxJS epic for status polling
 
 ### 🗄️ Database Connect Component
 - **Purpose**: Direct database connectivity and processing
@@ -152,6 +166,19 @@ frontend/
   - Custom CBRE-styled markers
 - **API Integration**: Geocoding and coordinate services
 - **State Management**: `mapSlice.ts`
+
+### 📋 Processing History Component
+- **Purpose**: Track and manage all file processing jobs
+- **Features**:
+  - Full job history with filtering (all/completed/processing/failed)
+  - 8-column table with status monitoring
+  - Component source tracking (File Upload vs Compare Upload)
+  - Expiration countdown (7-day retention)
+  - Download buttons for completed files
+  - Refresh functionality
+  - Green-themed bordered table design
+- **API Integration**: `/api/v1/files/jobs` endpoint
+- **State Management**: `jobHistorySlice.ts` with polling for active jobs
 
 ## Setup and Development
 
@@ -214,12 +241,21 @@ REACT_APP_VERSION=1.0.0
 ## Development Guidelines
 
 ### State Management
-The application uses Redux Toolkit for state management:
+The application uses Redux Toolkit with Redux Observable for state management:
 
-- **Store Configuration**: Centralized in `store/index.ts`
+- **Store Configuration**: Centralized in `store/index.ts` with epic middleware
 - **Slices**: Feature-based state slices for each component
-- **Async Actions**: Redux Toolkit Query for API calls
+- **RxJS Epics**: Configured in `store/epics.ts` for async processing workflows
+- **Async Actions**: Redux Observable epics handle status polling and job tracking
 - **Typed Hooks**: Custom hooks for type-safe Redux usage
+
+#### Key State Slices
+- **fileUploadSlice**: File upload state with async processing and status polling
+- **compareUploadSlice**: Compare upload state with async processing
+- **jobHistorySlice**: Job tracking state with filtering and pagination
+- **addressProcessingSlice**: Single address processing state
+- **databaseConnectSlice**: Database connection and processing state
+- **mapSlice**: Map visualization state
 
 ### Component Architecture
 - **Functional Components**: All components use React hooks
@@ -232,6 +268,13 @@ The application uses Redux Toolkit for state management:
 - **Proxy Setup**: Development proxy in `setupProxy.js`
 - **Error Handling**: Consistent error handling across all API calls
 - **Response Types**: TypeScript interfaces for all API responses
+
+#### Key API Methods
+- **uploadFileAsync**: Async file upload with processing_id return
+- **checkJobStatus**: Poll job status by processing_id
+- **getJobHistory**: Retrieve job history with filtering options
+- **downloadJobResult**: Download completed job files
+- **getAdminStats**: Retrieve job statistics and metrics
 
 ### Styling Guidelines
 - **CBRE Theme**: Primary color #003f2d (CBRE green)

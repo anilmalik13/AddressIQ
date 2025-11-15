@@ -132,3 +132,9 @@ Thumbs.db
 chatbot-app/backend/outbound/
 chatbot-app/backend/archive/
 chatbot-app/backend/inbound/
+
+# Database files
+chatbot-app/backend/database/*.db
+chatbot-app/backend/database/*.db-journal
+chatbot-app/backend/database/*.db-wal
+chatbot-app/backend/database/*.db-shm

@@ -5,9 +5,10 @@ import RegionCityMap from './components/RegionCityMap';
 import PublicAPI from './components/PublicAPI/PublicAPI';
 import CompareUpload from './components/CompareUpload/CompareUpload';
 import DatabaseConnect from './components/DatabaseConnect';
+import JobHistory from './components/JobHistory/JobHistory';
 import './App.css';
 
-type ActiveView = 'upload' | 'compare' | 'processing' | 'map' | 'publicapi' | 'dbconnect';
+type ActiveView = 'upload' | 'compare' | 'processing' | 'map' | 'publicapi' | 'dbconnect' | 'jobs';
 type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
@@ -63,6 +64,9 @@ const App: React.FC = () => {
             <div style={{ display: activeView === 'dbconnect' ? 'block' : 'none' }}>
                 <DatabaseConnect />
             </div>
+            <div style={{ display: activeView === 'jobs' ? 'block' : 'none' }}>
+                <JobHistory />
+            </div>
         </>
     );
 
@@ -76,6 +80,7 @@ const App: React.FC = () => {
             { key: 'map', label: 'Map View', icon: 'map' },
             { key: 'publicapi', label: 'Public API', icon: 'api' },
             { key: 'dbconnect', label: 'Database connect', icon: 'db' },
+            { key: 'jobs', label: 'Processing History', icon: 'history' },
         ],
         []
     );
@@ -126,6 +131,13 @@ const App: React.FC = () => {
                         <ellipse cx="12" cy="5" rx="9" ry="3" />
                         <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
                         <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
+                    </svg>
+                );
+            case 'history':
+                return (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
                     </svg>
                 );
             default:
