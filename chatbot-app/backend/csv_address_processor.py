@@ -1008,9 +1008,12 @@ class CSVAddressProcessor:
         
         # Add address lines - handle multiple naming conventions
         address_line_columns = [
-            'Site_Address_Line1', 'Site_Address_line2', 'Site_Address_line3', 'Site_Address_Line4',  # Your current format
-            'Site_Address_1', 'Site_Address_2', 'Site_Address_3', 'Site_Address_4',  # Alternative format
-            'address_line1', 'address_line2', 'address_line3', 'address_line4'  # Generic format
+            # Canonical new format
+            'Site_Address_1', 'Site_Address_2', 'Site_Address_3', 'Site_Address_4',
+            # Legacy formats (accepted for backward compatibility)
+            'Site_Address_Line1', 'Site_Address_line2', 'Site_Address_line3', 'Site_Address_Line4',
+            # Generic format
+            'address_line1', 'address_line2', 'address_line3', 'address_line4'
         ]
         
         for addr_col in address_line_columns:
@@ -1018,28 +1021,28 @@ class CSVAddressProcessor:
                 address_parts.append(str(row[addr_col]).strip())
         
         # Add city - handle multiple naming conventions
-        city_columns = ['Site_City', 'City', 'city']
+        city_columns = ['Site_City', 'City', 'city']  # Canonical + generic
         for city_col in city_columns:
             if city_col in row and pd.notna(row[city_col]) and str(row[city_col]).strip() and str(row[city_col]).strip().upper() != 'NULL':
                 address_parts.append(str(row[city_col]).strip())
                 break  # Only add one city column
             
         # Add state - handle multiple naming conventions
-        state_columns = ['Site_State', 'State', 'state']
+        state_columns = ['Site_State', 'State', 'state']  # Canonical + generic
         for state_col in state_columns:
             if state_col in row and pd.notna(row[state_col]) and str(row[state_col]).strip() and str(row[state_col]).strip().upper() != 'NULL':
                 address_parts.append(str(row[state_col]).strip())
                 break  # Only add one state column
             
         # Add postal code - handle multiple naming conventions
-        postcode_columns = ['Site_PostCode', 'PostCode', 'postal_code', 'zip_code']
+        postcode_columns = ['Site_Postcode', 'Site_PostCode', 'PostCode', 'postal_code', 'zip_code']  # Canonical first
         for postcode_col in postcode_columns:
             if postcode_col in row and pd.notna(row[postcode_col]) and str(row[postcode_col]).strip() and str(row[postcode_col]).strip().upper() != 'NULL':
                 address_parts.append(str(row[postcode_col]).strip())
                 break  # Only add one postcode column
         
         # Add country - handle multiple naming conventions
-        country_columns = ['Site_country', 'Country', 'country']
+        country_columns = ['Site_Country', 'Site_country', 'Country', 'country']  # Canonical first
         for country_col in country_columns:
             if country_col in row and pd.notna(row[country_col]) and str(row[country_col]).strip() and str(row[country_col]).strip().upper() != 'NULL':
                 address_parts.append(str(row[country_col]).strip())

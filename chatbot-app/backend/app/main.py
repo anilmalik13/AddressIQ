@@ -147,21 +147,29 @@ def _validate_file_upload_headers(df: pd.DataFrame) -> dict:
     Case-insensitive comparison.
     
     Required headers:
-    - Address Line 1/Street
-    - Postcode
-    - City/Municipality
-    - Region
-    - Country
+    - Site_Name
+    - Site_Address_1
+    - Site_Address_2
+    - Site_Address_3
+    - Site_Address_4
+    - Site_City
+    - Site_State
+    - Site_Postcode
+    - Site_Country
     
     Returns:
         dict with 'valid' (bool) and 'error' (str) keys
     """
     required_headers = [
-        'Address Line 1/Street',
-        'Postcode',
-        'City/Municipality',
-        'Region',
-        'Country'
+        'Site_Name',
+        'Site_Address_1',
+        'Site_Address_2',
+        'Site_Address_3',
+        'Site_Address_4',
+        'Site_City',
+        'Site_State',
+        'Site_Postcode',
+        'Site_Country'
     ]
     
     # Get actual headers from dataframe
@@ -200,28 +208,28 @@ def _validate_compare_upload_headers(df: pd.DataFrame) -> dict:
     
     Required headers:
     - Site_Name
-    - Site_Address_Line1
-    - Site_Address_line2
-    - Site_Address_line3
-    - Site_Address_Line4
+    - Site_Address_1
+    - Site_Address_2
+    - Site_Address_3
+    - Site_Address_4
     - Site_City
     - Site_State
-    - Site_PostCode
-    - Site_country
+    - Site_Postcode
+    - Site_Country
     
     Returns:
         dict with 'valid' (bool) and 'error' (str) keys
     """
     required_headers = [
         'Site_Name',
-        'Site_Address_Line1',
-        'Site_Address_line2',
-        'Site_Address_line3',
-        'Site_Address_Line4',
+        'Site_Address_1',
+        'Site_Address_2',
+        'Site_Address_3',
+        'Site_Address_4',
         'Site_City',
         'Site_State',
-        'Site_PostCode',
-        'Site_country'
+        'Site_Postcode',
+        'Site_Country'
     ]
     
     # Get actual headers from dataframe

@@ -190,8 +190,8 @@ const FileUpload: React.FC = () => {
                     <div style={{ flex: 1 }}>
                         <strong style={{ color: '#e65100', display: 'block', marginBottom: '4px' }}>Required File Headers</strong>
                         <span style={{ color: '#424242', fontSize: '13px' }}>
-                            Your file must contain these columns (case-insensitive): 
-                            <strong> Address Line 1/Street, Postcode, City/Municipality, Region, Country</strong>. Download the sample file to see the correct format.
+                            Your file must contain these columns (case-insensitive):
+                            <strong> Site_Name, Site_Address_1, Site_Address_2, Site_Address_3, Site_Address_4, Site_City, Site_State, Site_Postcode, Site_Country</strong>. Download the sample file to see the correct format.
                         </span>
                     </div>
                 </div>
