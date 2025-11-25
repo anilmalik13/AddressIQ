@@ -10,6 +10,7 @@ werkzeug==2.3.7
 openpyxl==3.1.2
 chardet==5.2.0
 APScheduler==3.10.4  # For automatic cleanup scheduling
+flasgger==0.9.7.1  # Swagger UI for API documentation
 
 # Database connectors (optional - install as needed)
 mysql-connector-python>=8.0.32  # For MySQL
