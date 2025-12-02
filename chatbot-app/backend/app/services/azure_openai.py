@@ -67,8 +67,9 @@ def get_access_token():
     else:
         raise Exception(f'Failed to obtain access token: {response.text}')
 
-def connect_wso2(access_token, user_content: str, system_prompt: str = None, prompt_type: str = "general", max_tokens: int = None):
-    deployment_id = os.getenv("AZURE_OPENAI_DEPLOYMENT_ID", "AOAIsharednonprodgpt35turbo16k")
+def connect_wso2(access_token, user_content: str, system_prompt: str = None, prompt_type: str = "general", max_tokens: int = None, model: str = None):
+    # Use provided model or fallback to environment variable
+    deployment_id = model if model else os.getenv("AZURE_OPENAI_DEPLOYMENT_ID", "gpt4omni")
     api_version = '2024-02-15-preview'
     proxy_url = 'https://api-test.cbre.com:443/t/digitaltech_us_edp/cbreopenaiendpoint/1/openai/deployments/{deployment_id}/chat/completions'
     url_variable = proxy_url.format(deployment_id=deployment_id)
@@ -329,7 +330,7 @@ def ensure_unicode_safe_content(content: str) -> str:
         # Replace problematic characters with safe alternatives
         return content.encode('utf-8', errors='replace').decode('utf-8')
 
-def standardize_address(raw_address: str, target_country: str = None):
+def standardize_address(raw_address: str, target_country: str = None, model: str = None):
     """
     Convenience function specifically for address standardization with optional country-specific formatting
     
@@ -358,7 +359,8 @@ def standardize_address(raw_address: str, target_country: str = None):
         response = connect_wso2(
             access_token=access_token,
             user_content=enhanced_content,
-            prompt_type="address_standardization"
+            prompt_type="address_standardization",
+            model=model
         )
         
         # Extract the content from OpenAI response
@@ -415,7 +417,7 @@ def standardize_address(raw_address: str, target_country: str = None):
     except Exception as e:
         return {"error": str(e)}
 
-def standardize_multiple_addresses(address_list: list, target_country: str = None, use_batch: bool = True):
+def standardize_multiple_addresses(address_list: list, target_country: str = None, use_batch: bool = True, model: str = None):
     """
     Standardize multiple addresses efficiently using batch processing
     
@@ -423,6 +425,7 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
         address_list (list): List of raw address strings
         target_country (str, optional): Target country for country-specific formatting
         use_batch (bool): Whether to use batch processing (True) or individual calls (False)
+        model (str, optional): AI model to use for standardization
         
     Returns:
         list: List of standardized addresses with input_index for matching
@@ -439,7 +442,7 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
         print(f"🔄 Processing {len(address_list)} addresses individually...")
         standardized_addresses = []
         for i, address in enumerate(address_list):
-            result = standardize_address(address, target_country)
+            result = standardize_address(address, target_country, model)
             result['input_index'] = i  # Add index for matching
             standardized_addresses.append(result)
         return standardized_addresses
@@ -456,7 +459,7 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
         
         try:
             # Process this batch
-            batch_results = _process_address_batch(batch_addresses, target_country, batch_start)
+            batch_results = _process_address_batch(batch_addresses, target_country, batch_start, model)
             all_results.extend(batch_results)
             
         except Exception as e:
@@ -464,7 +467,7 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
             # Fallback to individual processing for this batch
             for i, address in enumerate(batch_addresses):
                 try:
-                    result = standardize_address(address, target_country)
+                    result = standardize_address(address, target_country, model)
                     result['input_index'] = batch_start + i
                     all_results.append(result)
                 except Exception as individual_error:
@@ -482,7 +485,7 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
     print(f"✅ Batch processing completed: {len(all_results)} addresses processed")
     return all_results
 
-def _process_address_batch(address_list: list, target_country: str = None, batch_offset: int = 0):
+def _process_address_batch(address_list: list, target_country: str = None, batch_offset: int = 0, model: str = None):
     """
     Process a batch of addresses in a single API call
     
@@ -490,6 +493,7 @@ def _process_address_batch(address_list: list, target_country: str = None, batch
         address_list (list): List of addresses in this batch
         target_country (str, optional): Target country for formatting
         batch_offset (int): Offset for input_index calculation
+        model (str, optional): AI model to use
         
     Returns:
         list: List of standardized addresses
@@ -525,7 +529,8 @@ def _process_address_batch(address_list: list, target_country: str = None, batch
             access_token=access_token,
             user_content=enhanced_content,
             system_prompt=system_prompt,
-            max_tokens=3000  # Higher token limit for batch processing to handle 5 addresses
+            max_tokens=3000,  # Higher token limit for batch processing to handle 5 addresses
+            model=model
         )
         
         # Extract and parse the batch response

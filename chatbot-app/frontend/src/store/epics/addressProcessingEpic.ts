@@ -16,9 +16,9 @@ export const processAddressEpic: Epic<AnyAction, AnyAction, RootState> = (action
     action$.pipe(
         mergeMap((action) => {
             if (processAddressRequest.match(action)) {
-                const address = action.payload;
+                const { address, model } = action.payload;
                 // Single address mode
-                return from(processAddress(address)).pipe(
+                return from(processAddress(address, model)).pipe(
                     map((result) => processAddressSuccess({
                         processedAddress: result.processedAddress || address,
                         components: result.components || {},
@@ -31,8 +31,8 @@ export const processAddressEpic: Epic<AnyAction, AnyAction, RootState> = (action
                     ))
                 );
             } else if (processAddressesRequest.match(action)) {
-                const addresses = action.payload;
-                return from(processAddresses(addresses)).pipe(
+                const { addresses, model } = action.payload;
+                return from(processAddresses(addresses, model)).pipe(
                     map((results) => processAddressesSuccess(results)),
                     catchError((error) => of(processAddressFailure(error.message || 'Multi-address processing failed'))),
                     takeUntil(action$.pipe(
