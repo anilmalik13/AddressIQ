@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { uploadFileRequest, uploadFileFailure, resetUploadState, checkProcessingStatus, downloadProcessedFile } from '../../store/slices/fileUploadSlice';
-import { downloadSampleFile } from '../../services/api';
+import { downloadSampleFile, getAvailableModels, AIModel } from '../../services/api';
 import './FileUpload.css';
 
 // Human-readable file size formatter to avoid showing 0.00 MB for small files
@@ -22,9 +22,38 @@ const FileUpload: React.FC = () => {
         (state) => state.fileUpload
     );
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
+    const [selectedModel, setSelectedModel] = useState<string>('');
+    const [loadingModels, setLoadingModels] = useState<boolean>(true);
     // Use a ref for the polling interval to avoid triggering re-renders
     const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // Fetch available models on mount
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                setLoadingModels(true);
+                const { models, default_model } = await getAvailableModels();
+                setAvailableModels(models);
+                setSelectedModel(default_model);
+            } catch (error) {
+                console.error('Failed to fetch models:', error);
+                // Set default fallback
+                setAvailableModels([
+                    {
+                        id: 'gpt4omni',
+                        displayName: 'GPT-4 Omni',
+                        description: 'Advanced AI model for address standardization'
+                    }
+                ]);
+                setSelectedModel('gpt4omni');
+            } finally {
+                setLoadingModels(false);
+            }
+        };
+        fetchModels();
+    }, []);
 
     // Start polling for processing status when we get a processing ID
     useEffect(() => {
@@ -110,10 +139,10 @@ const FileUpload: React.FC = () => {
     }, [error]);
 
     const handleUpload = useCallback(() => {
-        if (selectedFile) {
-            dispatch(uploadFileRequest(selectedFile));
+        if (selectedFile && selectedModel) {
+            dispatch(uploadFileRequest({ file: selectedFile, model: selectedModel }));
         }
-    }, [dispatch, selectedFile]);
+    }, [dispatch, selectedFile, selectedModel]);
 
     const handleReset = useCallback(() => {
         setSelectedFile(null);
@@ -245,6 +274,81 @@ const FileUpload: React.FC = () => {
                             <p><strong>Size:</strong> {formatFileSize(selectedFile.size)}</p>
                         </div>
                     )}
+
+                    {/* Model Selection - Modern Inline Design */}
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px',
+                        padding: '8px 12px',
+                        background: '#f8f9fa',
+                        borderRadius: '6px',
+                        border: '1px solid #e9ecef'
+                    }}>
+                        <span style={{ 
+                            fontSize: '16px',
+                            lineHeight: '1'
+                        }}>🤖</span>
+                        <span style={{ 
+                            fontSize: '12px', 
+                            color: '#6c757d',
+                            fontWeight: '500',
+                            whiteSpace: 'nowrap'
+                        }}>Model:</span>
+                        <select
+                            value={selectedModel}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            disabled={uploading || !!isProcessing || loadingModels}
+                            style={{
+                                flex: 1,
+                                padding: '4px 8px',
+                                fontSize: '12px',
+                                border: '1px solid #dee2e6',
+                                borderRadius: '4px',
+                                backgroundColor: uploading || !!isProcessing ? '#e9ecef' : 'white',
+                                cursor: uploading || !!isProcessing || loadingModels ? 'not-allowed' : 'pointer',
+                                color: '#212529',
+                                fontWeight: '500',
+                                outline: 'none',
+                                transition: 'all 0.2s ease',
+                                appearance: 'none',
+                                backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23495057\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E")',
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'right 8px center',
+                                paddingRight: '30px'
+                            }}
+                            onMouseEnter={(e) => { 
+                                if (!uploading && !isProcessing && !loadingModels) {
+                                    e.currentTarget.style.borderColor = '#adb5bd';
+                                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.1)';
+                                }
+                            }}
+                            onMouseLeave={(e) => { 
+                                e.currentTarget.style.borderColor = '#dee2e6';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                            onFocus={(e) => { 
+                                if (!uploading && !isProcessing) {
+                                    e.currentTarget.style.borderColor = '#007bff';
+                                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.15)';
+                                }
+                            }}
+                            onBlur={(e) => {
+                                e.currentTarget.style.borderColor = '#dee2e6';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        >
+                            {loadingModels ? (
+                                <option>Loading...</option>
+                            ) : (
+                                availableModels.map((model) => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.displayName}
+                                    </option>
+                                ))
+                            )}
+                        </select>
+                    </div>
 
                     <div className="button-group">
                         <button

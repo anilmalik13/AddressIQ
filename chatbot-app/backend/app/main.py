@@ -379,9 +379,85 @@ def health_check():
             '/api/process-addresses',
             '/api/public/standardize',
             '/api/coordinates',
-            '/api/countries'
+            '/api/countries',
+            '/api/models'
         ]
     }), 200
+
+# AI Model Management
+def _load_ai_models():
+    """Load AI models configuration from JSON file"""
+    try:
+        config_path = Path(__file__).parent / 'config' / 'ai_models.json'
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        return config
+    except Exception as e:
+        print(f"⚠️ Failed to load AI models configuration: {e}")
+        # Return default configuration
+        return {
+            'models': [
+                {
+                    'id': 'gpt4omni',
+                    'name': 'GPT-4 Omni',
+                    'displayName': 'GPT-4 Omni',
+                    'provider': 'azure_openai',
+                    'description': 'Advanced AI model for address standardization',
+                    'enabled': True
+                }
+            ],
+            'default_model': 'gpt4omni'
+        }
+
+def _validate_model(model_id: str) -> dict:
+    """
+    Validate if the provided model ID is valid and enabled.
+    Returns dict with 'valid' (bool), 'error' (str), and 'model_config' (dict) keys.
+    """
+    if not model_id:
+        return {'valid': False, 'error': 'Model ID is required', 'model_config': None}
+    
+    config = _load_ai_models()
+    models = config.get('models', [])
+    
+    # Find the model by ID
+    model_config = None
+    for model in models:
+        if model.get('id') == model_id:
+            model_config = model
+            break
+    
+    if not model_config:
+        return {'valid': False, 'error': f'Invalid model ID: {model_id}', 'model_config': None}
+    
+    if not model_config.get('enabled', False):
+        return {'valid': False, 'error': f'Model is disabled: {model_id}', 'model_config': None}
+    
+    return {'valid': True, 'error': None, 'model_config': model_config}
+
+@app.route('/api/models', methods=['GET'])
+def get_ai_models():
+    """Get list of available AI models (only returns display names and IDs, not internal config)"""
+    try:
+        config = _load_ai_models()
+        models = config.get('models', [])
+        
+        # Filter enabled models and return only safe fields
+        available_models = []
+        for model in models:
+            if model.get('enabled', False):
+                available_models.append({
+                    'id': model.get('id'),
+                    'displayName': model.get('displayName'),
+                    'description': model.get('description', '')
+                })
+        
+        return jsonify({
+            'models': available_models,
+            'default_model': config.get('default_model', 'gpt4omni')
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch models: {str(e)}'}), 500
 
 # Basic request logging to help debug proxy path issues
 @app.before_request
@@ -738,7 +814,7 @@ def upload_excel_redirect():
         'debug_info': 'The proxy configuration may not be working correctly'
     }), 404
 
-def process_file_background(processing_id, filename):
+def process_file_background(processing_id, filename, model_id=None):
     """Process the uploaded file in-process using CSVAddressProcessor for better progress feedback."""
     try:
         inbound_file = INBOUND_FOLDER / filename
@@ -748,7 +824,7 @@ def process_file_background(processing_id, filename):
 
         _update_status(processing_id, status='processing', message='Initializing processor...', progress=20, log='Processor initialization')
 
-        processor = CSVAddressProcessor(base_directory=str(BASE_DIR))
+        processor = CSVAddressProcessor(base_directory=str(BASE_DIR), model=model_id)
         _update_status(processing_id, message='Reading input file...', progress=35, log='Reading input file')
         time.sleep(0.15)
 
@@ -765,7 +841,7 @@ def process_file_background(processing_id, filename):
     except Exception as e:
         _update_status(processing_id, status='error', message='Processing failed with error', progress=100, error=str(e), log=f'Exception: {e}')
 
-def process_compare_background(processing_id, filename):
+def process_compare_background(processing_id, filename, model_id=None):
     """Run batch compare across inbound via subprocess and detect produced outbound file."""
     try:
         inbound_file = INBOUND_FOLDER / filename
@@ -788,6 +864,11 @@ def process_compare_background(processing_id, filename):
             '--compare-csv',
             '--batch-size', '5'
         ]
+        
+        # Add model parameter if provided
+        if model_id:
+            cmd.extend(['--model', model_id])
+        
         try:
             recent_lines = []
             child_env = os.environ.copy()
@@ -1053,6 +1134,20 @@ def upload_excel():
         if not allowed_file(file.filename):
             return jsonify({'error': 'Invalid file type. Please upload Excel (.xlsx, .xls) or CSV files.'}), 400
         
+        # Get and validate model parameter
+        model_id = request.form.get('model')
+        if not model_id:
+            # Use default model if not provided
+            config = _load_ai_models()
+            model_id = config.get('default_model', 'gpt4omni')
+        
+        # Validate model
+        model_validation = _validate_model(model_id)
+        if not model_validation['valid']:
+            return jsonify({'error': model_validation['error']}), 400
+        
+        model_config = model_validation['model_config']
+        
         # Generate secure filename with timestamp
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -1175,7 +1270,7 @@ def upload_excel():
         # Start batch processing in background thread
         thread = threading.Thread(
             target=process_file_background,
-            args=(processing_id, unique_filename)
+            args=(processing_id, unique_filename, model_id)
         )
         thread.daemon = True
         thread.start()
@@ -1185,7 +1280,8 @@ def upload_excel():
             'message': f'File uploaded successfully! Processing started.',
             'processing_id': processing_id,
             'filename': unique_filename,
-            'file_info': file_info
+            'file_info': file_info,
+            'model': model_config.get('displayName')
         }), 200
         
     except Exception as e:
@@ -1202,6 +1298,20 @@ def upload_compare():
             return jsonify({'error': 'No file selected'}), 400
         if not allowed_file(file.filename):
             return jsonify({'error': 'Invalid file type. Please upload Excel (.xlsx, .xls) or CSV files.'}), 400
+
+        # Get and validate model parameter
+        model_id = request.form.get('model')
+        if not model_id:
+            # Use default model if not provided
+            config = _load_ai_models()
+            model_id = config.get('default_model', 'gpt4omni')
+        
+        # Validate model
+        model_validation = _validate_model(model_id)
+        if not model_validation['valid']:
+            return jsonify({'error': model_validation['error']}), 400
+        
+        model_config = model_validation['model_config']
 
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -1289,7 +1399,7 @@ def upload_compare():
             ]
         }
 
-        thread = threading.Thread(target=process_compare_background, args=(processing_id, unique_filename))
+        thread = threading.Thread(target=process_compare_background, args=(processing_id, unique_filename, model_id))
         thread.daemon = True
         thread.start()
 
@@ -1297,7 +1407,8 @@ def upload_compare():
             'message': 'Comparison started',
             'processing_id': processing_id,
             'filename': unique_filename,
-            'file_info': file_info
+            'file_info': file_info,
+            'model': model_config.get('displayName')
         }), 200
     except Exception as e:
         return jsonify({'error': f'Upload compare failed: {str(e)}'}), 500
@@ -1312,13 +1423,25 @@ def process_address():
         if not address:
             return jsonify({'error': 'Address is required'}), 400
         
+        # Get and validate model parameter
+        model_id = data.get('model')
+        if not model_id:
+            # Use default model if not provided
+            config = _load_ai_models()
+            model_id = config.get('default_model', 'gpt4omni')
+        
+        # Validate model
+        model_validation = _validate_model(model_id)
+        if not model_validation['valid']:
+            return jsonify({'error': model_validation['error']}), 400
+        
         # Import the CSV processor to use its address standardization
         import sys
         import os
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from csv_address_processor import CSVAddressProcessor
         
-        processor = CSVAddressProcessor()
+        processor = CSVAddressProcessor(model=model_id)
         result = processor.standardize_single_address(address, 0)  # row_index 0 for single address
         
         # Check if Azure OpenAI processing was successful
@@ -1393,10 +1516,22 @@ def process_addresses():
         if not addresses or not isinstance(addresses, list):
             return jsonify({'error': 'addresses (list) is required'}), 400
 
+        # Get and validate model parameter
+        model_id = data.get('model')
+        if not model_id:
+            # Use default model if not provided
+            config = _load_ai_models()
+            model_id = config.get('default_model', 'gpt4omni')
+        
+        # Validate model
+        model_validation = _validate_model(model_id)
+        if not model_validation['valid']:
+            return jsonify({'error': model_validation['error']}), 400
+
         import sys, os
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from csv_address_processor import CSVAddressProcessor
-        processor = CSVAddressProcessor()
+        processor = CSVAddressProcessor(model=model_id)
 
         results = []
         for idx, raw in enumerate(addresses):

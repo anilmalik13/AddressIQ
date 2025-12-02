@@ -53,12 +53,15 @@ class CSVAddressProcessor:
     9. Manage inbound/outbound directories automatically
     """
     
-    def __init__(self, base_directory: str = None):
+    def __init__(self, base_directory: str = None, model: str = None):
         # Set up directory structure
         self.base_directory = Path(base_directory) if base_directory else Path.cwd()
         self.inbound_dir = self.base_directory / "inbound"
         self.outbound_dir = self.base_directory / "outbound"
         self.archive_dir = self.base_directory / "archive"
+        
+        # Store model configuration
+        self.model = model or 'gpt4omni'  # Default model if not specified
         
         # Create directories if they don't exist
         self.setup_directories()
@@ -1147,7 +1150,7 @@ class CSVAddressProcessor:
             print(f"   🤖 Processing with AI model...")
             if target_country:
                 print(f"   🌍 Using country-specific formatting for: {target_country}")
-            result = standardize_address(enriched_address if geocoding_result and geocoding_result.get('success') else address_str, target_country)
+            result = standardize_address(enriched_address if geocoding_result and geocoding_result.get('success') else address_str, target_country, self.model)
             
             if isinstance(result, dict) and 'formatted_address' in result:
                 enhanced_result = {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { uploadCompareFile, checkProcessingStatus, downloadFile, previewResultFile, downloadSampleFile } from '../../services/api';
+import { uploadCompareFile, checkProcessingStatus, downloadFile, previewResultFile, downloadSampleFile, getAvailableModels, AIModel } from '../../services/api';
 import '../FileUpload/FileUpload.css';
 import './CompareUpload.css';
 
@@ -25,8 +25,37 @@ const CompareUpload: React.FC = () => {
   const [preview, setPreview] = useState<{columns: string[]; rows: any[]; rowCount: number; page?: number; pageSize?: number; totalRows?: number} | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [loadingModels, setLoadingModels] = useState<boolean>(true);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Fetch available models on mount
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        setLoadingModels(true);
+        const { models, default_model } = await getAvailableModels();
+        setAvailableModels(models);
+        setSelectedModel(default_model);
+      } catch (error) {
+        console.error('Failed to fetch models:', error);
+        // Set default fallback
+        setAvailableModels([
+          {
+            id: 'gpt4omni',
+            displayName: 'GPT-4 Omni',
+            description: 'Advanced AI model for address standardization'
+          }
+        ]);
+        setSelectedModel('gpt4omni');
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+    fetchModels();
+  }, []);
 
   useEffect(() => {
     const done = ['completed', 'error'];
@@ -80,11 +109,11 @@ const CompareUpload: React.FC = () => {
   }, []);
 
   const handleUpload = useCallback(async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !selectedModel) return;
     try {
       setUploading(true);
       setError(null);
-      const res = await uploadCompareFile(selectedFile, (p) => setUploadProgress(p));
+      const res = await uploadCompareFile(selectedFile, selectedModel, (p) => setUploadProgress(p));
       setProcessingId(res.processing_id);
       setUploadProgress(100);
     } catch (e: any) {
@@ -107,7 +136,7 @@ const CompareUpload: React.FC = () => {
     } finally {
       setUploading(false);
     }
-  }, [selectedFile]);
+  }, [selectedFile, selectedModel]);
 
   const handleReset = useCallback(() => {
     setSelectedFile(null);
@@ -303,6 +332,81 @@ const CompareUpload: React.FC = () => {
               <p><strong>Size:</strong> {formatFileSize(selectedFile.size)}</p>
             </div>
           )}
+
+          {/* Model Selection - Modern Inline Design */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px',
+            padding: '8px 12px',
+            background: '#f8f9fa',
+            borderRadius: '6px',
+            border: '1px solid #e9ecef'
+          }}>
+            <span style={{ 
+              fontSize: '16px',
+              lineHeight: '1'
+            }}>🤖</span>
+            <span style={{ 
+              fontSize: '12px', 
+              color: '#6c757d',
+              fontWeight: '500',
+              whiteSpace: 'nowrap'
+            }}>Model:</span>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={uploading || !!isProcessing || loadingModels}
+              style={{
+                flex: 1,
+                padding: '4px 8px',
+                fontSize: '12px',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+                backgroundColor: uploading || !!isProcessing ? '#e9ecef' : 'white',
+                cursor: uploading || !!isProcessing || loadingModels ? 'not-allowed' : 'pointer',
+                color: '#212529',
+                fontWeight: '500',
+                outline: 'none',
+                transition: 'all 0.2s ease',
+                appearance: 'none',
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23495057\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 8px center',
+                paddingRight: '30px'
+              }}
+              onMouseEnter={(e) => { 
+                if (!uploading && !isProcessing && !loadingModels) {
+                  e.currentTarget.style.borderColor = '#adb5bd';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.1)';
+                }
+              }}
+              onMouseLeave={(e) => { 
+                e.currentTarget.style.borderColor = '#dee2e6';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+              onFocus={(e) => { 
+                if (!uploading && !isProcessing) {
+                  e.currentTarget.style.borderColor = '#007bff';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.15)';
+                }
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = '#dee2e6';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              {loadingModels ? (
+                <option>Loading...</option>
+              ) : (
+                availableModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.displayName}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
 
           <div className="button-group">
             <button onClick={handleUpload} disabled={!selectedFile || uploading || !!isProcessing} className="upload-button">
