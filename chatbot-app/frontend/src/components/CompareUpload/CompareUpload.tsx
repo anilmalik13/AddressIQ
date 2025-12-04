@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { uploadCompareFile, checkProcessingStatus, downloadFile, previewResultFile, downloadSampleFile } from '../../services/api';
-import '../FileUpload/FileUpload.css';
+import { uploadCompareFile, checkProcessingStatus, downloadFile, previewResultFile, downloadSampleFile, getAvailableModels, AIModel } from '../../services/api';
+import '../../styles/shared.css';
 import './CompareUpload.css';
 
 // Human-readable file size formatter to avoid showing 0.00 MB for small files
@@ -25,8 +25,37 @@ const CompareUpload: React.FC = () => {
   const [preview, setPreview] = useState<{columns: string[]; rows: any[]; rowCount: number; page?: number; pageSize?: number; totalRows?: number} | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [loadingModels, setLoadingModels] = useState<boolean>(true);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Fetch available models on mount
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        setLoadingModels(true);
+        const { models, default_model } = await getAvailableModels();
+        setAvailableModels(models);
+        setSelectedModel(default_model);
+      } catch (error) {
+        console.error('Failed to fetch models:', error);
+        // Set default fallback
+        setAvailableModels([
+          {
+            id: 'gpt4omni',
+            displayName: 'GPT-4 Omni',
+            description: 'Advanced AI model for address standardization'
+          }
+        ]);
+        setSelectedModel('gpt4omni');
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+    fetchModels();
+  }, []);
 
   useEffect(() => {
     const done = ['completed', 'error'];
@@ -84,7 +113,7 @@ const CompareUpload: React.FC = () => {
     try {
       setUploading(true);
       setError(null);
-      const res = await uploadCompareFile(selectedFile, (p) => setUploadProgress(p));
+      const res = await uploadCompareFile(selectedFile, selectedModel, (p) => setUploadProgress(p));
       setProcessingId(res.processing_id);
       setUploadProgress(100);
     } catch (e: any) {
@@ -107,7 +136,7 @@ const CompareUpload: React.FC = () => {
     } finally {
       setUploading(false);
     }
-  }, [selectedFile]);
+  }, [selectedFile, selectedModel]);
 
   const handleReset = useCallback(() => {
     setSelectedFile(null);
@@ -211,259 +240,306 @@ const CompareUpload: React.FC = () => {
   const recentLogs = (processingStatus?.logs || []).slice(-5).reverse();
 
   return (
-    <div className="file-upload-container">
-      <div className="file-upload-card">
-        <h1>Batch Compare Upload</h1>
-        <p>Upload your Excel (.xlsx, .xls) or CSV (.csv) file to run address comparison. The transformed file will be available to download.</p>
-        
-        <div className="info-note" style={{ 
-          background: '#e3f2fd', 
-          border: '1px solid #2196f3', 
-          borderRadius: '8px', 
-          padding: '12px 16px', 
-          margin: '16px 0',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '10px'
-        }}>
-          <span style={{ color: '#1976d2', fontSize: '20px', fontWeight: 'bold' }}>ℹ️</span>
-          <div style={{ flex: 1 }}>
-            <strong style={{ color: '#1565c0', display: 'block', marginBottom: '4px' }}>Processing Information</strong>
-            <span style={{ color: '#424242', fontSize: '14px' }}>
-              Records are processed in batches of 5 for optimal performance. Your entire file will be processed regardless of size, 
-              but the comparison operations are performed on 5 records at a time. Processing time varies and directly depends upon the number of records in your file.
-            </span>
-          </div>
-        </div>
+    <div className="modern-container">
+      {/* Hero Section */}
+      <div className="modern-hero">
+        <div className="modern-hero-icon">⚖️</div>
+        <h1 className="modern-hero-title">Batch Compare Upload</h1>
+        <p className="modern-hero-subtitle">Upload your file to run intelligent address comparison and standardization</p>
+      </div>
 
-        <div className="info-note" style={{ 
-          background: '#fff3e0', 
-          border: '1px solid #ff9800', 
-          borderRadius: '8px', 
-          padding: '12px 16px', 
-          margin: '16px 0',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '10px'
-        }}>
-          <span style={{ color: '#f57c00', fontSize: '20px', fontWeight: 'bold' }}>⚠️</span>
-          <div style={{ flex: 1 }}>
-            <strong style={{ color: '#e65100', display: 'block', marginBottom: '4px' }}>Required File Headers</strong>
-            <span style={{ color: '#424242', fontSize: '13px' }}>
-              Your file must contain these columns (case-insensitive): 
-              <strong> Site_Name, Site_Address_1, Site_Address_2, Site_Address_3, Site_Address_4, 
-              Site_City, Site_State, Site_Postcode, Site_Country</strong>. Download the sample file to see the correct format.
-            </span>
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <button 
-            onClick={handleDownloadSample}
-            style={{ 
-              background: 'none',
-              border: 'none',
-              color: '#1976d2', 
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              padding: 0,
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
-            onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
-          >
-            📥 Download Sample Compare File
-          </button>
-        </div>
-
-        <div className="upload-section">
-          <div className="file-input-wrapper">
-            <input
-              ref={fileInputRef}
-              type="file"
-              id="compare-file-input"
-              accept=".xlsx,.xls,.csv"
-              onChange={handleFileSelect}
-              onClick={(e) => { (e.currentTarget as HTMLInputElement).value = ''; }}
-              disabled={uploading}
-              className="file-input"
-            />
-            <label htmlFor="compare-file-input" className="file-input-label">
-              {selectedFile ? selectedFile.name : 'Choose Excel or CSV File'}
-            </label>
-          </div>
-
-          {selectedFile && (
-            <div className="file-info">
-              <p><strong>File:</strong> {selectedFile.name}</p>
-              <p><strong>Size:</strong> {formatFileSize(selectedFile.size)}</p>
+      {/* Main Card */}
+      <div className="modern-card">
+        {/* Info Cards Grid */}
+        <div className="modern-info-cards">
+          <div className="modern-info-card modern-info-card-blue">
+            <div className="modern-info-card-icon">📊</div>
+            <div className="modern-info-card-content">
+              <div className="modern-info-card-title">Batch Processing</div>
+              <div className="modern-info-card-text">Records processed in batches of 5 for optimal performance and accuracy</div>
             </div>
-          )}
+          </div>
+          
+          <div className="modern-info-card modern-info-card-amber">
+            <div className="modern-info-card-icon">📋</div>
+            <div className="modern-info-card-content">
+              <div className="modern-info-card-title">Required Headers</div>
+              <div className="modern-info-card-text">Site_Name, Site_Address_1-4, Site_City, Site_State, Site_Postcode, Site_Country</div>
+            </div>
+          </div>
+        </div>
 
-          <div className="button-group">
-            <button onClick={handleUpload} disabled={!selectedFile || uploading || !!isProcessing} className="upload-button">
-              {uploading ? 'Uploading...' : isProcessing ? 'Processing...' : 'Upload & Compare'}
+        {/* Sample Download Section */}
+        <div className="sample-download-section">
+          <button onClick={handleDownloadSample} className="sample-download-btn">
+            <span className="sample-icon">📥</span>
+            Download Sample File
+          </button>
+          <span className="sample-help-text">See the required format</span>
+        </div>
+
+        {/* AI Model Selector */}
+        <div className="model-selector-card">
+          <div className="model-selector-header">
+            <span className="model-icon">🤖</span>
+            <span className="model-label">AI Model</span>
+          </div>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            disabled={uploading || !!isProcessing || loadingModels}
+            className="model-select"
+          >
+            {loadingModels ? (
+              <option>Loading...</option>
+            ) : (
+              availableModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.displayName}
+                </option>
+              ))
+            )}
+          </select>
+          <p className="model-coming-soon">💡 Additional AI models coming soon</p>
+        </div>
+
+        {/* Upload Area */}
+        <div className="upload-area">
+          <input
+            ref={fileInputRef}
+            type="file"
+            id="compare-file-input"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleFileSelect}
+            onClick={(e) => { (e.currentTarget as HTMLInputElement).value = ''; }}
+            disabled={uploading}
+            className="file-input"
+          />
+          <label htmlFor="compare-file-input" className="file-upload-zone">
+            {!selectedFile ? (
+              <>
+                <div className="upload-icon">📁</div>
+                <div className="upload-text-primary">Choose your file</div>
+                <div className="upload-text-secondary">Drag & drop or click to browse (.xlsx, .xls, .csv)</div>
+              </>
+            ) : (
+              <div className="selected-file-display">
+                <div className="file-icon">📄</div>
+                <div className="file-details">
+                  <div className="file-name">{selectedFile.name}</div>
+                  <div className="file-size">{formatFileSize(selectedFile.size)}</div>
+                </div>
+                <div className="file-checkmark">✓</div>
+              </div>
+            )}
+          </label>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="action-buttons">
+          <button 
+            onClick={handleUpload} 
+            disabled={!selectedFile || uploading || !!isProcessing} 
+            className="modern-btn modern-btn-primary"
+          >
+            {uploading && <span className="modern-btn-spinner" />}
+            <span>{uploading ? 'Uploading...' : isProcessing ? 'Processing...' : 'Upload & Compare'}</span>
+          </button>
+          
+          <button 
+            onClick={handleReset} 
+            disabled={uploading} 
+            className="modern-btn modern-btn-gray"
+          >
+            Reset
+          </button>
+          
+          {isCompleted && processingStatus?.output_file && (
+            <button onClick={handleDownload} className="modern-btn modern-btn-success">
+              <span>📥</span>
+              Download Result
             </button>
-            <button onClick={handleReset} disabled={uploading} className="reset-button">Reset</button>
-            {isCompleted && processingStatus?.output_file && (
-              <button onClick={handleDownload} className="download-button">Download Result</button>
+          )}
+        </div>
+
+        {/* Processing Tip */}
+        {isProcessing && (
+          <div className="processing-tip">
+            <span className="tip-icon">💡</span>
+            <div className="tip-text">
+              <strong>Tip:</strong> You can click Reset and continue processing other files. Completed files will appear in Processing History.
+            </div>
+          </div>
+        )}
+
+        {/* Progress Section */}
+        {(uploading || isProcessing) && (
+          <div className="progress-card">
+            <div className="progress-header">
+              <span className="progress-title">
+                {isProcessing ? 'Processing Your File' : 'Uploading File'}
+              </span>
+              <span className="progress-percentage">
+                {isProcessing ? `${processingStatus?.progress || 0}%` : `${uploadProgress}%`}
+              </span>
+            </div>
+            <div className="modern-progress">
+              <div 
+                className="modern-progress-fill" 
+                style={{ width: `${isProcessing ? processingStatus?.progress || 0 : uploadProgress}%` }}
+              />
+            </div>
+            <p className="progress-message">
+              {isProcessing ? processingStatus?.message || 'Processing records...' : `${uploadProgress}% uploaded`}
+            </p>
+
+            {/* Progress Steps */}
+            {steps.length > 0 && (
+              <div className="progress-steps">
+                {steps.map((s: any) => {
+                  const reached = currentProgress >= s.target;
+                  return (
+                    <div key={s.name} className={`progress-step ${reached ? 'completed' : ''}`}>
+                      <div className="step-dot">{reached ? '✓' : s.target}</div>
+                      <div className="step-name">{s.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* File Metadata */}
+            {processingStatus?.file_info && (
+              <div className="file-metadata">
+                <div className="metadata-item">
+                  <span className="metadata-label">Rows:</span>
+                  <span className="metadata-value">{processingStatus.file_info.rows}</span>
+                </div>
+                <span className="metadata-divider">•</span>
+                <div className="metadata-item">
+                  <span className="metadata-label">Columns:</span>
+                  <span className="metadata-value">{processingStatus.file_info.columns}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Activity Logs */}
+            {recentLogs.length > 0 && (
+              <div className="activity-logs">
+                <div className="logs-header">Recent Activity</div>
+                <div className="logs-list">
+                  {recentLogs.map((l: any, idx: number) => (
+                    <div key={`${l.ts}-${idx}`} className="log-entry">
+                      <span className="log-time">{new Date(l.ts).toLocaleTimeString()}</span>
+                      <span className="log-message">{l.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
+        )}
 
-          {/* Guidance message for async processing */}
-          {isProcessing && (
-            <div className="guidance-message">
-              💡 <strong>Tip:</strong> You can click Reset and continue processing other files. Completed files will appear in Processing History.
-            </div>
-          )}
-
-          {(uploading || isProcessing) && (
-            <div className="progress-section">
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${isProcessing ? processingStatus?.progress || 0 : uploadProgress}%` }} />
+        {/* Success Result */}
+        {isCompleted && (
+          <div className="result-card result-success">
+            <div className="result-icon">✓</div>
+            <h3 className="result-title">Comparison Complete!</h3>
+            <p className="result-message">{processingStatus?.message}</p>
+            {processingStatus?.output_file && (
+              <div className="result-file">
+                <span className="file-label">Output File:</span>
+                <span className="file-path">{processingStatus.output_file}</span>
               </div>
-              <p>
-                {isProcessing ? `${processingStatus?.progress || 0}% - ${processingStatus?.message || 'Processing...'}` : `${uploadProgress}% uploaded`}
-              </p>
-              {steps.length > 0 && (
-                <div className="steps-wrapper">
-                  <div className="steps">
-                    {steps.map((s: any) => {
-                      const reached = currentProgress >= s.target;
+            )}
+          </div>
+        )}
+
+        {/* Preview Table */}
+        {isCompleted && preview && preview.rows?.length > 0 && (
+          <div className="preview-card">
+            <div className="preview-header">
+              <h3 className="preview-title">Result Preview</h3>
+            </div>
+            <div className="table-wrapper">
+              <table className="result-table">
+                <thead>
+                  <tr>
+                    <th className="col-index" style={{ width: 80, minWidth: 60, maxWidth: 100 }}>
+                      <div className="th-wrap">#</div>
+                    </th>
+                    {preview.columns.filter(c => !hiddenColumns.has(String(c).toLowerCase())).map((c) => {
+                      const key = String(c);
+                      const labels: Record<string, string> = {
+                        original_address_1: 'Original Address 1',
+                        original_address_2: 'Original Address 2',
+                        standardized_address_1: 'Standardized Address 1',
+                        standardized_address_2: 'Standardized Address 2',
+                        match_level: 'Match Level',
+                        confidence_score: 'Confidence Score',
+                        analysis: 'Analysis',
+                      };
+                      const label = labels[key.toLowerCase()] || key;
+                      const narrow = ['match_level', 'confidence_score'].includes(key.toLowerCase());
+                      const style: React.CSSProperties = narrow ? { width: 180, minWidth: 180, maxWidth: 220 } : { width: 360, minWidth: 280 };
                       return (
-                        <div key={s.name} className={`step ${reached ? 'done' : ''}`}>
-                          <div className="step-marker">{reached ? '✓' : ''}</div>
-                          <div className="step-label">{s.label}</div>
-                        </div>
+                        <th key={key} style={style}><div className="th-wrap">{label}</div></th>
                       );
                     })}
-                  </div>
-                </div>
-              )}
-              {processingStatus?.file_info && (
-                <div className="file-meta">
-                  <small>Rows: {processingStatus.file_info.rows} | Columns: {processingStatus.file_info.columns}</small>
-                </div>
-              )}
-              {recentLogs.length > 0 && (
-                <div className="logs">
-                  <small><strong>Recent activity:</strong></small>
-                  <ul>
-                    {recentLogs.map((l: any) => (
-                      <li key={l.ts}>{new Date(l.ts).toLocaleTimeString()} - {l.message}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isCompleted && (
-            <div className="result success">
-              <h3>Comparison Complete!</h3>
-              <p>{processingStatus?.message}</p>
-              {processingStatus?.output_file && (
-                <div className="output-file-row">
-                  <span className="output-file-label">Output file:</span>
-                  <span
-                    className="output-file-name"
-                    title={processingStatus.output_file}
-                  >
-                    {processingStatus.output_file}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isCompleted && preview && preview.rows?.length > 0 && (
-            <div className="preview-card">
-              <div className="preview-header">
-                <h3 className="preview-title">Result Preview</h3>
-              </div>
-              {/* pager moved below table */}
-              <div className="table-wrapper">
-                <table className="result-table">
-                  <thead>
-                    <tr>
-                      <th className="col-index" style={{ width: 80, minWidth: 60, maxWidth: 100 }}>
-                        <div className="th-wrap">#</div>
-                      </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.rows.map((row, idx) => (
+                    <tr key={idx}>
+                      <td className="col-index" style={{ width: 80, minWidth: 60, maxWidth: 100 }}>
+                        <div className="cell-wrap">{(page - 1) * pageSize + idx + 1}</div>
+                      </td>
                       {preview.columns.filter(c => !hiddenColumns.has(String(c).toLowerCase())).map((c) => {
                         const key = String(c);
-                        const labels: Record<string, string> = {
-                          original_address_1: 'Original Address 1',
-                          original_address_2: 'Original Address 2',
-                          standardized_address_1: 'Standardized Address 1',
-                          standardized_address_2: 'Standardized Address 2',
-                          match_level: 'Match Level',
-                          confidence_score: 'Confidence Score',
-                          analysis: 'Analysis',
-                        };
-                        const label = labels[key.toLowerCase()] || key;
-                        const narrow = ['match_level', 'confidence_score'].includes(key.toLowerCase());
+                        const val = row[key];
+                        const keyLc = key.toLowerCase();
+                        const narrow = ['match_level', 'confidence_score'].includes(keyLc);
                         const style: React.CSSProperties = narrow ? { width: 180, minWidth: 180, maxWidth: 220 } : { width: 360, minWidth: 280 };
-                        return (
-                          <th key={key} style={style}><div className="th-wrap">{label}</div></th>
-                        );
+                        if (keyLc === 'match_level') return <td key={key} style={style}><div className="cell-wrap">{renderMatchLevel(val)}</div></td>;
+                        if (keyLc === 'confidence_score') return <td key={key} style={style}><div className="cell-wrap">{renderConfidence(val)}</div></td>;
+                        return <td key={key} style={style}><div className="cell-wrap" title={val}>{String(val ?? '')}</div></td>;
                       })}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {preview.rows.map((row, idx) => (
-                      <tr key={idx}>
-                        <td className="col-index" style={{ width: 80, minWidth: 60, maxWidth: 100 }}>
-                          <div className="cell-wrap">{(page - 1) * pageSize + idx + 1}</div>
-                        </td>
-                        {preview.columns.filter(c => !hiddenColumns.has(String(c).toLowerCase())).map((c) => {
-                          const key = String(c);
-                          const val = row[key];
-                          const keyLc = key.toLowerCase();
-                          const narrow = ['match_level', 'confidence_score'].includes(keyLc);
-                          const style: React.CSSProperties = narrow ? { width: 180, minWidth: 180, maxWidth: 220 } : { width: 360, minWidth: 280 };
-                          if (keyLc === 'match_level') return <td key={key} style={style}><div className="cell-wrap">{renderMatchLevel(val)}</div></td>;
-                          if (keyLc === 'confidence_score') return <td key={key} style={style}><div className="cell-wrap">{renderConfidence(val)}</div></td>;
-                          return <td key={key} style={style}><div className="cell-wrap" title={val}>{String(val ?? '')}</div></td>;
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="preview-footer">
-                <div className="pager">
-                  <div className="pager-left">
-                    <button className="pager-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Prev</button>
-                    <span className="pager-text">Page {page} of {Math.max(1, Math.ceil((preview.totalRows || 0) / pageSize))}</span>
-                    <button className="pager-btn" onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil((preview.totalRows || 0) / pageSize)}>Next</button>
-                  </div>
-                  <div className="pager-right">
-                    <label className="pager-label">Rows per page&nbsp;
-                      <select className="pager-select" value={pageSize} onChange={(e) => { setPage(1); setPageSize(parseInt(e.target.value, 10)); }}>
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                        <option value={100}>100</option>
-                        <option value={200}>200</option>
-                      </select>
-                    </label>
-                  </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="preview-footer">
+              <div className="pager">
+                <div className="pager-left">
+                  <button className="pager-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Prev</button>
+                  <span className="pager-text">Page {page} of {Math.max(1, Math.ceil((preview.totalRows || 0) / pageSize))}</span>
+                  <button className="pager-btn" onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil((preview.totalRows || 0) / pageSize)}>Next</button>
                 </div>
-                <div className="preview-note">Showing {preview.rowCount} rows • Total {preview.totalRows ?? (page * pageSize)} • Page {page}. Scroll horizontally to see more columns.</div>
+                <div className="pager-right">
+                  <label className="pager-label">Rows per page&nbsp;
+                    <select className="pager-select" value={pageSize} onChange={(e) => { setPage(1); setPageSize(parseInt(e.target.value, 10)); }}>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value={200}>200</option>
+                    </select>
+                  </label>
+                </div>
               </div>
+              <div className="preview-note">Showing {preview.rowCount} rows • Total {preview.totalRows ?? (page * pageSize)} • Page {page}. Scroll horizontally to see more columns.</div>
             </div>
-          )}
+          </div>
+        )}
 
-          {hasError && (
-            <div className="result error">
-              <h3>Error</h3>
-              <p>{error || processingStatus?.error}</p>
-            </div>
-          )}
-        </div>
+        {/* Error Result */}
+        {hasError && (
+          <div className="result-card result-error">
+            <div className="result-icon">✕</div>
+            <h3 className="result-title">Error Occurred</h3>
+            <p className="result-message">{error || processingStatus?.error}</p>
+          </div>
+        )}
       </div>
     </div>
   );

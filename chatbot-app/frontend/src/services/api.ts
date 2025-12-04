@@ -8,10 +8,31 @@ const api = axios.create({
     timeout: 30000,
 });
 
+// AI Model interface
+export interface AIModel {
+    id: string;
+    displayName: string;
+    description?: string;
+}
+
+// Get available AI models
+export const getAvailableModels = async (): Promise<{models: AIModel[], default_model: string}> => {
+    try {
+        const response = await api.get('/models');
+        return response.data;
+    } catch (error: any) {
+        console.error('Error fetching models:', error);
+        throw new Error('Failed to fetch available models');
+    }
+};
+
 // File Upload API
-export const uploadExcelFile = async (file: File, onProgress?: (progress: number) => void): Promise<{message: string, processing_id: string}> => {
+export const uploadExcelFile = async (file: File, model?: string, onProgress?: (progress: number) => void): Promise<{message: string, processing_id: string}> => {
     const formData = new FormData();
     formData.append('file', file);
+    if (model) {
+        formData.append('model', model);
+    }
     try {
         const response = await api.post('/upload-excel', formData, {
             headers: {
@@ -38,9 +59,12 @@ export const uploadExcelFile = async (file: File, onProgress?: (progress: number
 };
 
 // Upload for batch compare
-export const uploadCompareFile = async (file: File, onProgress?: (progress: number) => void): Promise<{message: string, processing_id: string}> => {
+export const uploadCompareFile = async (file: File, model?: string, onProgress?: (progress: number) => void): Promise<{message: string, processing_id: string}> => {
     const formData = new FormData();
     formData.append('file', file);
+    if (model) {
+        formData.append('model', model);
+    }
     try {
         const response = await api.post('/upload-compare', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
@@ -155,11 +179,12 @@ export const getUploadedFiles = async () => {
 };
 
 // Address Processing API
-export const processAddress = async (address: string): Promise<any> => {
+export const processAddress = async (address: string, model?: string): Promise<any> => {
     try {
         // baseURL already '/api', so just use endpoint path without duplicate '/api'
     const response = await api.post('/process-address', {
             address: address,
+            model: model
         });
 
         return {
@@ -180,9 +205,9 @@ export const processAddress = async (address: string): Promise<any> => {
 };
 
 // Multiple Addresses Processing API
-export const processAddresses = async (addresses: string[]): Promise<any[]> => {
+export const processAddresses = async (addresses: string[], model?: string): Promise<any[]> => {
     try {
-        const response = await api.post('/process-addresses', { addresses });
+        const response = await api.post('/process-addresses', { addresses, model });
         return (response.data.results || []).map((r: any) => ({
             originalAddress: r.originalAddress,
             processedAddress: r.processedAddress,

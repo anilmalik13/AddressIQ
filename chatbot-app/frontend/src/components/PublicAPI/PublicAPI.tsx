@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import '../../styles/shared.css';
 import './PublicAPI.css';
 import { downloadDocumentationGuide as downloadDocGuideAPI, downloadSampleFile } from '../../services/api';
 
@@ -227,16 +228,39 @@ const PublicAPI: React.FC = () => {
   };
 
   return (
-    <div className="public-api-container">
-      <div className="api-header">
-        <h1>🔗 AddressIQ Public API</h1>
-        <p className="api-description">
-          Comprehensive API documentation and testing interface for all AddressIQ features. 
-          Standardize addresses, process files, compare data, and connect to databases programmatically.
-        </p>
+    <div className="modern-container">
+      {/* Hero Section */}
+      <div className="modern-hero">
+        <div className="modern-hero-icon">🔗</div>
+        <h1 className="modern-hero-title">Public API</h1>
+        <p className="modern-hero-subtitle">Comprehensive API documentation and testing interface for all AddressIQ features</p>
       </div>
 
-      <div className="api-endpoints">
+      {/* Main Card */}
+      <div className="modern-card">
+        {/* Info Cards */}
+        <div className="modern-info-cards">
+          <div className="modern-info-card modern-info-card-blue">
+            <div className="modern-info-card-icon">📚</div>
+            <div className="modern-info-card-content">
+              <div className="modern-info-card-title">RESTful API Endpoints</div>
+              <div className="modern-info-card-text">
+                Access all AddressIQ features programmatically: standardize addresses, process files, compare data, and connect to databases.
+              </div>
+            </div>
+          </div>
+          <div className="modern-info-card modern-info-card-green">
+            <div className="modern-info-card-icon">📥</div>
+            <div className="modern-info-card-content">
+              <div className="modern-info-card-title">Sample Files & Guides</div>
+              <div className="modern-info-card-text">
+                Download sample files and comprehensive Postman testing guides for each endpoint to get started quickly.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="api-endpoints">
         {apiEndpoints.map((endpoint) => (
           <div key={endpoint.id} className="api-accordion">
             <div 
@@ -406,6 +430,7 @@ const PublicAPI: React.FC = () => {
             )}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

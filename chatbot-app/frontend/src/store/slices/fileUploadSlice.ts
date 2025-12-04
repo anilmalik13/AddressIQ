@@ -17,7 +17,7 @@ const fileUploadSlice = createSlice({
     name: 'fileUpload',
     initialState,
     reducers: {
-        uploadFileRequest: (state, action: PayloadAction<File>) => {
+        uploadFileRequest: (state, action: PayloadAction<{file: File, model?: string}>) => {
             state.uploading = true;
             state.uploadProgress = 0;
             state.error = null;
