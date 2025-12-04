@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import '../../styles/shared.css';
 import './RegionCityMap.css';
 import api from '../../services/api';
 
@@ -219,136 +220,120 @@ const RegionCityMap: React.FC = () => {
   }, []);
 
   return (
-    <div className="region-city-map-container">
-      <div className="map-view-header">
-        <h1>Map View</h1>
-        <p>View site locations with geographical coordinates</p>
+    <div className="modern-container">
+      {/* Hero Section */}
+      <div className="modern-hero">
+        <div className="modern-hero-icon">🗺️</div>
+        <h1 className="modern-hero-title">Map View</h1>
+        <p className="modern-hero-subtitle">Visualize site locations with geographical coordinates</p>
       </div>
-      
-      {loadingCountries ? (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '500px',
-          fontSize: '18px',
-          color: '#1976d2'
-        }}>
-          <div>
-            <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-              <div className="spinner" style={{
-                border: '4px solid #f3f3f3',
-                borderTop: '4px solid #1976d2',
-                borderRadius: '50%',
-                width: '50px',
-                height: '50px',
-                animation: 'spin 1s linear infinite',
-                margin: '0 auto'
-              }}></div>
-            </div>
-            <div>Loading countries...</div>
+
+      {/* Main Card */}
+      <div className="modern-card">
+        {loadingCountries ? (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p className="loading-text">Loading countries...</p>
           </div>
-        </div>
-      ) : (
-        <>
-          <div className="dropdown-container">
-            <select 
-              value={selectedCountry} 
-              onChange={handleCountryChange}
-              disabled={availableCountries.length === 0}
-            >
-              <option value="">
-                {availableCountries.length === 0 ? 'No countries available' : 'Select Country'}
-              </option>
-              {availableCountries.map((country) => (
-                <option key={country} value={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
-            
-            <button 
-              onClick={handleSubmit} 
-              disabled={!selectedCountry || loading}
-            >
-              {loading ? 'Loading...' : 'Get Locations'}
-            </button>
-            
+        ) : (
+          <>
+            {/* Info Card */}
+            <div className="modern-info-cards">
+              <div className="modern-info-card modern-info-card-amber">
+                <div className="modern-info-card-icon">⚠️</div>
+                <div className="modern-info-card-content">
+                  <div className="modern-info-card-title">Test Data Notice</div>
+                  <div className="modern-info-card-text">The locations and coordinates displayed are for testing and illustration purposes only. Verify coordinates independently before production use.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Country Selection Controls */}
+            <div className="map-controls">
+              <div className="control-group">
+                <label className="modern-label">Select Country</label>
+                <select 
+                  value={selectedCountry} 
+                  onChange={handleCountryChange}
+                  disabled={availableCountries.length === 0}
+                  className="modern-select"
+                >
+                  <option value="">
+                    {availableCountries.length === 0 ? 'No countries available' : 'Select Country'}
+                  </option>
+                  {availableCountries.map((country) => (
+                    <option key={country} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <button 
+                onClick={handleSubmit} 
+                disabled={!selectedCountry || loading}
+                className="modern-btn modern-btn-primary"
+              >
+                {loading && <span className="modern-btn-spinner" />}
+                <span>{loading ? 'Loading...' : 'Get Locations'}</span>
+              </button>
+            </div>
+
             {error && (
-              <div className="error-message" style={{ color: 'red', marginLeft: '10px' }}>
+              <div className="modern-alert modern-alert-error">
                 {error}
               </div>
             )}
-            
+
             {locations.length > 0 && (
-              <div className="coordinate-info">
-                Found {locations.length} location{locations.length > 1 ? 's' : ''} in {selectedCountry}
+              <div className="location-count">
+                <span className="count-icon">📍</span>
+                <span className="count-text">Found {locations.length} location{locations.length > 1 ? 's' : ''} in {selectedCountry}</span>
               </div>
             )}
-          </div>
-
-          {/* Warning message about test data */}
-          <div className="info-note" style={{ 
-            background: '#fff3e0', 
-            border: '1px solid #ff9800', 
-            borderRadius: '8px', 
-            padding: '12px 16px', 
-            margin: '16px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px'
-          }}>
-            <span style={{ color: '#f57c00', fontSize: '20px', fontWeight: 'bold' }}>⚠️</span>
-            <div style={{ flex: 1 }}>
-              <strong style={{ color: '#e65100', display: 'block', marginBottom: '4px' }}>Test Data Notice</strong>
-              <span style={{ color: '#424242', fontSize: '13px' }}>
-                The locations and coordinates displayed on this map are used for <strong>testing and illustration purposes only</strong>. 
-                They may not represent accurate or current geographical data. Please verify coordinates independently before using them in production environments.
-              </span>
+            
+            {/* Map Container */}
+            <div className="map-wrapper" ref={mapContainerRef}>
+              <MapContainer 
+                center={mapCenter} 
+                zoom={mapZoom} 
+                style={{ height: '100%', width: '100%' }}
+                key={`${selectedCountry}-${locations.length}`}
+                scrollWheelZoom={true}
+              >
+                <MapUpdater center={mapCenter} zoom={mapZoom} />
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  maxZoom={19}
+                />
+                {locations.map((location, index) => (
+                  <Marker 
+                    key={`${location.site_pk}-${index}`} 
+                    position={[location.latitude, location.longitude]}
+                  >
+                    <Popup>
+                      <div className="popup-content">
+                        <strong className="popup-title">
+                          {location.site_name}
+                        </strong>
+                        <div className="popup-address">
+                          {location.full_address}
+                        </div>
+                        <div className="popup-coords">
+                          <strong>Coordinates:</strong><br />
+                          Lat: {location.latitude.toFixed(6)}<br />
+                          Lng: {location.longitude.toFixed(6)}
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
             </div>
-          </div>
-          
-          <div className="map-container" ref={mapContainerRef}>
-            <MapContainer 
-              center={mapCenter} 
-              zoom={mapZoom} 
-              style={{ height: '100%', width: '100%' }}
-              key={`${selectedCountry}-${locations.length}`}
-              scrollWheelZoom={true}
-            >
-              <MapUpdater center={mapCenter} zoom={mapZoom} />
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                maxZoom={19}
-              />
-              {locations.map((location, index) => (
-                <Marker 
-                  key={`${location.site_pk}-${index}`} 
-                  position={[location.latitude, location.longitude]}
-                >
-                  <Popup>
-                    <div style={{ minWidth: '200px' }}>
-                      <strong style={{ fontSize: '14px', color: '#1976d2' }}>
-                        {location.site_name}
-                      </strong>
-                      <br />
-                      <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-                        {location.full_address}
-                      </div>
-                      <div style={{ marginTop: '8px', fontSize: '11px', color: '#999' }}>
-                        <strong>Coordinates:</strong><br />
-                        Lat: {location.latitude.toFixed(6)}<br />
-                        Lng: {location.longitude.toFixed(6)}
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

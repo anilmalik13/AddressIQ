@@ -31,7 +31,7 @@ const App: React.FC = () => {
     // Collapsible sidebar state (persisted)
     const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
         const saved = typeof window !== 'undefined' ? localStorage.getItem('aiq-sidebar-collapsed') : null;
-        return saved === 'true';
+        return saved !== null ? saved === 'true' : true; // Default to collapsed (true)
     });
     useEffect(() => {
         localStorage.setItem('aiq-sidebar-collapsed', String(sidebarCollapsed));

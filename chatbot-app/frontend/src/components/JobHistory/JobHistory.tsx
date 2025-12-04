@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { loadJobHistory } from '../../store/slices/fileUploadSlice';
 import { downloadFile } from '../../services/api';
+import '../../styles/shared.css';
 import './JobHistory.css';
 
 const JobHistory: React.FC = () => {
@@ -129,84 +130,75 @@ const JobHistory: React.FC = () => {
         : jobHistory.filter(job => job.status === filter);
 
     return (
-        <div className="job-history-container">
-            <div className="job-history-header">
-                <div>
-                    <h1>Processing History</h1>
-                    <p>View and manage your file processing jobs</p>
-                </div>
-                <button onClick={handleRefresh} className="refresh-button" disabled={loadingJobs}>
-                    {loadingJobs ? 'Refreshing...' : 'Refresh'}
-                </button>
+        <div className="modern-container">
+            {/* Hero Section */}
+            <div className="modern-hero">
+                <div className="modern-hero-icon">📜</div>
+                <h1 className="modern-hero-title">Processing History</h1>
+                <p className="modern-hero-subtitle">View and manage your file processing jobs</p>
             </div>
 
-            {/* Info message about file retention and status indicators */}
-            <div style={{ 
-                background: '#e8f5e9', 
-                border: '1px solid #4caf50', 
-                borderRadius: '8px', 
-                padding: '12px 16px', 
-                margin: '16px 0',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px'
-            }}>
-                <span style={{ color: '#2e7d32', fontSize: '20px', fontWeight: 'bold' }}>ℹ️</span>
-                <div style={{ flex: 1 }}>
-                    <strong style={{ color: '#1b5e20', display: 'block', marginBottom: '6px' }}>File Retention Policy</strong>
-                    <span style={{ color: '#424242', fontSize: '13px' }}>
-                        Processed files are automatically deleted <strong>7 days</strong> after creation. 
-                        Please download your files promptly as <strong>deleted files cannot be recovered</strong>. 
-                        The "Expires" column shows the time remaining before automatic deletion.
-                    </span>
-                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#424242' }}>
-                        <strong style={{ color: '#1b5e20' }}>Status Indicators:</strong>{' '}
-                        <span style={{ color: '#4caf50' }}>Download</span> (file available) • {' '}
-                        <span style={{ color: '#999', fontStyle: 'italic' }}>Expired</span> (retention period passed) • {' '}
-                        <span style={{ color: '#ff6b6b', fontStyle: 'italic' }}>File Not Available</span> (file missing from server)
+            {/* Main Card */}
+            <div className="modern-card">
+                {/* Info Card about retention policy */}
+                <div className="modern-info-cards">
+                    <div className="modern-info-card modern-info-card-green">
+                        <div className="modern-info-card-icon">📦</div>
+                        <div className="modern-info-card-content">
+                            <div className="modern-info-card-title">File Retention Policy</div>
+                            <div className="modern-info-card-text">
+                                Processed files are automatically deleted <strong>7 days</strong> after creation. 
+                                Download your files promptly as deleted files cannot be recovered.
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="filter-bar">
-                <button
-                    className={`filter-button ${filter === 'all' ? 'active' : ''}`}
-                    onClick={() => setFilter('all')}
-                >
-                    All ({jobHistory.length})
-                </button>
-                <button
-                    className={`filter-button ${filter === 'completed' ? 'active' : ''}`}
-                    onClick={() => setFilter('completed')}
-                >
-                    Completed ({jobHistory.filter(j => j.status === 'completed').length})
-                </button>
-                <button
-                    className={`filter-button ${filter === 'processing' ? 'active' : ''}`}
-                    onClick={() => setFilter('processing')}
-                >
-                    Processing ({jobHistory.filter(j => j.status === 'processing' || j.status === 'queued').length})
-                </button>
-                <button
-                    className={`filter-button ${filter === 'failed' ? 'active' : ''}`}
-                    onClick={() => setFilter('failed')}
-                >
-                    Failed ({jobHistory.filter(j => j.status === 'failed' || j.status === 'error').length})
-                </button>
-            </div>
+                {/* Filter Bar with Refresh */}
+                <div className="history-controls">
+                    <div className="filter-chips">
+                        <button
+                            className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
+                            onClick={() => setFilter('all')}
+                        >
+                            All ({jobHistory.length})
+                        </button>
+                        <button
+                            className={`filter-chip ${filter === 'completed' ? 'active' : ''}`}
+                            onClick={() => setFilter('completed')}
+                        >
+                            Completed ({jobHistory.filter(j => j.status === 'completed').length})
+                        </button>
+                        <button
+                            className={`filter-chip ${filter === 'processing' ? 'active' : ''}`}
+                            onClick={() => setFilter('processing')}
+                        >
+                            Processing ({jobHistory.filter(j => j.status === 'processing').length})
+                        </button>
+                        <button
+                            className={`filter-chip ${filter === 'failed' ? 'active' : ''}`}
+                            onClick={() => setFilter('failed')}
+                        >
+                            Failed ({jobHistory.filter(j => j.status === 'failed' || j.status === 'error').length})
+                        </button>
+                    </div>
+                    <button onClick={handleRefresh} className="modern-btn modern-btn-secondary" disabled={loadingJobs}>
+                        {loadingJobs ? '⟳ Refreshing...' : '↻ Refresh'}
+                    </button>
+                </div>
 
-            {loadingJobs ? (
-                <div className="loading-state">
-                    <div className="spinner"></div>
-                    <p>Loading job history...</p>
-                </div>
-            ) : filteredJobs.length === 0 ? (
-                <div className="empty-state">
-                    <div className="empty-icon">📋</div>
-                    <h3>No jobs found</h3>
-                    <p>{filter === 'all' ? 'Upload a file to get started!' : `No ${filter} jobs found.`}</p>
-                </div>
-            ) : (
+                {loadingJobs ? (
+                    <div className="loading-state">
+                        <div className="spinner"></div>
+                        <p>Loading job history...</p>
+                    </div>
+                ) : filteredJobs.length === 0 ? (
+                    <div className="empty-state">
+                        <div className="empty-icon">📋</div>
+                        <h3>No jobs found</h3>
+                        <p>{filter === 'all' ? 'Upload a file to get started!' : `No ${filter} jobs found.`}</p>
+                    </div>
+                ) : (
                 <div className="jobs-table-wrapper">
                     <table className="jobs-table">
                         <thead>
@@ -296,6 +288,7 @@ const JobHistory: React.FC = () => {
                     </table>
                 </div>
             )}
+            </div>
         </div>
     );
 };
