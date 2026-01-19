@@ -1,0 +1,6 @@
+MasterId,Property Type,Name,Address1,Address2,Address3,City,County,State,StateCode,PostalCode,Country,CountryCode
+2532779,Retail,McDonalds,Hwy 180 and Jack Borden Way,NULL,NULL,Weatherford,Parker,Texas,TX,76086,United States,US
+2532767,Industrial,Iron Rock,10255 and 10261 Iron Rock Way,NULL,NULL,Elk Grove,Sacramento,California,CA,95624,United States,US
+2532669,Retail,Morrisville Plaza,"0, 19, 20, 97 & 105 Morrisville Plaza",NULL,NULL,Morristown,Lamoille,Vermont,VT,5661,United States,US
+2532627,Industrial,Two Building Industrial Property,14942 and 15012 South Post Oak Road,NULL,NULL,Houston,County,Texas,TX,77053,United States,US
+2532619,Retail,Association Motor Club,328 & 348 14th Street NW,NULL,NULL,Atlanta,Fulton,Georgia,GA,30318,United States,US

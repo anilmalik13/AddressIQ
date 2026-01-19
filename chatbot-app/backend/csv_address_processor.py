@@ -17,11 +17,20 @@ import requests
 from urllib.parse import quote
 import shutil
 import glob
+import re
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.services.azure_openai import standardize_address, standardize_multiple_addresses, compare_multiple_addresses, read_csv_with_encoding_detection
+
+# Import address splitter
+try:
+    from address_splitter import AddressSplitter
+    ADDRESS_SPLITTER_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  Warning: Address splitter not available: {str(e)}")
+    ADDRESS_SPLITTER_AVAILABLE = False
 
 # Import Azure SQL Database service
 try:
@@ -113,6 +122,18 @@ class CSVAddressProcessor:
                 self.db_connector = None
         else:
             self.db_connector = None
+        
+        # Initialize address splitter
+        if ADDRESS_SPLITTER_AVAILABLE:
+            try:
+                # Initialize with rule-based by default (can be changed via parameter)
+                self.address_splitter = AddressSplitter(use_gpt=False)
+                print("✅ Address splitter initialized successfully (rule-based mode)")
+            except Exception as e:
+                print(f"⚠️  Warning: Address splitter initialization failed: {str(e)}")
+                self.address_splitter = None
+        else:
+            self.address_splitter = None
         
         # Print database stats on initialization if database service is available
         if self.db_service:
@@ -233,7 +254,7 @@ class CSVAddressProcessor:
         
         return all_files
     
-    def process_all_inbound_files(self, batch_size: int = 10, use_free_apis: bool = True):
+    def process_all_inbound_files(self, batch_size: int = 10, use_free_apis: bool = True, enable_split: bool = False, use_gpt_split: bool = False):
         """Process all files in the inbound directory"""
         print("🚀 Starting batch processing of inbound files...")
         print("=" * 60)
@@ -267,7 +288,9 @@ class CSVAddressProcessor:
                     input_file=str(file_path),
                     output_file=str(output_path),
                     batch_size=batch_size,
-                    use_free_apis=use_free_apis
+                    use_free_apis=use_free_apis,
+                    enable_split=enable_split,
+                    use_gpt_split=use_gpt_split
                 )
                 
                 if result_path:
@@ -1488,10 +1511,108 @@ class CSVAddressProcessor:
         print(f"✅ Batch completed: {len(all_results)} results")
         return all_results
     
+    def apply_address_splitting(self, df: pd.DataFrame, address_columns: List[str]) -> pd.DataFrame:
+        """
+        Apply address splitting to the dataframe. Creates new rows for split addresses.
+        
+        Args:
+            df: Input dataframe
+            address_columns: List of address column names to check for splitting
+            
+        Returns:
+            Modified dataframe with split addresses as new rows
+        """
+        print(f"\n✂️  Analyzing addresses for splitting...")
+        
+        # Create a list to hold all rows (original and split)
+        new_rows = []
+        split_count = 0
+        no_split_count = 0
+        
+        # Detect if there's an Address2 column
+        address2_col = None
+        for col in df.columns:
+            if col.lower() in ['address2', 'address_2', 'site_address_2', 'address_line_2']:
+                address2_col = col
+                break
+        
+        for index, row in df.iterrows():
+            row_dict = row.to_dict()
+            
+            # Get the primary address column
+            primary_addr_col = address_columns[0]
+            address1 = str(row[primary_addr_col]) if pd.notna(row[primary_addr_col]) else ""
+            address2 = str(row[address2_col]) if address2_col and pd.notna(row[address2_col]) else None
+            
+            # Skip empty addresses
+            if not address1.strip():
+                new_rows.append(row_dict)
+                no_split_count += 1
+                continue
+            
+            # Analyze and split if needed
+            split_result = self.address_splitter.analyze_and_split(address1, address2)
+            
+            if split_result['should_split'] and split_result['split_count'] > 1:
+                # Address was split - create multiple rows
+                split_count += 1
+                print(f"   Row {index + 1}: Split into {split_result['split_count']} addresses")
+                print(f"      Reason: {split_result['split_reason']}")
+                
+                # Add metadata columns if they don't exist
+                if 'Split_Indicator' not in row_dict:
+                    row_dict['Split_Indicator'] = ''
+                if 'Split_From_Row' not in row_dict:
+                    row_dict['Split_From_Row'] = ''
+                if 'Split_Address_Number' not in row_dict:
+                    row_dict['Split_Address_Number'] = ''
+                
+                # Create a new row for each split address
+                for split_idx, split_addr in enumerate(split_result['addresses'], 1):
+                    new_row = row_dict.copy()
+                    new_row[primary_addr_col] = split_addr
+                    new_row['Split_Indicator'] = 'Yes'
+                    new_row['Split_From_Row'] = index + 1
+                    new_row['Split_Address_Number'] = f"{split_idx} of {split_result['split_count']}"
+                    
+                    # Clear address2 if it was used in splitting
+                    if address2_col and address2:
+                        new_row[address2_col] = ''
+                    
+                    new_rows.append(new_row)
+            else:
+                # No split - keep original row
+                no_split_count += 1
+                
+                # Add metadata columns
+                if 'Split_Indicator' not in row_dict:
+                    row_dict['Split_Indicator'] = 'No'
+                if 'Split_From_Row' not in row_dict:
+                    row_dict['Split_From_Row'] = ''
+                if 'Split_Address_Number' not in row_dict:
+                    row_dict['Split_Address_Number'] = ''
+                else:
+                    row_dict['Split_Indicator'] = 'No'
+                
+                new_rows.append(row_dict)
+        
+        # Create new dataframe from all rows
+        new_df = pd.DataFrame(new_rows)
+        
+        print(f"\n📊 Split Analysis Summary:")
+        print(f"   Original rows: {len(df)}")
+        print(f"   Rows with splits: {split_count}")
+        print(f"   Rows without splits: {no_split_count}")
+        print(f"   Final rows: {len(new_df)}")
+        print(f"   New rows created: {len(new_df) - len(df)}")
+        
+        return new_df
+    
     def process_csv_file(self, input_file: str, output_file: str = None, 
                         address_column: str = None, address_columns: List[str] = None,
                         batch_size: int = 10, use_free_apis: bool = True, 
-                        enable_batch_processing: bool = True) -> str:
+                        enable_batch_processing: bool = True, enable_split: bool = False,
+                        use_gpt_split: bool = False) -> str:
         """
         Process a CSV or Excel file and standardize addresses using efficient batch processing
         
@@ -1503,6 +1624,8 @@ class CSVAddressProcessor:
             batch_size: Number of addresses to process in each batch (default: 10)
             use_free_apis: Whether to use free APIs to fill missing components
             enable_batch_processing: Whether to use batch processing for efficiency
+            enable_split: Whether to enable address splitting (default: False)
+            use_gpt_split: Whether to use GPT for splitting instead of rules (default: False)
         
         Returns:
             Path to the output file
@@ -1540,15 +1663,32 @@ class CSVAddressProcessor:
         else:
             print(f"🌐 Free API enhancement: DISABLED")
         
+        if enable_split:
+            if self.address_splitter:
+                # Update splitter mode if GPT splitting is requested
+                if use_gpt_split and not self.address_splitter.use_gpt:
+                    self.address_splitter.use_gpt = True
+                    split_mode = "GPT-based"
+                elif self.address_splitter.use_gpt:
+                    split_mode = "GPT-based"
+                else:
+                    split_mode = "Rule-based"
+                print(f"✂️  Address splitting: ENABLED ({split_mode})")
+            else:
+                print(f"⚠️  Address splitting requested but splitter not available - DISABLED")
+                enable_split = False
+        else:
+            print(f"✂️  Address splitting: DISABLED")
+        
         # Determine processing method based on parameters
         result_file = None
         
         if address_columns:
             # User-specified columns to combine
-            result_file = self.process_user_specified_columns(df, address_columns, output_file, use_free_apis)
+            result_file = self.process_user_specified_columns(df, address_columns, output_file, use_free_apis, enable_split)
         elif address_column:
             # Single specified column
-            result_file = self.process_regular_address_format(df, address_column, output_file, use_free_apis, enable_batch_processing)
+            result_file = self.process_regular_address_format(df, address_column, output_file, use_free_apis, enable_batch_processing, enable_split)
         else:
             # Auto-detect format (existing logic)
             # Check if this is a site address structure
@@ -1556,10 +1696,10 @@ class CSVAddressProcessor:
             
             if is_site_format:
                 # Process site address format
-                result_file = self.process_site_address_format(df, output_file, use_free_apis)
+                result_file = self.process_site_address_format(df, output_file, use_free_apis, enable_split)
             else:
                 # Process regular address format
-                result_file = self.process_regular_address_format(df, address_column, output_file, use_free_apis, enable_batch_processing)
+                result_file = self.process_regular_address_format(df, address_column, output_file, use_free_apis, enable_batch_processing, enable_split)
         
         # Archive input file if it was from inbound directory and processing was successful
         if result_file:
@@ -1567,7 +1707,7 @@ class CSVAddressProcessor:
             
         return result_file
     
-    def process_site_address_format(self, df: pd.DataFrame, output_file: str = None, use_free_apis: bool = True) -> str:
+    def process_site_address_format(self, df: pd.DataFrame, output_file: str = None, use_free_apis: bool = True, enable_split: bool = False) -> str:
         """Process CSV with site address column structure"""
         
         print(f"\n🏢 Processing Site Address Format")
@@ -1580,6 +1720,12 @@ class CSVAddressProcessor:
         
         # Add combined address column
         df['Combined_Address'] = df.apply(self.combine_site_address_fields, axis=1)
+        
+        # Handle address splitting if enabled
+        if enable_split and self.address_splitter:
+            print(f"\n✂️  Address splitting is ENABLED - analyzing addresses...")
+            df = self.apply_address_splitting(df, ['Combined_Address'])
+            print(f"✅ Address splitting completed. New row count: {len(df)}")
         
         # Add standardization result columns (including new database-related columns)
         base_col_name = "Standardized_Address"
@@ -1721,7 +1867,7 @@ class CSVAddressProcessor:
         return self.save_and_summarize_results(df, output_file, processed_count, success_count, error_count, ["Combined_Address"])
     
     def process_user_specified_columns(self, df: pd.DataFrame, address_columns: List[str], 
-                                     output_file: str = None, use_free_apis: bool = True) -> str:
+                                     output_file: str = None, use_free_apis: bool = True, enable_split: bool = False) -> str:
         """Process CSV with user-specified columns to combine into addresses - completely column name independent"""
         
         print(f"\n🎯 Processing User-Specified Address Columns")
@@ -1739,6 +1885,12 @@ class CSVAddressProcessor:
         
         # Add combined address column using user-specified columns
         df['Combined_Address'] = df.apply(lambda row: self.combine_address_columns(row, address_columns), axis=1)
+        
+        # Handle address splitting if enabled
+        if enable_split and self.address_splitter:
+            print(f"\n✂️  Address splitting is ENABLED - analyzing addresses...")
+            df = self.apply_address_splitting(df, ['Combined_Address'])
+            print(f"✅ Address splitting completed. New row count: {len(df)}")
         
         # Show sample of combined addresses
         print(f"\n📋 Sample combined addresses:")
@@ -1856,7 +2008,7 @@ class CSVAddressProcessor:
         
         return self.save_and_summarize_results(df, output_file, processed_count, success_count, error_count, ["Combined_Address"])
 
-    def process_regular_address_format(self, df: pd.DataFrame, address_column: str = None, output_file: str = None, use_free_apis: bool = True, enable_batch_processing: bool = True) -> str:
+    def process_regular_address_format(self, df: pd.DataFrame, address_column: str = None, output_file: str = None, use_free_apis: bool = True, enable_batch_processing: bool = True, enable_split: bool = False) -> str:
         """Process CSV with regular address format"""
         
         # Detect country column
@@ -1866,12 +2018,22 @@ class CSVAddressProcessor:
         separated_components = self.detect_separated_address_components(df)
         
         if separated_components and len(separated_components) >= 2:
-            # We have separated address components - combine them
+            # We have separated address components
             print(f"✅ Detected separated address components:")
             for component, column in separated_components.items():
                 print(f"   {component}: '{column}'")
             
-            # Create a combined address column
+            # IMPORTANT: Split Address1 BEFORE combining with other components
+            if enable_split and self.address_splitter and 'address_line_1' in separated_components:
+                addr1_col = separated_components['address_line_1']
+                addr2_col = separated_components.get('address_line_2')
+                
+                print(f"\n✂️  Address splitting is ENABLED - splitting Address1 field before combining...")
+                # Apply splitting ONLY to Address1
+                df = self.apply_address_splitting(df, [addr1_col])
+                print(f"✅ Address splitting completed on '{addr1_col}'. New row count: {len(df)}")
+            
+            # NOW combine the (possibly split) components
             print(f"\n🔗 Combining address components into complete addresses...")
             df['Combined_Address'] = df.apply(lambda row: self.combine_separated_address_components(row, separated_components), axis=1)
             
@@ -1891,6 +2053,14 @@ class CSVAddressProcessor:
             if not address_columns:
                 print("Available columns:", df.columns.tolist())
                 raise ValueError("No address columns detected. Please specify the address column manually.")
+            
+            print(f"Detected address columns: {', '.join(address_columns)}")
+            
+            # Handle address splitting if enabled (for non-separated formats)
+            if enable_split and self.address_splitter:
+                print(f"\n✂️  Address splitting is ENABLED - analyzing addresses...")
+                df = self.apply_address_splitting(df, address_columns)
+                print(f"✅ Address splitting completed. New row count: {len(df)}")
         
         print(f"Detected address columns: {', '.join(address_columns)}")
         
@@ -3011,6 +3181,8 @@ Examples:
     parser.add_argument('--address-columns', help='Comma-separated list of columns to combine into address (e.g., "address_line1,city,state,zip")')
     parser.add_argument('-b', '--batch-size', type=int, default=5, help='Batch size for processing (default: 5)')
     parser.add_argument('--no-free-apis', action='store_true', help='Disable free API enhancement')
+    parser.add_argument('--enable-split', action='store_true', help='Enable address splitting based on rules (creates additional rows for split addresses)')
+    parser.add_argument('--use-gpt-split', action='store_true', help='Use GPT-based splitting instead of rule-based (requires --enable-split)')
     
     # Options for direct address processing
     parser.add_argument(
@@ -3309,7 +3481,9 @@ Examples:
         try:
             processor.process_all_inbound_files(
                 batch_size=args.batch_size,
-                use_free_apis=not args.no_free_apis
+                use_free_apis=not args.no_free_apis,
+                enable_split=args.enable_split,
+                use_gpt_split=args.use_gpt_split
             )
         except Exception as e:
             print(f"❌ Error in batch processing: {e}")
@@ -3346,7 +3520,9 @@ Examples:
                     address_column=args.column,
                     address_columns=args.address_columns.split(',') if args.address_columns else None,
                     batch_size=args.batch_size,
-                    use_free_apis=not args.no_free_apis
+                    use_free_apis=not args.no_free_apis,
+                    enable_split=args.enable_split,
+                    use_gpt_split=args.use_gpt_split
                 )
                 print(f"\n✅ Processing completed successfully!")
                 print(f"📁 Output saved to: {output_file}")
@@ -3367,28 +3543,157 @@ Examples:
         if len(args.address) == 1:
             # Single address processing
             print(f"🏠 Processing single address")
-            result = processor.process_single_address_input(
-                args.address[0], 
-                args.country, 
-                args.format
-            )
             
-            if args.output:
-                # Save to JSON file
-                with open(args.output, 'w', encoding='utf-8') as f:
-                    json.dump(result, f, indent=2, ensure_ascii=False)
-                print(f"\n📄 Result saved to: {args.output}")
-            else:
-                # Print to console
-                print(f"\n📋 Result:")
-                if args.format == 'formatted':
-                    print(f"   Original: {result.get('original_address', 'N/A')}")
-                    print(f"   Formatted: {result.get('formatted_address', 'N/A')}")
-                    print(f"   Confidence: {result.get('confidence', 'N/A')}")
-                    print(f"   From cache: {result.get('from_cache', False)}")
-                    print(f"   Status: {result.get('status', 'N/A')}")
+            # Check if splitting is enabled
+            if args.enable_split and processor.address_splitter:
+                print(f"✂️  Address splitting: ENABLED ({'GPT-based' if args.use_gpt_split else 'Rule-based'})")
+                
+                # Parse the address to separate street address from geographic components
+                # Use the same logic as CSV processing: split on commas, detect City/State/Zip pattern
+                address_input = args.address[0]
+                
+                # Try to detect if address has geographic components separated by commas
+                # Pattern: "Street Address, City, State Zip" or "Street Address, City, State, Zip"
+                parts = [p.strip() for p in address_input.split(',')]
+                
+                street_address = None
+                city = None
+                state = None
+                postal_code = None
+                
+                if len(parts) >= 3:
+                    # Likely format: "Street, City, State/Zip" or "Street, City, State, Zip"
+                    street_address = parts[0]
+                    city = parts[1]
+                    
+                    # Check if last part contains state and/or zip
+                    if len(parts) == 3:
+                        # Format: "Street, City, State Zip"
+                        state_zip = parts[2].strip()
+                        # Try to extract state and zip
+                        state_zip_match = re.match(r'^([A-Z]{2})\s*(\d{5}(?:-\d{4})?)$', state_zip)
+                        if state_zip_match:
+                            state = state_zip_match.group(1)
+                            postal_code = state_zip_match.group(2)
+                        else:
+                            state = state_zip
+                    elif len(parts) == 4:
+                        # Format: "Street, City, State, Zip"
+                        state = parts[2]
+                        postal_code = parts[3]
+                    
+                    print(f"   📍 Detected separated components:")
+                    print(f"      Street: {street_address}")
+                    print(f"      City: {city}")
+                    print(f"      State: {state}")
+                    print(f"      Zip: {postal_code}")
+                    
+                    # Split ONLY the street address portion
+                    split_result = processor.address_splitter.analyze_and_split(street_address)
+                    split_addresses = split_result['addresses']
+                    reason = split_result['split_reason']
+                    
+                    # Reconstruct complete addresses by combining split street with city/state/zip
+                    if len(split_addresses) > 1:
+                        # Reconstruct complete addresses
+                        complete_addresses = []
+                        for split_street in split_addresses:
+                            complete_addr_parts = [split_street, city]
+                            if state and postal_code:
+                                complete_addr_parts.append(f"{state} {postal_code}")
+                            elif state:
+                                complete_addr_parts.append(state)
+                            elif postal_code:
+                                complete_addr_parts.append(postal_code)
+                            complete_addresses.append(", ".join(complete_addr_parts))
+                        split_addresses = complete_addresses
                 else:
-                    print(json.dumps(result, indent=2, ensure_ascii=False))
+                    # No geographic components detected, split the entire address
+                    split_result = processor.address_splitter.analyze_and_split(address_input)
+                    split_addresses = split_result['addresses']
+                    reason = split_result['split_reason']
+                
+                if len(split_addresses) > 1:
+                    print(f"✂️  Address split into {len(split_addresses)} addresses")
+                    print(f"   Reason: {reason}")
+                    
+                    # Process each split address
+                    results = []
+                    for idx, split_addr in enumerate(split_addresses, 1):
+                        print(f"\n   Processing split address {idx}/{len(split_addresses)}: {split_addr}")
+                        result = processor.process_single_address_input(
+                            split_addr, 
+                            args.country, 
+                            args.format
+                        )
+                        result['split_indicator'] = 'Yes'
+                        result['split_address_number'] = f"{idx} of {len(split_addresses)}"
+                        result['split_reason'] = reason
+                        results.append(result)
+                    
+                    if args.output:
+                        # Save to JSON file
+                        with open(args.output, 'w', encoding='utf-8') as f:
+                            json.dump(results, f, indent=2, ensure_ascii=False)
+                        print(f"\n📄 Results saved to: {args.output}")
+                    else:
+                        # Print to console
+                        print(f"\n📋 Results ({len(results)} addresses):")
+                        for i, res in enumerate(results, 1):
+                            print(f"\n--- Address {i} of {len(results)} ---")
+                            if args.format == 'formatted':
+                                print(f"   Original: {res.get('original_address', 'N/A')}")
+                                print(f"   Formatted: {res.get('formatted_address', 'N/A')}")
+                                print(f"   Confidence: {res.get('confidence', 'N/A')}")
+                                print(f"   Split: {res.get('split_address_number', 'N/A')}")
+                            else:
+                                print(json.dumps(res, indent=2, ensure_ascii=False))
+                else:
+                    print(f"✂️  No split needed - processing as single address")
+                    result = processor.process_single_address_input(
+                        args.address[0], 
+                        args.country, 
+                        args.format
+                    )
+                    
+                    if args.output:
+                        with open(args.output, 'w', encoding='utf-8') as f:
+                            json.dump(result, f, indent=2, ensure_ascii=False)
+                        print(f"\n📄 Result saved to: {args.output}")
+                    else:
+                        print(f"\n📋 Result:")
+                        if args.format == 'formatted':
+                            print(f"   Original: {result.get('original_address', 'N/A')}")
+                            print(f"   Formatted: {result.get('formatted_address', 'N/A')}")
+                            print(f"   Confidence: {result.get('confidence', 'N/A')}")
+                            print(f"   From cache: {result.get('from_cache', False)}")
+                            print(f"   Status: {result.get('status', 'N/A')}")
+                        else:
+                            print(json.dumps(result, indent=2, ensure_ascii=False))
+            else:
+                # No splitting - process as is
+                result = processor.process_single_address_input(
+                    args.address[0], 
+                    args.country, 
+                    args.format
+                )
+                
+                if args.output:
+                    # Save to JSON file
+                    with open(args.output, 'w', encoding='utf-8') as f:
+                        json.dump(result, f, indent=2, ensure_ascii=False)
+                    print(f"\n📄 Result saved to: {args.output}")
+                else:
+                    # Print to console
+                    print(f"\n📋 Result:")
+                    if args.format == 'formatted':
+                        print(f"   Original: {result.get('original_address', 'N/A')}")
+                        print(f"   Formatted: {result.get('formatted_address', 'N/A')}")
+                        print(f"   Confidence: {result.get('confidence', 'N/A')}")
+                        print(f"   From cache: {result.get('from_cache', False)}")
+                        print(f"   Status: {result.get('status', 'N/A')}")
+                    else:
+                        print(json.dumps(result, indent=2, ensure_ascii=False))
         else:
             # Multiple addresses processing
             print(f"🏠 Processing {len(args.address)} addresses")
