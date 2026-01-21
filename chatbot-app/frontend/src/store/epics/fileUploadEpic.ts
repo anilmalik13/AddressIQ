@@ -20,10 +20,10 @@ export const uploadFileEpic: Epic<AnyAction, AnyAction, RootState> = (action$) =
     action$.pipe(
         mergeMap((action) => {
             if (uploadFileRequest.match(action)) {
-                const file = action.payload;
+                const { file, model } = action.payload;
                 
                 return from(
-                    uploadExcelFile(file, (progress) => {
+                    uploadExcelFile(file, model, (progress) => {
                         // This will be handled by a separate observable for progress updates
                     })
                 ).pipe(

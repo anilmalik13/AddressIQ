@@ -1,6 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { processAddressRequest, processAddressesRequest, resetAddressState } from '../../store/slices/addressProcessingSlice';
+import { getAvailableModels, AIModel } from '../../services/api';
 import './AddressProcessing.css';
 
 const AddressProcessing: React.FC = () => {
@@ -8,6 +9,35 @@ const AddressProcessing: React.FC = () => {
     const { processing, processedAddress, error, multiResults } = useAppSelector((state) => state.addressProcessing);
     const [inputAddress, setInputAddress] = useState<string>('');
     const [mode, setMode] = useState<'single' | 'multi'>('multi');
+    const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
+    const [selectedModel, setSelectedModel] = useState<string>('');
+    const [loadingModels, setLoadingModels] = useState<boolean>(true);
+
+    // Fetch available models on mount
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                setLoadingModels(true);
+                const { models, default_model } = await getAvailableModels();
+                setAvailableModels(models);
+                setSelectedModel(default_model);
+            } catch (error) {
+                console.error('Failed to fetch models:', error);
+                // Set default fallback
+                setAvailableModels([
+                    {
+                        id: 'gpt4omni',
+                        displayName: 'GPT-4 Omni',
+                        description: 'Advanced AI model for address standardization'
+                    }
+                ]);
+                setSelectedModel('gpt4omni');
+            } finally {
+                setLoadingModels(false);
+            }
+        };
+        fetchModels();
+    }, []);
 
     const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInputAddress(event.target.value);
@@ -15,19 +45,19 @@ const AddressProcessing: React.FC = () => {
 
     const handleProcess = useCallback(() => {
         const trimmed = inputAddress.trim();
-        if (!trimmed) return;
+        if (!trimmed || !selectedModel) return;
         if (mode === 'single') {
-            dispatch(processAddressRequest(trimmed));
+            dispatch(processAddressRequest({ address: trimmed, model: selectedModel }));
         } else {
             // Split by newlines, filter empties
             const list = trimmed.split(/\r?\n/).map(a => a.trim()).filter(a => a.length > 0);
             if (list.length === 1) {
-                dispatch(processAddressRequest(list[0]));
+                dispatch(processAddressRequest({ address: list[0], model: selectedModel }));
             } else if (list.length > 1) {
-                dispatch(processAddressesRequest(list));
+                dispatch(processAddressesRequest({ addresses: list, model: selectedModel }));
             }
         }
-    }, [dispatch, inputAddress, mode]);
+    }, [dispatch, inputAddress, mode, selectedModel]);
 
     const handleReset = useCallback(() => {
         setInputAddress('');
@@ -66,6 +96,81 @@ const AddressProcessing: React.FC = () => {
                         {mode==='multi' && (
                             <small className="hint">Each non-empty line will be processed. Blank lines are ignored.</small>
                         )}
+                    </div>
+
+                    {/* Model Selection - Modern Inline Design */}
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px',
+                        padding: '8px 12px',
+                        background: '#f8f9fa',
+                        borderRadius: '6px',
+                        border: '1px solid #e9ecef'
+                    }}>
+                        <span style={{ 
+                            fontSize: '16px',
+                            lineHeight: '1'
+                        }}>🤖</span>
+                        <span style={{ 
+                            fontSize: '12px', 
+                            color: '#6c757d',
+                            fontWeight: '500',
+                            whiteSpace: 'nowrap'
+                        }}>Model:</span>
+                        <select
+                            value={selectedModel}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            disabled={processing || loadingModels}
+                            style={{
+                                flex: 1,
+                                padding: '4px 8px',
+                                fontSize: '12px',
+                                border: '1px solid #dee2e6',
+                                borderRadius: '4px',
+                                backgroundColor: processing ? '#e9ecef' : 'white',
+                                cursor: processing || loadingModels ? 'not-allowed' : 'pointer',
+                                color: '#212529',
+                                fontWeight: '500',
+                                outline: 'none',
+                                transition: 'all 0.2s ease',
+                                appearance: 'none',
+                                backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23495057\' d=\'M6 9L1 4h10z\'/%3E%3C/svg%3E")',
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'right 8px center',
+                                paddingRight: '30px'
+                            }}
+                            onMouseEnter={(e) => { 
+                                if (!processing && !loadingModels) {
+                                    e.currentTarget.style.borderColor = '#adb5bd';
+                                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.1)';
+                                }
+                            }}
+                            onMouseLeave={(e) => { 
+                                e.currentTarget.style.borderColor = '#dee2e6';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                            onFocus={(e) => { 
+                                if (!processing) {
+                                    e.currentTarget.style.borderColor = '#007bff';
+                                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,123,255,0.15)';
+                                }
+                            }}
+                            onBlur={(e) => {
+                                e.currentTarget.style.borderColor = '#dee2e6';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        >
+                            {loadingModels ? (
+                                <option>Loading...</option>
+                            ) : (
+                                availableModels.map((model) => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.displayName}
+                                    </option>
+                                ))
+                            )}
+                        </select>
                     </div>
 
                     <div className="button-group">

@@ -1,0 +1,13 @@
+{
+  "models": [
+    {
+      "id": "gpt4omni",
+      "name": "GPT-4 Omni",
+      "displayName": "GPT-4 Omni",
+      "provider": "azure_openai",
+      "description": "Advanced AI model for address standardization",
+      "enabled": true
+    }
+  ],
+  "default_model": "gpt4omni"
+}
