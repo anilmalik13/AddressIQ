@@ -132,24 +132,76 @@ class AddressSplitter:
         
         # Special case: If there are commas but no "and"/"&", check if it's comma-separated addresses
         if not has_and and comma_count > 0:
-            # Check if this looks like comma-separated street numbers with a street name
-            # Pattern: number, number, number street_name
+            # Check if this looks like a standard address format vs. multiple addresses
+            # Standard format: "Street Address, City, State, Zip, Country" or variations
+            # Multiple addresses: "123, 456, 789 Main Street" or "123 Main St, 456 Oak Ave"
             parts = [p.strip() for p in address.split(',')]
+            
             if len(parts) >= 2:
-                # Check if we have standalone numbers followed by an address with street name
-                has_standalone_numbers = False
-                has_complete_address = False
+                # Check if this matches a standard address pattern
+                # Common patterns:
+                # - First part has street number and name
+                # - Later parts are geographic components (city, state, postal code, county, country)
+                # - Postal codes are typically 5 digits (US), alphanumeric (UK/CA), etc.
+                # - State codes are 2 letters (US states)
+                # - Countries are full names
                 
-                for part in parts:
-                    # Check if it's just a number (possibly with direction)
-                    if re.match(r'^\d+[A-Z]?(\s+[NSEW]{1,2})?$', part, re.IGNORECASE):
-                        has_standalone_numbers = True
-                    # Check if it has both number and street name
-                    elif re.search(r'\d+', part) and re.search(r'[A-Za-z]{3,}', part):
-                        has_complete_address = True
+                first_part = parts[0]
+                remaining_parts = parts[1:]
                 
-                if has_standalone_numbers and has_complete_address:
-                    return True, "Contains comma-separated addresses with standalone numbers"
+                # Check if first part looks like a complete street address
+                first_has_street = re.search(r'\d+', first_part) and re.search(r'[A-Za-z]{3,}', first_part)
+                
+                if first_has_street and len(remaining_parts) > 0:
+                    # Analyze remaining parts to see if they're geographic components
+                    is_standard_format = True
+                    standalone_numbers = []
+                    
+                    for i, part in enumerate(remaining_parts):
+                        # Skip if empty
+                        if not part:
+                            continue
+                        
+                        # Check various patterns:
+                        # 1. City names (text only, usually longer than 2 chars)
+                        # 2. State codes (2 uppercase letters like CA, TX, NY)
+                        # 3. State names (full names like California, Texas)
+                        # 4. Postal codes (5 digits, or UK/CA format)
+                        # 5. Country names (text, usually longer)
+                        # 6. County names (often end with "County")
+                        
+                        # Postal code patterns (US: 5 digits, UK: XX## #XX, etc.)
+                        is_postal = re.match(r'^(\d{5}(-\d{4})?|[A-Z0-9]{2,4}\s?[A-Z0-9]{3})$', part, re.IGNORECASE)
+                        
+                        # State code (2 letters)
+                        is_state_code = re.match(r'^[A-Z]{2}$', part, re.IGNORECASE)
+                        
+                        # Geographic name (letters, possibly with spaces/hyphens)
+                        is_geo_name = re.match(r'^[A-Za-z\s\-]+$', part)
+                        
+                        # Standalone number that's NOT a postal code
+                        is_standalone_num = re.match(r'^\d+$', part) and not is_postal
+                        
+                        if is_standalone_num and len(part) <= 3:
+                            # Short standalone numbers (1-3 digits) suggest multiple addresses
+                            # e.g., "123, 456, 789 Main St"
+                            standalone_numbers.append(part)
+                        elif not (is_postal or is_state_code or is_geo_name):
+                            # Part doesn't match any standard geographic component pattern
+                            # Could be multiple street addresses
+                            # e.g., "123 Main St, 456 Oak Ave"
+                            if re.search(r'\d+', part) and re.search(r'[A-Za-z]{3,}', part):
+                                is_standard_format = False
+                                break
+                    
+                    # If we found multiple short standalone numbers, it's likely multiple addresses
+                    # e.g., "10, 20, 30 Main Street" -> split into separate addresses
+                    if len(standalone_numbers) >= 2:
+                        return True, "Contains comma-separated addresses with standalone numbers"
+                    
+                    # If all remaining parts look like geographic components, don't split
+                    if is_standard_format:
+                        return False, "Standard address format with geographic components"
         
         if not has_and:
             # Check if address2 contains separate addresses
