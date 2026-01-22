@@ -110,6 +110,7 @@ class AddressSplitter:
     def detect_potential_split(self, address: str, address2: str = None) -> Tuple[bool, str]:
         """
         Detects if an address could potentially be split into multiple addresses.
+        Only splits on coordinating conjunctions (and, &) - NOT on commas.
         
         Args:
             address: Primary address field
@@ -124,108 +125,27 @@ class AddressSplitter:
         if should_not:
             return False, f"No split: {reason}"
         
-        # Check for "and" or "&" in the address
+        # Check for "and" or "&" in the address (coordinating conjunctions)
         has_and = self.and_pattern.search(address)
         
-        # Count commas in the address
-        comma_count = address.count(',')
-        
-        # Special case: If there are commas but no "and"/"&", check if it's comma-separated addresses
-        if not has_and and comma_count > 0:
-            # Check if this looks like a standard address format vs. multiple addresses
-            # Standard format: "Street Address, City, State, Zip, Country" or variations
-            # Multiple addresses: "123, 456, 789 Main Street" or "123 Main St, 456 Oak Ave"
-            parts = [p.strip() for p in address.split(',')]
-            
-            if len(parts) >= 2:
-                # Check if this matches a standard address pattern
-                # Common patterns:
-                # - First part has street number and name
-                # - Later parts are geographic components (city, state, postal code, county, country)
-                # - Postal codes are typically 5 digits (US), alphanumeric (UK/CA), etc.
-                # - State codes are 2 letters (US states)
-                # - Countries are full names
-                
-                first_part = parts[0]
-                remaining_parts = parts[1:]
-                
-                # Check if first part looks like a complete street address
-                first_has_street = re.search(r'\d+', first_part) and re.search(r'[A-Za-z]{3,}', first_part)
-                
-                if first_has_street and len(remaining_parts) > 0:
-                    # Analyze remaining parts to see if they're geographic components
-                    is_standard_format = True
-                    standalone_numbers = []
-                    
-                    for i, part in enumerate(remaining_parts):
-                        # Skip if empty
-                        if not part:
-                            continue
-                        
-                        # Check various patterns:
-                        # 1. City names (text only, usually longer than 2 chars)
-                        # 2. State codes (2 uppercase letters like CA, TX, NY)
-                        # 3. State names (full names like California, Texas)
-                        # 4. Postal codes (5 digits, or UK/CA format)
-                        # 5. Country names (text, usually longer)
-                        # 6. County names (often end with "County")
-                        
-                        # Postal code patterns (US: 5 digits, UK: XX## #XX, etc.)
-                        is_postal = re.match(r'^(\d{5}(-\d{4})?|[A-Z0-9]{2,4}\s?[A-Z0-9]{3})$', part, re.IGNORECASE)
-                        
-                        # State code (2 letters)
-                        is_state_code = re.match(r'^[A-Z]{2}$', part, re.IGNORECASE)
-                        
-                        # Geographic name (letters, possibly with spaces/hyphens)
-                        is_geo_name = re.match(r'^[A-Za-z\s\-]+$', part)
-                        
-                        # Standalone number that's NOT a postal code
-                        is_standalone_num = re.match(r'^\d+$', part) and not is_postal
-                        
-                        if is_standalone_num and len(part) <= 3:
-                            # Short standalone numbers (1-3 digits) suggest multiple addresses
-                            # e.g., "123, 456, 789 Main St"
-                            standalone_numbers.append(part)
-                        elif not (is_postal or is_state_code or is_geo_name):
-                            # Part doesn't match any standard geographic component pattern
-                            # Could be multiple street addresses
-                            # e.g., "123 Main St, 456 Oak Ave"
-                            if re.search(r'\d+', part) and re.search(r'[A-Za-z]{3,}', part):
-                                is_standard_format = False
-                                break
-                    
-                    # If we found multiple short standalone numbers, it's likely multiple addresses
-                    # e.g., "10, 20, 30 Main Street" -> split into separate addresses
-                    if len(standalone_numbers) >= 2:
-                        return True, "Contains comma-separated addresses with standalone numbers"
-                    
-                    # If all remaining parts look like geographic components, don't split
-                    if is_standard_format:
-                        return False, "Standard address format with geographic components"
-        
+        # ONLY split if we have coordinating conjunctions (and, &)
+        # Commas are NOT used as split delimiters - they're part of normal address formatting
         if not has_and:
-            # Check if address2 contains separate addresses
+            # Check if address2 contains separate addresses with coordinating conjunctions
             if address2 and address2.strip():
-                # If address2 has "and" or "&" and address1 also has content
                 if self.and_pattern.search(address2):
-                    return True, "Address1 and Address2 contain separate addresses"
-            return False, "No 'and' or '&' found"
+                    return True, "Address2 contains coordinating conjunctions"
+            return False, "No coordinating conjunctions ('and' or '&') found"
         
-        # Has "and" or "&" - determine if it's a potential split
+        # Has "and" or "&" - this is a potential split
+        # Check for special characters that would indicate it's NOT multiple addresses
+        special_chars = ['(', ')', '[', ']', '{', '}', ':', ';']
+        has_special = any(char in address for char in special_chars)
         
-        if comma_count > 0:
-            # Rule: Contains "and"/"&" and has commas
-            return True, "Contains 'and'/'&' with commas - potential multiple addresses"
-        else:
-            # Rule: Contains "and"/"&" with no other special characters
-            # Check for special characters that would indicate it's NOT multiple addresses
-            special_chars = ['(', ')', '[', ']', '{', '}', ':', ';']
-            has_special = any(char in address for char in special_chars)
-            
-            if not has_special:
-                return True, "Contains 'and'/'&' with no special characters - potential multiple addresses"
+        if has_special:
+            return False, "Contains special characters indicating single address context"
         
-        return False, "Does not match split criteria"
+        return True, "Contains coordinating conjunctions ('and' or '&') - potential multiple addresses"
     
     def split_address(self, address: str, address2: str = None) -> List[str]:
         """
@@ -246,15 +166,9 @@ class AddressSplitter:
             # Return original address as single item
             return [address]
         
-        # Perform the split
-        addresses = []
-        
-        # Handle comma-separated addresses (more complex)
-        if ',' in address:
-            addresses = self._split_comma_separated_addresses(address)
-        else:
-            # Simple split by "and" or "&" - but reconstruct complete addresses
-            addresses = self._split_and_addresses(address)
+        # Perform the split - ONLY split on coordinating conjunctions (and, &)
+        # Commas are preserved as part of the address formatting
+        addresses = self._split_and_addresses(address)
         
         # Handle address2 if present
         if address2 and address2.strip():
@@ -269,12 +183,16 @@ class AddressSplitter:
     def _split_and_addresses(self, address: str) -> List[str]:
         """
         Splits addresses connected by "and" or "&", reconstructing complete addresses.
+        Handles comma-separated numbers before coordinating conjunctions.
         
         Example: "10255 and 10261 Iron Rock Way"
         Should become: ["10255 Iron Rock Way", "10261 Iron Rock Way"]
         
         Example: "328 & 348 14th Street NW"
         Should become: ["328 14th Street NW", "348 14th Street NW"]
+        
+        Example: "10, 20, 30 and 40 Main Street"
+        Should become: ["10 Main Street", "20 Main Street", "30 Main Street", "40 Main Street"]
         """
         
         # Split by "and" or "&"
@@ -304,9 +222,21 @@ class AddressSplitter:
         if base_street_name:
             for part in parts:
                 part = part.strip()
-                # Check if this part is ONLY a number
-                if re.match(r'^\d+$', part):
-                    # Reconstruct: number + street name
+                
+                # Check if this part contains comma-separated numbers
+                # e.g., "10, 20, 30" before the coordinating conjunction
+                if ',' in part:
+                    # Split by commas and process each number
+                    numbers = [n.strip() for n in part.split(',')]
+                    for num in numbers:
+                        if num and re.match(r'^\d+$', num):
+                            # Standalone number - reconstruct with base street name
+                            result_addresses.append(f"{num} {base_street_name}")
+                        elif num:
+                            # Has other content - use as-is
+                            result_addresses.append(num)
+                elif re.match(r'^\d+$', part):
+                    # Standalone number (no commas) - reconstruct
                     result_addresses.append(f"{part} {base_street_name}")
                 else:
                     # Already has content, use as-is

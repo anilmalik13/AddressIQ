@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:500
 
 const api = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 30000,
+    timeout: 300000, // 5 minutes - allow time for AI processing
 });
 
 // AI Model interface
@@ -256,6 +256,12 @@ export const splitAddress = async (address: string): Promise<{
         console.error('Error splitting address:', error);
         if (error.response?.data?.error) {
             throw new Error(error.response.data.error);
+        }
+        if (error.code === 'ECONNABORTED') {
+            throw new Error('Request timed out. The address is still being processed in the background. Please try again shortly.');
+        }
+        if (error.message?.includes('timeout')) {
+            throw new Error('Processing is taking longer than expected. Please try with a simpler address or try again later.');
         }
         throw new Error('Address splitting failed. Please try again.');
     }
