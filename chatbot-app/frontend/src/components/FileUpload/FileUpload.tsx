@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { uploadFileRequest, uploadFileFailure, resetUploadState, checkProcessingStatus, downloadProcessedFile } from '../../store/slices/fileUploadSlice';
-import { downloadSampleFile } from '../../services/api';
+import { downloadSampleFile, getAvailableModels, AIModel } from '../../services/api';
 import './FileUpload.css';
 
 // Human-readable file size formatter to avoid showing 0.00 MB for small files
@@ -22,9 +22,38 @@ const FileUpload: React.FC = () => {
         (state) => state.fileUpload
     );
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
+    const [selectedModel, setSelectedModel] = useState<string>('');
+    const [loadingModels, setLoadingModels] = useState<boolean>(true);
     // Use a ref for the polling interval to avoid triggering re-renders
     const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // Fetch available models on mount
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                setLoadingModels(true);
+                const { models, default_model } = await getAvailableModels();
+                setAvailableModels(models);
+                setSelectedModel(default_model);
+            } catch (error) {
+                console.error('Failed to fetch models:', error);
+                // Set default fallback
+                setAvailableModels([
+                    {
+                        id: 'gpt4omni',
+                        displayName: 'GPT-4 Omni',
+                        description: 'Advanced AI model for address standardization'
+                    }
+                ]);
+                setSelectedModel('gpt4omni');
+            } finally {
+                setLoadingModels(false);
+            }
+        };
+        fetchModels();
+    }, []);
 
     // Start polling for processing status when we get a processing ID
     useEffect(() => {
@@ -110,10 +139,10 @@ const FileUpload: React.FC = () => {
     }, [error]);
 
     const handleUpload = useCallback(() => {
-        if (selectedFile) {
-            dispatch(uploadFileRequest(selectedFile));
+        if (selectedFile && selectedModel) {
+            dispatch(uploadFileRequest({ file: selectedFile, model: selectedModel }));
         }
-    }, [dispatch, selectedFile]);
+    }, [dispatch, selectedFile, selectedModel]);
 
     const handleReset = useCallback(() => {
         setSelectedFile(null);
@@ -152,75 +181,45 @@ const FileUpload: React.FC = () => {
 
     return (
         <div className="file-upload-container">
-            <div className="file-upload-card">
-                <h1>File Upload</h1>
-                <p>Upload your Excel (.xlsx, .xls) or CSV (.csv) file to process address data</p>
-                
-                <div className="info-note" style={{ 
-                    background: '#e3f2fd', 
-                    border: '1px solid #2196f3', 
-                    borderRadius: '8px', 
-                    padding: '12px 16px', 
-                    margin: '16px 0',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px'
-                }}>
-                    <span style={{ color: '#1976d2', fontSize: '20px', fontWeight: 'bold' }}>ℹ️</span>
-                    <div style={{ flex: 1 }}>
-                        <strong style={{ color: '#1565c0', display: 'block', marginBottom: '4px' }}>Processing Information</strong>
-                        <span style={{ color: '#424242', fontSize: '14px' }}>
-                            Records are processed in batches of 5 for optimal performance. Your entire file will be processed regardless of size, 
-                            but the operations are performed on 5 records at a time. Processing time varies and directly depends upon the number of records in your file.
-                        </span>
+            {/* Hero Section */}
+            <div className="hero-section">
+                <div className="hero-icon">📄</div>
+                <h1 className="hero-title">Upload & Process</h1>
+                <p className="hero-subtitle">Transform your address data with AI-powered standardization</p>
+            </div>
+
+            {/* Main Content Card */}
+            <div className="main-card">
+                {/* Info Cards Row */}
+                <div className="info-cards-grid">
+                    <div className="info-card info-card-blue">
+                        <div className="info-card-icon">💡</div>
+                        <div className="info-card-content">
+                            <div className="info-card-title">Batch Processing</div>
+                            <div className="info-card-text">Records processed in batches of 5 for optimal performance</div>
+                        </div>
+                    </div>
+                    <div className="info-card info-card-amber">
+                        <div className="info-card-icon">📋</div>
+                        <div className="info-card-content">
+                            <div className="info-card-title">Required Headers</div>
+                            <div className="info-card-text">Site_Name, Site_Address_1-4, City, State, Postcode, Country</div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="info-note" style={{ 
-                    background: '#fff3e0', 
-                    border: '1px solid #ff9800', 
-                    borderRadius: '8px', 
-                    padding: '12px 16px', 
-                    margin: '16px 0',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px'
-                }}>
-                    <span style={{ color: '#f57c00', fontSize: '20px', fontWeight: 'bold' }}>⚠️</span>
-                    <div style={{ flex: 1 }}>
-                        <strong style={{ color: '#e65100', display: 'block', marginBottom: '4px' }}>Required File Headers</strong>
-                        <span style={{ color: '#424242', fontSize: '13px' }}>
-                            Your file must contain these columns (case-insensitive):
-                            <strong> Site_Name, Site_Address_1, Site_Address_2, Site_Address_3, Site_Address_4, Site_City, Site_State, Site_Postcode, Site_Country</strong>. Download the sample file to see the correct format.
-                        </span>
-                    </div>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                    <button 
-                        onClick={handleDownloadSample}
-                        style={{ 
-                            background: 'none',
-                            border: 'none',
-                            color: '#1976d2', 
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            padding: 0,
-                            textDecoration: 'none',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                        onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
-                    >
-                        📥 Download Sample Upload File
+                {/* Sample File Download */}
+                <div className="sample-download-section">
+                    <button onClick={handleDownloadSample} className="sample-download-btn">
+                        <span className="sample-icon">⬇</span>
+                        <span>Download Sample File</span>
                     </button>
+                    <span className="sample-help-text">Not sure about the format? Get our template</span>
                 </div>
 
                 <div className="upload-section">
-                    <div className="file-input-wrapper">
+                    {/* Drag & Drop File Upload Area */}
+                    <div className="upload-area">
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -228,128 +227,211 @@ const FileUpload: React.FC = () => {
                             accept=".xlsx,.xls,.csv"
                             onChange={handleFileSelect}
                             onClick={(e) => {
-                                // Ensure value cleared before opening dialog so selecting same file triggers onChange
                                 (e.currentTarget as HTMLInputElement).value = '';
                             }}
                             disabled={uploading}
                             className="file-input"
                         />
-                        <label htmlFor="file-input" className="file-input-label">
-                            {selectedFile ? selectedFile.name : 'Choose Excel or CSV File'}
+                        <label htmlFor="file-input" className="file-upload-zone">
+                            {!selectedFile ? (
+                                <>
+                                    <div className="upload-icon">📁</div>
+                                    <div className="upload-text-primary">Drop your file here or click to browse</div>
+                                    <div className="upload-text-secondary">Supports .xlsx, .xls, and .csv files</div>
+                                </>
+                            ) : (
+                                <div className="selected-file-display">
+                                    <div className="file-icon">📄</div>
+                                    <div className="file-details">
+                                        <div className="file-name">{selectedFile.name}</div>
+                                        <div className="file-size">{formatFileSize(selectedFile.size)}</div>
+                                    </div>
+                                    <div className="file-checkmark">✓</div>
+                                </div>
+                            )}
                         </label>
                     </div>
 
-                    {selectedFile && (
-                        <div className="file-info">
-                            <p><strong>File:</strong> {selectedFile.name}</p>
-                            <p><strong>Size:</strong> {formatFileSize(selectedFile.size)}</p>
+                    {/* AI Model Selector */}
+                    <div className="model-selector-card">
+                        <div className="model-selector-header">
+                            <span className="model-icon">🤖</span>
+                            <span className="model-label">AI Model</span>
                         </div>
-                    )}
+                        <select
+                            value={selectedModel}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            disabled={uploading || !!isProcessing || loadingModels}
+                            className="model-select"
+                        >
+                            {loadingModels ? (
+                                <option>Loading...</option>
+                            ) : (
+                                availableModels.map((model) => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.displayName}
+                                    </option>
+                                ))
+                            )}
+                        </select>
+                        <p className="model-coming-soon">💡 Additional AI models coming soon</p>
+                    </div>
 
-                    <div className="button-group">
+                    {/* Action Buttons */}
+                    <div className="action-buttons">
                         <button
                             onClick={handleUpload}
                             disabled={!selectedFile || uploading || !!isProcessing}
-                            className="upload-button"
+                            className="btn btn-primary"
                         >
-                            {uploading ? 'Uploading...' : isProcessing ? 'Processing...' : 'Upload & Process File'}
+                            {uploading ? (
+                                <>
+                                    <span className="btn-spinner"></span>
+                                    <span>Uploading...</span>
+                                </>
+                            ) : isProcessing ? (
+                                <>
+                                    <span className="btn-spinner"></span>
+                                    <span>Processing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Start Processing</span>
+                                </>
+                            )}
                         </button>
                         
                         <button
                             onClick={handleReset}
                             disabled={uploading}
-                            className="reset-button"
+                            className="btn btn-secondary"
                         >
-                            Reset
+                            <span>Reset</span>
                         </button>
 
                         {isCompleted && processingStatus?.output_file && (
                             <button
                                 onClick={handleDownload}
-                                className="download-button"
+                                className="btn btn-success"
                             >
-                                Download Processed File
+                                <span>⬇</span>
+                                <span>Download Result</span>
                             </button>
                         )}
                     </div>
 
-                    {/* Guidance message for async processing */}
+                    {/* Processing Tip */}
                     {isProcessing && (
-                        <div className="guidance-message">
-                            💡 <strong>Tip:</strong> You can click Reset and continue processing other files. Completed files will appear in Processing History.
+                        <div className="processing-tip">
+                            <span className="tip-icon">💡</span>
+                            <span className="tip-text">
+                                <strong>Pro Tip:</strong> You can reset and process other files. Completed files appear in Processing History.
+                            </span>
                         </div>
                     )}
 
+                    {/* Progress Section */}
                     {(uploading || isProcessing) && (
-                        <div className="progress-section">
-                            <div className="progress-bar">
+                        <div className="progress-card">
+                            <div className="progress-header">
+                                <span className="progress-title">
+                                    {isProcessing ? 'Processing Your File' : 'Uploading'}
+                                </span>
+                                <span className="progress-percentage">
+                                    {isProcessing ? processingStatus?.progress || 0 : uploadProgress}%
+                                </span>
+                            </div>
+                            <div className="modern-progress-bar">
                                 <div 
-                                    className="progress-fill" 
+                                    className="modern-progress-fill" 
                                     style={{ 
                                         width: `${isProcessing ? processingStatus?.progress || 0 : uploadProgress}%` 
                                     }}
                                 />
                             </div>
-                            <p>
+                            <div className="progress-message">
                                 {isProcessing 
-                                    ? `${processingStatus?.progress || 0}% - ${processingStatus?.message || 'Processing...'}`
-                                    : `${uploadProgress}% uploaded`
+                                    ? processingStatus?.message || 'Processing...'
+                                    : 'Uploading your file...'
                                 }
-                            </p>
+                            </div>
+                            
+                            {/* Processing Steps */}
                             {steps.length > 0 && (
-                                <div className="steps-wrapper">
-                                    <div className="steps">
-                                        {steps.map(s => {
-                                            const reached = currentProgress >= s.target;
-                                            return (
-                                                <div key={s.name} className={`step ${reached ? 'done' : ''}`}> 
-                                                    <div className="step-marker">{reached ? '✓' : ''}</div>
-                                                    <div className="step-label">{s.label}</div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                <div className="progress-steps">
+                                    {steps.map(s => {
+                                        const reached = currentProgress >= s.target;
+                                        return (
+                                            <div key={s.name} className={`progress-step ${reached ? 'completed' : ''}`}>
+                                                <div className="step-dot">{reached ? '✓' : ''}</div>
+                                                <div className="step-name">{s.label}</div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
+                            
+                            {/* File Metadata */}
                             {processingStatus?.file_info && (
-                                <div className="file-meta">
-                                    <small>Rows: {processingStatus.file_info.rows} | Columns: {processingStatus.file_info.columns}</small>
+                                <div className="file-metadata">
+                                    <span className="metadata-item">
+                                        <span className="metadata-label">Rows:</span>
+                                        <span className="metadata-value">{processingStatus.file_info.rows}</span>
+                                    </span>
+                                    <span className="metadata-divider">•</span>
+                                    <span className="metadata-item">
+                                        <span className="metadata-label">Columns:</span>
+                                        <span className="metadata-value">{processingStatus.file_info.columns}</span>
+                                    </span>
                                 </div>
                             )}
+                            
+                            {/* Activity Logs */}
                             {recentLogs.length > 0 && (
-                                <div className="logs">
-                                    <small><strong>Recent activity:</strong></small>
-                                    <ul>
+                                <div className="activity-logs">
+                                    <div className="logs-header">Recent Activity</div>
+                                    <div className="logs-list">
                                         {recentLogs.map(l => (
-                                            <li key={l.ts}>{new Date(l.ts).toLocaleTimeString()} - {l.message}</li>
+                                            <div key={l.ts} className="log-entry">
+                                                <span className="log-time">{new Date(l.ts).toLocaleTimeString()}</span>
+                                                <span className="log-message">{l.message}</span>
+                                            </div>
                                         ))}
-                                    </ul>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     )}
 
+                    {/* Success Result */}
                     {isCompleted && (
-                        <div className="result success">
-                            <h3>Processing Complete!</h3>
-                            <p>{processingStatus?.message}</p>
+                        <div className="result-card result-success">
+                            <div className="result-icon">✓</div>
+                            <div className="result-title">Processing Complete!</div>
+                            <div className="result-message">{processingStatus?.message}</div>
                             {processingStatus?.output_file && (
-                                <p><strong>Output file:</strong> {processingStatus.output_file}</p>
+                                <div className="result-file">
+                                    <span className="file-label">Output file:</span>
+                                    <span className="file-path">{processingStatus.output_file}</span>
+                                </div>
                             )}
                         </div>
                     )}
 
                     {uploadResult && !processingStatus && (
-                        <div className="result success">
-                            <h3>Upload Complete!</h3>
-                            <p>{uploadResult}</p>
+                        <div className="result-card result-success">
+                            <div className="result-icon">✓</div>
+                            <div className="result-title">Upload Complete!</div>
+                            <div className="result-message">{uploadResult}</div>
                         </div>
                     )}
 
+                    {/* Error Result */}
                     {hasError && (
-                        <div className="result error">
-                            <h3>Error</h3>
-                            <p>{error || processingStatus?.error}</p>
+                        <div className="result-card result-error">
+                            <div className="result-icon">✕</div>
+                            <div className="result-title">Error Occurred</div>
+                            <div className="result-message">{error || processingStatus?.error}</div>
                         </div>
                     )}
                 </div>

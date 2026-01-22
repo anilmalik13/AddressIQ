@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { submitDatabaseTask, getDbProcessingStatus, previewResultFile, downloadFile } from '../../services/api';
-import '../FileUpload/FileUpload.css';
+import '../../styles/shared.css';
 import './DatabaseConnect.css';
 
 type TopMode = 'compare' | 'format';
@@ -253,27 +253,46 @@ const DatabaseConnect: React.FC = () => {
   }, [processingStatus, page, pageSize, error]);
 
   return (
-    <div className="file-upload-container">
-      <div className="file-upload-card">
-        <h1>Database connect</h1>
-        <p>Connect to your database and select source by table columns or a SQL query.</p>
+    <div className="modern-container">
+      {/* Hero Section */}
+      <div className="modern-hero">
+        <div className="modern-hero-icon">🗄️</div>
+        <h1 className="modern-hero-title">Database Connect</h1>
+        <p className="modern-hero-subtitle">Connect to your database and process data using table columns or SQL queries</p>
+      </div>
+
+      {/* Main Card */}
+      <div className="modern-card">
+        {/* Info Cards */}
+        <div className="modern-info-cards">
+          <div className="modern-info-card modern-info-card-blue">
+            <div className="modern-info-card-icon">📊</div>
+            <div className="modern-info-card-content">
+              <div className="modern-info-card-title">Flexible Data Source</div>
+              <div className="modern-info-card-text">Choose between table-based selection or custom SQL queries for maximum flexibility</div>
+            </div>
+          </div>
+          
+          <div className="modern-info-card modern-info-card-amber">
+            <div className="modern-info-card-icon">⚠️</div>
+            <div className="modern-info-card-content">
+              <div className="modern-info-card-title">Coming Soon</div>
+              <div className="modern-info-card-text">Compare mode is in progress and will be available soon</div>
+            </div>
+          </div>
+        </div>
 
         {/* Top tabs: Compare | Format */}
-        <div className="mode-toggle" role="tablist" aria-label="Database action mode">
+        <div className="db-mode-toggle">
           <button
-            role="tab"
-            aria-selected={false}
-            className={''}
-            onClick={() => { /* disabled - coming soon */ }}
+            className="db-mode-btn disabled"
             disabled
-            title="Compare is in progress"
+            title="Compare mode coming soon"
           >
-            Compare <span className="soon-pill" aria-hidden>Soon</span>
+            Compare <span className="soon-badge">Soon</span>
           </button>
           <button
-            role="tab"
-            aria-selected={topMode === 'format'}
-            className={topMode === 'format' ? 'active' : ''}
+            className={`db-mode-btn ${topMode === 'format' ? 'active' : ''}`}
             onClick={() => setTopMode('format')}
             disabled={!!submittingAction || !!processingId}
           >
@@ -281,63 +300,60 @@ const DatabaseConnect: React.FC = () => {
           </button>
         </div>
 
-        {/* Upcoming feature banner */}
-        <div className="notice-soon" role="status" aria-live="polite">
-          Compare mode is in progress and will be available soon.
+        {/* Connection string */}
+        <div className="db-input-section">
+          <label htmlFor="conn-str" className="modern-label">
+            Connection String <span className="required-indicator">*</span>
+          </label>
+          <input
+            id="conn-str"
+            className={`modern-input ${errors.connectionString ? 'input-error' : ''}`}
+            type="text"
+            placeholder={DEFAULT_PLACEHOLDER}
+            value={connString}
+            onChange={(e) => {
+              const v = e.target.value;
+              setConnString(v);
+              setErrors(prev => ({ ...prev, connectionString: v.trim() ? undefined : 'Connection string is required' }));
+            }}
+            disabled={!!submittingAction || !!processingId}
+          />
+          {errors.connectionString && <small className="error-text">{errors.connectionString}</small>}
+          <small className="input-hint">Provide a valid database connection string</small>
         </div>
 
-        <div className="upload-section">
-          {/* Connection string */}
-          <div className="input-row">
-            <label htmlFor="conn-str" className="input-label">Connection string <span className="req">(required)</span></label>
-            <input
-              id="conn-str"
-              className={`text-input ${errors.connectionString ? 'input-error' : ''}`}
-              type="text"
-              placeholder={DEFAULT_PLACEHOLDER}
-              value={connString}
-              onChange={(e) => {
-                const v = e.target.value;
-                setConnString(v);
-                setErrors(prev => ({ ...prev, connectionString: v.trim() ? undefined : 'Connection string is required' }));
-              }}
-              disabled={!!submittingAction || !!processingId}
-            />
-            {errors.connectionString && <small className="error-text">{errors.connectionString}</small>}
-            <small className="hint">Provide a valid database connection string.</small>
-          </div>
-
-          {/* Source tabs: Table | SQL Query */}
-          <div className="mode-toggle" role="tablist" aria-label="Source type">
+        {/* Source tabs: Table | SQL Query */}
+        <div className="source-type-toggle">
+          <label className="modern-label">Data Source Type</label>
+          <div className="toggle-buttons">
             <button
-              role="tab"
-              aria-selected={sourceType === 'table'}
-              className={sourceType === 'table' ? 'active' : ''}
+              className={`toggle-btn ${sourceType === 'table' ? 'active' : ''}`}
               onClick={() => setSourceType('table')}
               disabled={!!submittingAction || !!processingId}
             >
-              Table
+              📋 Table
             </button>
             <button
-              role="tab"
-              aria-selected={sourceType === 'query'}
-              className={sourceType === 'query' ? 'active' : ''}
+              className={`toggle-btn ${sourceType === 'query' ? 'active' : ''}`}
               onClick={() => setSourceType('query')}
               disabled={!!submittingAction || !!processingId}
             >
-              SQL Query
+              💻 SQL Query
             </button>
           </div>
+        </div>
 
           {sourceType === 'table' && (
             <div className="table-config">
-        {/* Full width table name */}
-              <div className="column-row single">
+              {/* Full width table name */}
+              <div className="column-row">
                 <div className="column-field">
-          <label htmlFor="tbl-name">Table name <span className="req">(required)</span></label>
+                  <label htmlFor="tbl-name" className="modern-label">
+                    Table name <span className="required-indicator">*</span>
+                  </label>
                   <input
                     id="tbl-name"
-                    className="text-input"
+                    className="modern-input"
                     type="text"
                     placeholder="e.g. addresses, dbo.Addresses"
                     value={tableName}
@@ -345,36 +361,38 @@ const DatabaseConnect: React.FC = () => {
                     disabled={!!submittingAction || !!processingId}
                   />
                   {errors.tableName && <small className="error-text">{errors.tableName}</small>}
-                  <small className="hint">Database table to read from.</small>
+                  <small className="input-hint">Database table to read from.</small>
                 </div>
               </div>
 
               {/* Single UniqueId field (optional, acts as primary key) */}
-              <div className="column-row single">
+              <div className="column-row">
                 <div className="column-field">
-                  <label htmlFor="uniq-single">column_UniqueId (optional)</label>
+                  <label htmlFor="uniq-single" className="modern-label">column_UniqueId (optional)</label>
                   <input
                     id="uniq-single"
-                    className="text-input"
+                    className="modern-input"
                     type="text"
                     placeholder="e.g. id, record_id"
                     value={uniqueId}
                     onChange={(e) => setUniqueId(e.target.value)}
                     disabled={!!submittingAction || !!processingId}
                   />
-                  <small className="hint">Acts as primary key. Will not be repeated.</small>
+                  <small className="input-hint">Acts as primary key. Will not be repeated.</small>
                 </div>
               </div>
 
               {/* Repeatable column_name fields */}
               {columns.map((name, idx) => (
-                <div className="column-row single" key={idx}>
+                <div className="column-row" key={idx}>
                   <div className="column-field">
-                    <label htmlFor={`name-${idx}`}>column_name <span className="req">(required)</span></label>
+                    <label htmlFor={`name-${idx}`} className="modern-label">
+                      column_name <span className="required-indicator">*</span>
+                    </label>
                     <div className="name-with-add">
                       <input
                         id={`name-${idx}`}
-                        className={`text-input ${errors.columns?.[idx]?.name ? 'input-error' : ''}`}
+                        className={`modern-input ${errors.columns?.[idx]?.name ? 'input-error' : ''}`}
                         type="text"
                         placeholder="e.g. address_line_1"
                         value={name}
@@ -412,10 +430,12 @@ const DatabaseConnect: React.FC = () => {
 
           {sourceType === 'query' && (
             <div className="query-config">
-              <label htmlFor="sql-text">SQL Query <span className="req">(required)</span></label>
+              <label htmlFor="sql-text" className="modern-label">
+                SQL Query <span className="required-indicator">*</span>
+              </label>
               <textarea
                 id="sql-text"
-                className={`text-area ${errors.query ? 'input-error' : ''}`}
+                className={`query-textarea ${errors.query ? 'input-error' : ''}`}
                 placeholder="SELECT id, address_line_1, city, state, postal_code FROM addresses WHERE country = 'US'"
                 rows={6}
                 value={query}
@@ -430,11 +450,11 @@ const DatabaseConnect: React.FC = () => {
             </div>
           )}
 
-          <div className="button-group">
+          <div className="db-button-group">
             <button
               onClick={() => handleSubmit('format')}
               disabled={!canSubmit || !!submittingAction || isProcessing || isCompleted}
-              className="upload-button"
+              className="modern-btn btn-primary"
             >
               {submittingAction === 'format' ? 'Working…' : 'Format'}
             </button>
@@ -465,7 +485,7 @@ const DatabaseConnect: React.FC = () => {
                 setAtEnd(false);
               }}
               disabled={!!submittingAction || isProcessing}
-              className="dc-reset-button"
+              className="modern-btn btn-secondary"
             >
               Reset
             </button>
@@ -473,11 +493,17 @@ const DatabaseConnect: React.FC = () => {
 
           {/* Progress & activity */}
           {(processingId && processingStatus && ['queued','uploaded','processing'].includes(processingStatus.status)) && (
-            <div className="progress-section">
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${processingStatus?.progress || 0}%` }} />
+            <div className="db-progress-card">
+              <div className="progress-header">
+                <h3>Processing...</h3>
+                <span>{processingStatus?.progress || 0}%</span>
               </div>
-              <p>{processingStatus?.progress || 0}% - {processingStatus?.message || 'Processing…'}</p>
+              <div className="progress-bar-wrapper">
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${processingStatus?.progress || 0}%` }} />
+                </div>
+              </div>
+              <p className="progress-message">{processingStatus?.message || 'Processing…'}</p>
               {Array.isArray(processingStatus?.steps) && processingStatus.steps.length > 0 && (
                 <div className="steps-wrapper">
                   <div className="steps">
@@ -585,8 +611,7 @@ const DatabaseConnect: React.FC = () => {
             </div>
           )}
         </div>
-  {/* footer removed per request; Reset now adjacent to Format */}
-      </div>
+      {/* footer removed per request; Reset now adjacent to Format */}
     </div>
   );
 };

@@ -1,314 +1,372 @@
-/* Public API Component Styles */
-.public-api-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-}
-
-.api-header {
-  text-align: center;
-  margin-bottom: 40px;
-  padding: 30px;
-  background: #003f2d;
-  color: white;
-  border-radius: 12px;
-}
-
-.api-header h1 {
-  margin: 0 0 15px 0;
-  font-size: 2.5rem;
-  font-weight: 700;
-}
-
-.api-description {
-  font-size: 1.1rem;
-  margin-bottom: 25px;
-  opacity: 0.9;
-  line-height: 1.6;
+/* API Endpoints Section */
+.api-endpoints {
+  margin-top: 24px;
 }
 
 /* Accordion Styles */
-.api-endpoints {
-  margin-bottom: 40px;
-}
-
 .api-accordion {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   border: 1px solid #e1e5e9;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  background: white;
 }
 
 .api-accordion:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 
 .accordion-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  background: #f8f9fa;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .accordion-header:hover {
-  background: #e9ecef;
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
 }
 
 .accordion-header.active {
-  background: #003f2d;
+  background: linear-gradient(135deg, #003f2d 0%, #00563d 100%);
   color: white;
 }
 
 .accordion-title {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 16px;
 }
 
 .accordion-title h3 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 600;
+  color: inherit;
 }
 
+/* Method Badges */
 .method-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .method-badge.post {
-  background: #28a745;
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
   color: white;
 }
 
 .method-badge.get {
-  background: #007bff;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   color: white;
 }
 
 .accordion-icon {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   transition: transform 0.3s ease;
+  color: inherit;
 }
 
+/* Accordion Content */
 .accordion-content {
-  padding: 25px;
+  padding: 28px;
   background: white;
-  border-top: 1px solid #e1e5e9;
+  border-top: 1px solid #e9ecef;
+  animation: fadeInDown 0.3s ease;
 }
 
 .endpoint-info {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .description {
-  font-size: 1rem;
+  font-size: 15px;
   color: #6c757d;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
+/* Endpoint URL */
 .endpoint-url {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 16px;
+  border-radius: 8px;
   border-left: 4px solid #003f2d;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.endpoint-url strong {
+  color: #495057;
+  font-weight: 600;
 }
 
 .endpoint-url code {
-  background: #e9ecef;
-  padding: 4px 8px;
-  border-radius: 4px;
+  background: white;
+  padding: 6px 12px;
+  border-radius: 6px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.9rem;
-  margin-left: 10px;
+  font-size: 14px;
+  margin-left: 12px;
+  color: #003f2d;
+  font-weight: 600;
+  border: 1px solid #dee2e6;
 }
 
+/* Parameters */
 .parameters {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 18px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .parameters h4 {
-  margin: 0 0 10px 0;
+  margin: 0 0 12px 0;
   color: #495057;
-  font-size: 1.1rem;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .parameters ul {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 24px;
 }
 
 .parameters li {
-  margin: 8px 0;
+  margin: 10px 0;
   color: #6c757d;
+  font-size: 14px;
 }
 
 .parameters code {
-  background: #e9ecef;
-  padding: 2px 6px;
-  border-radius: 3px;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  color: #495057;
+  color: #003f2d;
   font-weight: 600;
+  border: 1px solid #dee2e6;
 }
 
+/* Sample Download */
 .sample-download {
-  margin: 15px 0;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-left: 4px solid #003f2d;
+  margin: 0;
+  padding: 18px;
+  background: linear-gradient(135deg, #e6f7ed 0%, #d1f0dd 100%);
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.15);
 }
 
 .sample-download h4 {
-  margin: 0 0 10px 0;
-  color: #003f2d;
+  margin: 0 0 12px 0;
+  color: #1e7e34;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .sample-download-btn {
-  background: #003f2d;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sample-download-btn:hover {
-  background: #005c42;
-  transform: translateY(-1px);
-}
-
-/* Documentation Download Styles */
-.documentation-download {
-  margin: 15px 0;
-  padding: 15px;
-  background: #e6f3ff;
-  border-radius: 6px;
-  border-left: 4px solid #0066cc;
-}
-
-.documentation-download h4 {
-  margin: 0 0 10px 0;
-  color: #0066cc;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.documentation-download-btn {
-  background: #0066cc;
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
   color: white;
   border: none;
   padding: 12px 20px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s ease;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.sample-download-btn:hover {
+  background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* Documentation Download */
+.documentation-download {
+  margin: 0;
+  padding: 18px;
+  background: linear-gradient(135deg, #e6f3ff 0%, #cce5ff 100%);
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.15);
+}
+
+.documentation-download h4 {
+  margin: 0 0 12px 0;
+  color: #0056b3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.documentation-download-btn {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
 
 .documentation-download-btn:hover {
-  background: #0052a3;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 102, 204, 0.3);
+  background: linear-gradient(135deg, #0056b3 0%, #003d82 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
 .documentation-description {
   margin: 10px 0 0 0;
-  font-size: 0.9rem;
-  color: #666;
-  line-height: 1.4;
+  font-size: 13px;
+  color: #495057;
+  line-height: 1.5;
   font-style: italic;
 }
 
+/* Example & Response Sections */
 .example-section, .response-section {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 18px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .example-section h4, .response-section h4 {
-  margin: 0 0 10px 0;
+  margin: 0 0 12px 0;
   color: #495057;
-  font-size: 1.1rem;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .code-block {
   background: #2d3748;
   color: #e2e8f0;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow-x: auto;
-  margin-top: 10px;
+  margin-top: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .code-block pre {
   margin: 0;
-  padding: 15px;
+  padding: 18px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.9rem;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.6;
   white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
+/* Test Section */
 .test-section {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 18px;
+  border-radius: 8px;
   border-left: 4px solid #003f2d;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .test-button {
-  background: #003f2d;
+  background: linear-gradient(135deg, #003f2d 0%, #00563d 100%);
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s ease;
+  font-size: 14px;
+  transition: all 0.3s ease;
   margin-top: 15px;
+  box-shadow: 0 2px 8px rgba(0, 63, 45, 0.3);
 }
 
 .test-button:hover:not(:disabled) {
-  background: #005c42;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #00563d 0%, #00704f 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 63, 45, 0.4);
 }
 
 .test-button:disabled {
   background: #ccc;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .test-results {
-  margin-top: 15px;
+  margin-top: 16px;
 }
 
 .test-results h5 {
-  margin: 0 0 10px 0;
+  margin: 0 0 12px 0;
   color: #495057;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .accordion-header {
+    padding: 14px 16px;
+  }
+
+  .accordion-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .accordion-title h3 {
+    font-size: 1.1rem;
+  }
+
+  .accordion-content {
+    padding: 20px 16px;
+  }
+
+  .endpoint-url code {
+    display: block;
+    margin-left: 0;
+    margin-top: 8px;
+    word-break: break-all;
+  }
+
+  .sample-download-btn,
+  .documentation-download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .code-block pre {
+    font-size: 12px;
+    padding: 14px;
+  }
 }

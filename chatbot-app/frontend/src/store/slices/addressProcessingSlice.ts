@@ -16,9 +16,9 @@ const addressProcessingSlice = createSlice({
     name: 'addressProcessing',
     initialState,
     reducers: {
-        processAddressRequest: (state, action: PayloadAction<string>) => {
+        processAddressRequest: (state, action: PayloadAction<{address: string, model?: string}>) => {
             state.processing = true;
-            state.originalAddress = action.payload;
+            state.originalAddress = action.payload.address;
             state.processedAddress = null;
             state.addressComponents = null;
             state.confidence = null;
@@ -26,9 +26,9 @@ const addressProcessingSlice = createSlice({
             state.error = null;
             state.multiResults = null;
         },
-        processAddressesRequest: (state, action: PayloadAction<string[]>) => {
+        processAddressesRequest: (state, action: PayloadAction<{addresses: string[], model?: string}>) => {
             state.processing = true;
-            state.originalAddress = action.payload.join('\n');
+            state.originalAddress = action.payload.addresses.join('\n');
             state.processedAddress = null;
             state.addressComponents = null;
             state.confidence = null;
