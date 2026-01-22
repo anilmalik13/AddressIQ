@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from flasgger import Swagger, swag_from
 import os
 import pandas as pd
 from werkzeug.utils import secure_filename
@@ -28,6 +29,47 @@ from database import job_manager
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
+
+# Configure Swagger
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec',
+            "route": '/apispec.json',
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/api/docs"
+}
+
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "AddressIQ API",
+        "description": "API for address standardization and geocoding services",
+        "version": "1.0.0",
+        "contact": {
+            "name": "AddressIQ Support",
+            "url": "https://github.com/anilmalik13/AddressIQ"
+        }
+    },
+    "basePath": "/api",
+    "schemes": ["http", "https"],
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "X-API-Key",
+            "in": "header",
+            "description": "API key for authentication (optional in development mode)"
+        }
+    }
+}
+
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
 # Configure upload settings - using inbound folder instead of C:\uploaded_files
 BASE_DIR = Path(__file__).parent.parent  # Points to backend folder
@@ -2303,7 +2345,52 @@ def api_v1_file_upload():
 
 @app.route('/api/v1/files/upload-async', methods=['POST'])
 def api_v1_file_upload_async():
-    """v1 API: Upload file for asynchronous address processing with database persistence and webhook support"""
+    """
+    Upload file for asynchronous address processing
+    ---
+    tags:
+      - File Upload
+    security:
+      - ApiKeyAuth: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - name: file
+        in: formData
+        type: file
+        required: true
+        description: Excel (.xlsx, .xls) or CSV file with address data
+      - name: callback_url
+        in: formData
+        type: string
+        required: false
+        description: Optional webhook URL for job completion notification
+        example: "https://example.com/webhook"
+    responses:
+      200:
+        description: File uploaded successfully, processing started
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            job_id:
+              type: string
+              example: "550e8400-e29b-41d4-a716-446655440000"
+            message:
+              type: string
+              example: "File uploaded successfully. Processing started."
+            status_url:
+              type: string
+              example: "/api/v1/files/status/550e8400-e29b-41d4-a716-446655440000"
+      400:
+        description: Bad request - no file or invalid file type
+      401:
+        description: Unauthorized - invalid API key
+      500:
+        description: Internal server error
+    """
     # Check API key for public access
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
@@ -2389,7 +2476,42 @@ def api_v1_file_upload_async():
 
 @app.route('/api/v1/files/status/<job_id>', methods=['GET'])
 def api_v1_file_status(job_id):
-    """v1 API: Get file processing status with enhanced details from database"""
+    """
+    Get processing status for a file upload job
+    ---
+    tags:
+      - File Upload
+    security:
+      - ApiKeyAuth: []
+    parameters:
+      - name: job_id
+        in: path
+        type: string
+        required: true
+        description: Job ID returned from upload endpoint
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    responses:
+      200:
+        description: Job status retrieved successfully
+        schema:
+          type: object
+          properties:
+            job_id:
+              type: string
+            status:
+              type: string
+              enum: [queued, uploaded, processing, completed, error]
+            progress:
+              type: integer
+            message:
+              type: string
+            download_url:
+              type: string
+      401:
+        description: Unauthorized - invalid API key
+      404:
+        description: Job not found
+    """
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
@@ -2554,7 +2676,48 @@ def api_v1_admin_cleanup():
 # Address Processing API endpoints  
 @app.route('/api/v1/addresses/standardize', methods=['POST'])
 def api_v1_address_standardize():
-    """v1 API: Standardize single address"""
+    """
+    Standardize a single address
+    ---
+    tags:
+      - Address Processing
+    security:
+      - ApiKeyAuth: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - address
+          properties:
+            address:
+              type: string
+              description: Full address string to standardize
+              example: "123 Main St, New York, NY 10001"
+    responses:
+      200:
+        description: Address standardized successfully
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            input_address:
+              type: string
+              example: "123 Main St, New York, NY 10001"
+            standardized_address:
+              type: object
+              description: Standardized address components
+      400:
+        description: Bad request - missing address
+      401:
+        description: Unauthorized - invalid API key
+      500:
+        description: Internal server error
+    """
     auth_valid, auth_error = _check_api_key()
     if not auth_valid:
         return jsonify({'error': auth_error}), 401
