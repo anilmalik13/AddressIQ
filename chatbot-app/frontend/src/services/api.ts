@@ -201,6 +201,41 @@ export const processAddresses = async (addresses: string[]): Promise<any[]> => {
     }
 };
 
+// Address Splitting API with coordinating conjunctions
+export const splitAddress = async (address: string): Promise<{
+    split: boolean;
+    count: number;
+    reason: string;
+    addresses: any[];
+}> => {
+    try {
+        const response = await api.post('/split-address', { address });
+        return {
+            split: response.data.split || false,
+            count: response.data.count || 0,
+            reason: response.data.reason || '',
+            addresses: (response.data.addresses || []).map((r: any) => ({
+                originalAddress: r.originalAddress,
+                processedAddress: r.processedAddress,
+                status: r.status,
+                confidence: r.confidence,
+                source: r.source,
+                components: r.components || {},
+                splitIndicator: r.splitIndicator,
+                splitNumber: r.splitNumber,
+                splitReason: r.splitReason,
+                error: r.error || null
+            }))
+        };
+    } catch (error: any) {
+        console.error('Error splitting address:', error);
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Address splitting failed. Please try again.');
+    }
+};
+
 // Region-Country Coordinates API
 export const getCoordinatesByRegionCountry = async (region: string, country: string) => {
     // Remove duplicate '/api' because baseURL is '/api'

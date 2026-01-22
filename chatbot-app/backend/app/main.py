@@ -377,6 +377,7 @@ def health_check():
             '/api/uploaded-files',
             '/api/process-address',
             '/api/process-addresses',
+            '/api/split-address',
             '/api/public/standardize',
             '/api/coordinates',
             '/api/countries'
@@ -1484,6 +1485,185 @@ def process_addresses():
         return jsonify({'results': results, 'count': len(results)}), 200
     except Exception as e:
         return jsonify({'error': f'Multi-address processing failed: {str(e)}'}), 500
+
+@app.route('/api/split-address', methods=['POST'])
+def split_address():
+    """Split and process an address with coordinating conjunctions (and, &)
+    
+    Input JSON: {"address": "10255 and 10261 Iron Rock Way"}
+    
+    Response JSON:
+    {
+        "split": true/false,
+        "count": number of addresses,
+        "reason": "split reason or why no split",
+        "addresses": [
+            {
+                "originalAddress": "...",
+                "processedAddress": "...",
+                "status": "success/fallback/error",
+                "confidence": "high/medium/low",
+                "source": "azure_openai/free_api/original",
+                "components": {...},
+                "splitIndicator": "Yes",
+                "splitNumber": "1 of 2",
+                "splitReason": "..."
+            }
+        ]
+    }
+    """
+    try:
+        data = request.get_json()
+        address = data.get('address')
+        
+        if not address:
+            return jsonify({'error': 'Address is required'}), 400
+        
+        # Import the CSV processor
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from csv_address_processor import CSVAddressProcessor
+        from address_splitter import AddressSplitter
+        
+        processor = CSVAddressProcessor()
+        
+        # Initialize address splitter if not already done
+        if not hasattr(processor, 'address_splitter') or processor.address_splitter is None:
+            processor.address_splitter = AddressSplitter(use_gpt=False)
+        
+        # Analyze if the address should be split
+        split_result = processor.address_splitter.analyze_and_split(address)
+        split_addresses = split_result['addresses']
+        reason = split_result['split_reason']
+        was_split = len(split_addresses) > 1
+        
+        # Process each address (split or single)
+        results = []
+        for idx, split_addr in enumerate(split_addresses, 1):
+            try:
+                single = processor.standardize_single_address(split_addr, idx - 1)
+                
+                if single and single.get('status') == 'success' and single.get('formatted_address'):
+                    # Generate explanation for missing components
+                    explanation_parts = []
+                    original_addr_lower = split_addr.lower()
+                    
+                    # Check if original input had a street number that's missing in result
+                    import re
+                    original_street_number = re.match(r'^(\d+[A-Za-z]?)\s+', split_addr.strip())
+                    if original_street_number and not single.get('street_number'):
+                        explanation_parts.append(f"Street number '{original_street_number.group(1)}' from input was not found in the geocoded location")
+                    
+                    # Check if postal code is missing
+                    if not single.get('postal_code'):
+                        explanation_parts.append("Postal code could not be determined for this location")
+                    
+                    # Check if coordinates are missing
+                    if not single.get('latitude') or not single.get('longitude'):
+                        explanation_parts.append("Geographic coordinates unavailable")
+                    
+                    # Check confidence level
+                    confidence = single.get('confidence', 'unknown')
+                    if confidence in ['low', 'medium']:
+                        explanation_parts.append(f"Confidence level is {confidence} - address may need verification")
+                    
+                    # Combine explanation
+                    explanation = '; '.join(explanation_parts) if explanation_parts else None
+                    
+                    result_item = {
+                        'originalAddress': split_addr,
+                        'processedAddress': single.get('formatted_address', split_addr),
+                        'status': 'success',
+                        'confidence': confidence,
+                        'source': 'azure_openai',
+                        'explanation': explanation,
+                        'components': {
+                            'street_number': single.get('street_number', ''),
+                            'street_name': single.get('street_name', ''),
+                            'street_type': single.get('street_type', ''),
+                            'city': single.get('city', ''),
+                            'state': single.get('state', ''),
+                            'county': single.get('county', ''),
+                            'postal_code': single.get('postal_code', ''),
+                            'country': single.get('country', ''),
+                            'country_code': single.get('country_code', ''),
+                            'latitude': single.get('latitude', ''),
+                            'longitude': single.get('longitude', '')
+                        }
+                    }
+                else:
+                    # Fallback to free APIs
+                    processor.configure_free_apis(nominatim=True, geocodify=True)
+                    fallback = {'success': False}
+                    try:
+                        fallback = processor.geocode_with_nominatim(split_addr)
+                    except Exception:
+                        try:
+                            fallback = processor.geocode_with_geocodify(split_addr)
+                        except Exception:
+                            pass
+                    
+                    if fallback.get('success'):
+                        result_item = {
+                            'originalAddress': split_addr,
+                            'processedAddress': fallback.get('formatted_address', split_addr),
+                            'status': 'success',
+                            'confidence': fallback.get('confidence', 'medium'),
+                            'source': 'free_api',
+                            'explanation': 'Processed using free geocoding API (Azure OpenAI unavailable)',
+                            'components': {
+                                'street_number': fallback.get('street_number', ''),
+                                'street_name': fallback.get('street_name', ''),
+                                'city': fallback.get('city', ''),
+                                'state': fallback.get('state', ''),
+                                'postal_code': fallback.get('postal_code', ''),
+                                'country': fallback.get('country', ''),
+                                'latitude': fallback.get('latitude', ''),
+                                'longitude': fallback.get('longitude', '')
+                            }
+                        }
+                    else:
+                        result_item = {
+                            'originalAddress': split_addr,
+                            'processedAddress': split_addr,
+                            'status': 'fallback',
+                            'confidence': 'unavailable',
+                            'source': 'original',
+                            'explanation': 'Could not standardize address - no geocoding service was able to process it',
+                            'components': {}
+                        }
+                
+                # Add split metadata if address was split
+                if was_split:
+                    result_item['splitIndicator'] = 'Yes'
+                    result_item['splitNumber'] = f"{idx} of {len(split_addresses)}"
+                    result_item['splitReason'] = reason
+                
+                results.append(result_item)
+                
+            except Exception as inner_e:
+                results.append({
+                    'originalAddress': split_addr,
+                    'processedAddress': split_addr,
+                    'status': 'error',
+                    'confidence': 'unknown',
+                    'source': 'error',
+                    'components': {},
+                    'error': str(inner_e),
+                    'splitIndicator': 'Yes' if was_split else 'No',
+                    'splitNumber': f"{idx} of {len(split_addresses)}" if was_split else None
+                })
+        
+        return jsonify({
+            'split': was_split,
+            'count': len(results),
+            'reason': reason,
+            'addresses': results
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Address splitting failed: {str(e)}'}), 500
 
 @app.route('/api/public/standardize', methods=['POST', 'GET'])
 def public_standardize():

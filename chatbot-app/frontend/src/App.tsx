@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import FileUpload from './components/FileUpload';
 import AddressProcessing from './components/AddressProcessing';
+import AddressSplit from './components/AddressSplit';
 import RegionCityMap from './components/RegionCityMap';
 import PublicAPI from './components/PublicAPI/PublicAPI';
 import CompareUpload from './components/CompareUpload/CompareUpload';
@@ -8,7 +9,7 @@ import DatabaseConnect from './components/DatabaseConnect';
 import JobHistory from './components/JobHistory/JobHistory';
 import './App.css';
 
-type ActiveView = 'upload' | 'compare' | 'processing' | 'map' | 'publicapi' | 'dbconnect' | 'jobs';
+type ActiveView = 'upload' | 'compare' | 'processing' | 'split' | 'map' | 'publicapi' | 'dbconnect' | 'jobs';
 type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
@@ -55,6 +56,9 @@ const App: React.FC = () => {
             <div style={{ display: activeView === 'processing' ? 'block' : 'none' }}>
                 <AddressProcessing />
             </div>
+            <div style={{ display: activeView === 'split' ? 'block' : 'none' }}>
+                <AddressSplit />
+            </div>
             <div style={{ display: activeView === 'map' ? 'block' : 'none' }}>
                 <RegionCityMap />
             </div>
@@ -77,6 +81,7 @@ const App: React.FC = () => {
             { key: 'upload', label: 'File Upload', icon: 'upload' },
             { key: 'compare', label: 'Compare Upload', icon: 'compare' },
             { key: 'processing', label: 'Address Processing', icon: 'process' },
+            { key: 'split', label: 'Address Splitting', icon: 'split' },
             { key: 'map', label: 'Map View', icon: 'map' },
             { key: 'publicapi', label: 'Public API', icon: 'api' },
             { key: 'dbconnect', label: 'Database connect', icon: 'db' },
@@ -108,6 +113,16 @@ const App: React.FC = () => {
                 return (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                         <path d="M3 12h3l3 7 4-14 3 7h5" />
+                    </svg>
+                );
+            case 'split':
+                return (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <circle cx="12" cy="5" r="1" />
+                        <circle cx="12" cy="12" r="1" />
+                        <circle cx="12" cy="19" r="1" />
+                        <path d="M12 2v2M12 11v2M12 18v2" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                 );
             case 'map':
