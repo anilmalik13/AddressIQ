@@ -32,21 +32,7 @@ except ImportError as e:
     print(f"⚠️  Warning: Address splitter not available: {str(e)}")
     ADDRESS_SPLITTER_AVAILABLE = False
 
-# Import Azure SQL Database service
-try:
-    from app.services.azure_sql_database import AzureSQLDatabaseService
-    DATABASE_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️  Warning: Azure SQL Database service not available: {str(e)}")
-    DATABASE_AVAILABLE = False
-
-# Import Database Connector service
-try:
-    from app.services.database_connector import DatabaseConnector
-    DATABASE_CONNECTOR_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️  Warning: Database Connector service not available: {str(e)}")
-    DATABASE_CONNECTOR_AVAILABLE = False
+# Database caching removed - all addresses processed directly via API
 
 class CSVAddressProcessor:
     """
@@ -103,25 +89,9 @@ class CSVAddressProcessor:
             }
         }
         
-        # Initialize database service
-        if DATABASE_AVAILABLE:
-            try:
-                self.db_service = AzureSQLDatabaseService()
-            except Exception as e:
-                print(f"⚠️  Warning: Azure SQL Database service initialization failed: {str(e)}")
-                self.db_service = None
-        else:
-            self.db_service = None
-            
-        # Initialize database connector service
-        if DATABASE_CONNECTOR_AVAILABLE:
-            try:
-                self.db_connector = DatabaseConnector()
-            except Exception as e:
-                print(f"⚠️  Warning: Database Connector service initialization failed: {str(e)}")
-                self.db_connector = None
-        else:
-            self.db_connector = None
+        # Database services removed - no caching
+        self.db_service = None
+        self.db_connector = None
         
         # Initialize address splitter
         if ADDRESS_SPLITTER_AVAILABLE:
@@ -134,16 +104,6 @@ class CSVAddressProcessor:
                 self.address_splitter = None
         else:
             self.address_splitter = None
-        
-        # Print database stats on initialization if database service is available
-        if self.db_service:
-            try:
-                stats = self.db_service.get_database_stats()
-                print(f"💾 Azure SQL Database Stats: {stats['total_unique_addresses']} unique addresses, "
-                      f"{stats['total_address_lookups']} total lookups, "
-                      f"{stats['cache_hit_rate']:.1f}% cache hit rate")
-            except Exception as e:
-                print(f"❌ Failed to get database stats: {str(e)}")
         
     def setup_directories(self):
             self.db_service = None
@@ -319,15 +279,6 @@ class CSVAddressProcessor:
         print(f"Total files: {len(inbound_files)}")
         print(f"📤 Output files in: {self.outbound_dir}")
         print(f"📦 Processed files archived to: {self.archive_dir}")
-        
-        if self.db_service:
-            try:
-                final_stats = self.db_service.get_database_stats()
-                print(f"📊 Final Database Stats:")
-                print(f"   Total unique addresses: {final_stats['total_unique_addresses']}")
-                print(f"   Cache hit rate: {final_stats['cache_hit_rate']:.1f}%")
-            except Exception as e:
-                print(f"   ⚠️  Could not get final database stats: {e}")
     
     def process_all_inbound_comparison_files(self, batch_size: int = 5):
         """Process all comparison files in the inbound directory"""
@@ -408,52 +359,7 @@ class CSVAddressProcessor:
             print(f"🌍 Target country: {country}")
         print("=" * 50)
         
-        # Check database cache first
-        if self.db_service:
-            existing_address = self.db_service.find_existing_address(address)
-            if existing_address:
-                print("💾 Found in database cache!")
-                # Ensure cached result has proper status and required fields
-                cached_result = {
-                    'status': 'success',
-                    'original_address': address,
-                    'formatted_address': existing_address.get('formatted_address', ''),
-                    'street_number': existing_address.get('street_number', '') or '',
-                    'street_name': existing_address.get('street_name', '') or '',
-                    'street_type': existing_address.get('street_type', '') or '',
-                    'unit_type': existing_address.get('unit_type', '') or '',
-                    'unit_number': existing_address.get('unit_number', '') or '',
-                    'building_name': existing_address.get('building_name', '') or '',
-                    'floor_number': existing_address.get('floor_number', '') or '',
-                    'city': existing_address.get('city', '') or '',
-                    'state': existing_address.get('state', '') or '',
-                    'county': existing_address.get('county', '') or '',
-                    'postal_code': existing_address.get('postal_code', '') or '',
-                    'country': existing_address.get('country', '') or '',
-                    'country_code': existing_address.get('country_code', '') or '',
-                    'district': existing_address.get('district', '') or '',
-                    'region': existing_address.get('region', '') or '',
-                    'suburb': existing_address.get('suburb', '') or '',
-                    'locality': existing_address.get('locality', '') or '',
-                    'sublocality': existing_address.get('sublocality', '') or '',
-                    'canton': existing_address.get('canton', '') or '',
-                    'prefecture': existing_address.get('prefecture', '') or '',
-                    'oblast': existing_address.get('oblast', '') or '',
-                    'confidence': existing_address.get('confidence', 'medium') or 'medium',
-                    'issues': existing_address.get('issues', '') or '',
-                    'api_source': f"{existing_address.get('api_source', 'cached')}_cached",
-                    'latitude': str(existing_address.get('latitude', '')) if existing_address.get('latitude') else '',
-                    'longitude': str(existing_address.get('longitude', '')) if existing_address.get('longitude') else '',
-                    'address_type': existing_address.get('address_type', '') or '',
-                    'po_box': existing_address.get('po_box', '') or '',
-                    'delivery_instructions': existing_address.get('delivery_instructions', '') or '',
-                    'mail_route': existing_address.get('mail_route', '') or '',
-                    'address_id': existing_address.get('id'),
-                    'from_cache': True
-                }
-                return self._format_output(cached_result, output_format)
-        
-        # Process with AI
+        # Process with AI (no caching)
         try:
             print("🤖 Processing with AI...")
             result = standardize_address(address)
@@ -500,16 +406,6 @@ class CSVAddressProcessor:
                     'from_cache': False
                 }
                 
-                # Save to database
-                if self.db_service:
-                    try:
-                        address_id = self.db_service.save_address(address, enhanced_result)
-                        enhanced_result['address_id'] = address_id
-                        print(f"💾 Saved to database with ID: {address_id}")
-                    except Exception as e:
-                        print(f"⚠️ Could not save to database: {e}")
-                        enhanced_result['address_id'] = None
-                
                 return self._format_output(enhanced_result, output_format)
             else:
                 print("❌ AI processing failed")
@@ -549,76 +445,15 @@ class CSVAddressProcessor:
         
         results = []
         
-        # Check which addresses are already in cache
-        cached_addresses = []
-        new_addresses = []
+        # Process all addresses via API (no caching)
+        print(f"🤖 Processing {len(addresses)} addresses via API")
         
-        for i, address in enumerate(addresses):
-            if self.db_service:
-                existing = self.db_service.find_existing_address(address)
-                if existing:
-                    # Ensure cached result has proper status and required fields
-                    cached_result = {
-                        'status': 'success',
-                        'original_address': address,
-                        'formatted_address': existing.get('formatted_address', ''),
-                        'street_number': existing.get('street_number', '') or '',
-                        'street_name': existing.get('street_name', '') or '',
-                        'street_type': existing.get('street_type', '') or '',
-                        'unit_type': existing.get('unit_type', '') or '',
-                        'unit_number': existing.get('unit_number', '') or '',
-                        'building_name': existing.get('building_name', '') or '',
-                        'floor_number': existing.get('floor_number', '') or '',
-                        'city': existing.get('city', '') or '',
-                        'state': existing.get('state', '') or '',
-                        'county': existing.get('county', '') or '',
-                        'postal_code': existing.get('postal_code', '') or '',
-                        'country': existing.get('country', '') or '',
-                        'country_code': existing.get('country_code', '') or '',
-                        'district': existing.get('district', '') or '',
-                        'region': existing.get('region', '') or '',
-                        'suburb': existing.get('suburb', '') or '',
-                        'locality': existing.get('locality', '') or '',
-                        'sublocality': existing.get('sublocality', '') or '',
-                        'canton': existing.get('canton', '') or '',
-                        'prefecture': existing.get('prefecture', '') or '',
-                        'oblast': existing.get('oblast', '') or '',
-                        'confidence': existing.get('confidence', 'medium') or 'medium',
-                        'issues': existing.get('issues', '') or '',
-                        'api_source': f"{existing.get('api_source', 'cached')}_cached",
-                        'latitude': str(existing.get('latitude', '')) if existing.get('latitude') else '',
-                        'longitude': str(existing.get('longitude', '')) if existing.get('longitude') else '',
-                        'address_type': existing.get('address_type', '') or '',
-                        'po_box': existing.get('po_box', '') or '',
-                        'delivery_instructions': existing.get('delivery_instructions', '') or '',
-                        'mail_route': existing.get('mail_route', '') or '',
-                        'address_id': existing.get('id'),
-                        'from_cache': True
-                    }
-                    cached_addresses.append((i, cached_result))
-                else:
-                    new_addresses.append((i, address))
-            else:
-                new_addresses.append((i, address))
-        
-        print(f"💾 Found {len(cached_addresses)} addresses in cache")
-        print(f"🤖 Processing {len(new_addresses)} new addresses")
-        
-        # Initialize results array
-        results = [None] * len(addresses)
-        
-        # Add cached results
-        for original_index, cached_result in cached_addresses:
-            results[original_index] = self._format_output(cached_result, output_format)
-        
-        # Process new addresses in batches
-        if new_addresses:
-            new_address_strings = [addr for _, addr in new_addresses]
-            
+        # Process addresses in batches
+        if addresses:
             try:
-                ai_results = standardize_multiple_addresses(new_address_strings, use_batch=True)
+                ai_results = standardize_multiple_addresses(addresses, use_batch=True)
                 
-                for i, (original_index, address) in enumerate(new_addresses):
+                for i, address in enumerate(addresses):
                     if i < len(ai_results):
                         ai_result = ai_results[i]
                         
@@ -654,25 +489,16 @@ class CSVAddressProcessor:
                                 'from_cache': False
                             }
                         
-                        # Save successful results to database
-                        if result.get('status') == 'success' and self.db_service:
-                            try:
-                                address_id = self.db_service.save_address(address, result)
-                                result['address_id'] = address_id
-                                print(f"💾 Saved address {i+1} to database with ID: {address_id}")
-                            except Exception as e:
-                                print(f"⚠️ Could not save address {i+1}: {e}")
-                                result['address_id'] = None
-                        
-                        results[original_index] = self._format_output(result, output_format)
+                        # Format and add result
+                        results.append(self._format_output(result, output_format))
                     else:
                         # Fallback for missing results
-                        results[original_index] = self._format_output({
+                        results.append(self._format_output({
                             'status': 'failed',
                             'error': 'No result from AI',
                             'original_address': address,
                             'from_cache': False
-                        }, output_format)
+                        }, output_format))
                         
             except Exception as e:
                 print(f"❌ Error in batch processing: {e}")
@@ -1091,44 +917,6 @@ class CSVAddressProcessor:
             address_str = str(address).strip()
             print(f"Processing row {row_index + 1}: {address_str[:50]}...")
             
-            # Check if address exists in database first (only use successfully processed addresses)
-            if self.db_service:
-                existing_address = self.db_service.find_existing_address(address_str)
-                
-                if existing_address:
-                    # Only use cached result if it was successfully processed (not fallback data)
-                    if (existing_address.get('api_source') != 'fallback' and 
-                        existing_address.get('issues') != 'azure_openai_failed' and
-                        existing_address.get('confidence') != 'low'):
-                        
-                        print(f"   ✅ Found cached address (ID: {existing_address['id']}, used {existing_address['usage_count']} times)")
-                        result = {
-                            'status': 'success',
-                            'original_address': address_str,
-                            'formatted_address': existing_address['formatted_address'],
-                            'street_number': existing_address['street_number'] or '',
-                            'street_name': existing_address['street_name'] or '',
-                            'street_type': existing_address['street_type'] or '',
-                            'unit_type': existing_address['unit_type'] or '',
-                            'unit_number': existing_address['unit_number'] or '',
-                            'city': existing_address['city'] or '',
-                            'state': existing_address['state'] or '',
-                            'postal_code': existing_address['postal_code'] or '',
-                            'country': existing_address['country'] or '',
-                            'confidence': existing_address['confidence'] or '',
-                            'issues': existing_address['issues'] or '',
-                            'api_source': f"{existing_address['api_source']}_cached" if existing_address['api_source'] else 'cached',
-                            'latitude': str(existing_address['latitude']) if existing_address['latitude'] else '',
-                            'longitude': str(existing_address['longitude']) if existing_address['longitude'] else '',
-                            'address_id': existing_address['id'],
-                            'from_cache': True
-                        }
-                        # Enhance cached result with coordinates/components if missing
-                        if use_free_apis and (not result.get('latitude', '').strip() or not result.get('longitude', '').strip()):
-                            result = self.fill_missing_components_with_free_apis(address_str, result)
-                        return result
-                    else:
-                        print(f"   ⚠️  Found cached address but it's fallback data (ID: {existing_address['id']}) - processing with AI...")
             
             # NEW: Try geocoding FIRST if enabled (for incomplete addresses)
             geocoding_result = None
@@ -1212,14 +1000,8 @@ class CSVAddressProcessor:
                 if use_free_apis:
                     enhanced_result = self.fill_missing_components_with_free_apis(address_str, enhanced_result)
                 
-                # Save to database only if successfully processed by OpenAI
-                if self.db_service:
-                    address_id = self.db_service.save_address(address_str, enhanced_result)
-                    enhanced_result['address_id'] = address_id
-                    print(f"   💾 Saved to Azure SQL Database (ID: {address_id})")
-                else:
-                    enhanced_result['address_id'] = None
-                    print(f"   ⚠️  Database not available - result not cached")
+                # No database saving
+                enhanced_result['address_id'] = None
                 
                 return enhanced_result
             else:
@@ -1297,7 +1079,7 @@ class CSVAddressProcessor:
         addresses_to_process = []
         addresses_to_process_mapping = {}  # Maps batch index to original index
         
-        # Check database cache for each address
+        # Process all addresses (no caching)
         for i, address in enumerate(address_batch):
             original_index = start_index + i
             
@@ -1315,56 +1097,7 @@ class CSVAddressProcessor:
             
             address_str = str(address).strip()
             
-            # Check database cache
-            if self.db_service:
-                existing_address = self.db_service.find_existing_address(address_str)
-                if existing_address and existing_address.get('api_source') != 'fallback':
-                    print(f"   ✅ Found cached address for row {original_index + 1}")
-                    cached_result = {
-                        'status': 'success',
-                        'original_address': address_str,
-                        'formatted_address': existing_address['formatted_address'],
-                        'street_number': existing_address['street_number'] or '',
-                        'street_name': existing_address['street_name'] or '',
-                        'street_type': existing_address['street_type'] or '',
-                        'unit_type': existing_address['unit_type'] or '',
-                        'unit_number': existing_address['unit_number'] or '',
-                        'building_name': existing_address.get('building_name', '') or '',
-                        'floor_number': existing_address.get('floor_number', '') or '',
-                        'city': existing_address['city'] or '',
-                        'state': existing_address['state'] or '',
-                        'county': existing_address.get('county', '') or '',
-                        'postal_code': existing_address['postal_code'] or '',
-                        'country': existing_address['country'] or '',
-                        'country_code': existing_address.get('country_code', '') or '',
-                        'district': existing_address.get('district', '') or '',
-                        'region': existing_address.get('region', '') or '',
-                        'suburb': existing_address.get('suburb', '') or '',
-                        'locality': existing_address.get('locality', '') or '',
-                        'sublocality': existing_address.get('sublocality', '') or '',
-                        'canton': existing_address.get('canton', '') or '',
-                        'prefecture': existing_address.get('prefecture', '') or '',
-                        'oblast': existing_address.get('oblast', '') or '',
-                        'confidence': existing_address['confidence'] or '',
-                        'issues': existing_address['issues'] or '',
-                        'api_source': f"{existing_address['api_source']}_cached",
-                        'latitude': str(existing_address['latitude']) if existing_address['latitude'] else '',
-                        'longitude': str(existing_address['longitude']) if existing_address['longitude'] else '',
-                        'address_type': existing_address.get('address_type', '') or '',
-                        'po_box': existing_address.get('po_box', '') or '',
-                        'delivery_instructions': existing_address.get('delivery_instructions', '') or '',
-                        'mail_route': existing_address.get('mail_route', '') or '',
-                        'address_id': existing_address['id'],
-                        'from_cache': True,
-                        'input_index': i
-                    }
-                    # Enhance cached result with coordinates/components if missing
-                    if use_free_apis and (not cached_result.get('latitude', '').strip() or not cached_result.get('longitude', '').strip()):
-                        cached_result = self.fill_missing_components_with_free_apis(address_str, cached_result)
-                    cached_results[original_index] = cached_result
-                    continue
-            
-            # Add to batch processing list
+            # Add to batch processing list (no cache lookup)
             batch_index = len(addresses_to_process)
             addresses_to_process.append(address_str)
             addresses_to_process_mapping[batch_index] = original_index
@@ -1470,44 +1203,7 @@ class CSVAddressProcessor:
                         'address_id': None
                     })
         
-        # Batch save to database for efficiency
-        if self.db_service and all_results:
-            try:
-                # Prepare data for batch save: list of (original_address, result) tuples
-                addresses_to_save = []
-                for result in all_results:
-                    if result.get('status') == 'success' and not result.get('from_cache', False):
-                        addresses_to_save.append((
-                            result.get('original_address', ''),
-                            result
-                        ))
-                
-                if addresses_to_save:
-                    # Batch save all non-cached addresses
-                    batch_ids = self.db_service.save_addresses_batch(addresses_to_save)
-                    
-                    # Update results with database IDs
-                    save_index = 0
-                    for result in all_results:
-                        if result.get('status') == 'success' and not result.get('from_cache', False):
-                            if save_index < len(batch_ids):
-                                result['address_id'] = batch_ids[save_index]
-                            save_index += 1
-                
-            except Exception as db_error:
-                print(f"   ⚠️  Warning: Batch database save failed, falling back to individual saves: {str(db_error)}")
-                # Fallback to individual saves
-                for result in all_results:
-                    if result.get('status') == 'success' and not result.get('from_cache', False):
-                        try:
-                            address_id = self.db_service.save_address(
-                                result.get('original_address', ''),
-                                result
-                            )
-                            result['address_id'] = address_id
-                        except Exception as individual_error:
-                            print(f"   ⚠️  Warning: Could not save individual address: {str(individual_error)}")
-        
+        # No database saving
         print(f"✅ Batch completed: {len(all_results)} results")
         return all_results
     
@@ -3259,20 +2955,12 @@ Examples:
             print("  ❌ No database drivers available")
         return
     
-    # Show database stats if requested
+    # Database stats removed (no caching)
     if args.db_stats:
-        if processor.db_service:
-            stats = processor.db_service.get_database_stats()
-            print("📊 AddressIQ Azure SQL Database Statistics")
-            print("=" * 50)
-            print(f"Server: dev-server-sqldb.database.windows.net")
-            print(f"Total unique addresses: {stats['total_unique_addresses']:,}")
-            print(f"Total address lookups: {stats['total_address_lookups']:,}")
-            print(f"Addresses reused: {stats['reused_addresses']:,}")
-            print(f"Cache hit rate: {stats['cache_hit_rate']:.1f}%")
-            print(f"API calls saved: {stats['total_address_lookups'] - stats['total_unique_addresses']:,}")
-        else:
-            print("❌ Database service not available")
+        print("📊 Database caching has been removed from AddressIQ")
+        print("=" * 50)
+        print("All addresses are now processed directly via API")
+        print("No database dependency required")
         return
     
     # Test APIs if requested
@@ -3526,13 +3214,6 @@ Examples:
                 )
                 print(f"\n✅ Processing completed successfully!")
                 print(f"📁 Output saved to: {output_file}")
-            
-            # Show final database stats
-            if processor.db_service:
-                final_stats = processor.db_service.get_database_stats()
-                print(f"\n📊 Final Azure SQL Database Stats:")
-                print(f"   Total unique addresses: {final_stats['total_unique_addresses']:,}")
-                print(f"   Cache hit rate: {final_stats['cache_hit_rate']:.1f}%")
                 
         except Exception as e:
             print(f"❌ Error processing CSV: {e}")
