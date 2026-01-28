@@ -31,10 +31,40 @@ const AddressSplit: React.FC = () => {
     const [processingStage, setProcessingStage] = useState<string>('');
     const [estimatedTime, setEstimatedTime] = useState<number>(0);
     const [elapsedTime, setElapsedTime] = useState<number>(0);
+    const [specialCharWarning, setSpecialCharWarning] = useState<string | null>(null);
+
+    // Detect special characters that might interfere with address splitting
+    const detectSpecialCharacters = useCallback((text: string): { hasSpecial: boolean; chars: string[]; message: string | null } => {
+        // Special characters that might interfere with splitting
+        const problematicChars = ['(', ')', '[', ']', '{', '}', ':', ';', '|', '/', '\\', '~', '`', '!', '?', '@', '#', '$', '%', '^', '*', '=', '+', '<', '>'];
+        
+        const foundChars: string[] = [];
+        for (const char of problematicChars) {
+            if (text.includes(char)) {
+                foundChars.push(char);
+            }
+        }
+        
+        if (foundChars.length > 0) {
+            const charList = foundChars.map(c => `'${c}'`).join(', ');
+            return {
+                hasSpecial: true,
+                chars: foundChars,
+                message: `Warning: Your address contains special characters (${charList}) that may interfere with splitting. Please review and remove them before processing.`
+            };
+        }
+        
+        return { hasSpecial: false, chars: [], message: null };
+    }, []);
 
     const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setInputAddress(event.target.value);
-    }, []);
+        const newValue = event.target.value;
+        setInputAddress(newValue);
+        
+        // Check for special characters and show warning
+        const detection = detectSpecialCharacters(newValue);
+        setSpecialCharWarning(detection.message);
+    }, [detectSpecialCharacters]);
 
     const handleProcess = useCallback(async () => {
         const trimmed = inputAddress.trim();
@@ -128,6 +158,13 @@ const AddressSplit: React.FC = () => {
                         <small className="hint">
                             Example: "10255 and 10261 Iron Rock Way" - will be split into 2 addresses
                         </small>
+                        
+                        {specialCharWarning && (
+                            <div className="warning-message">
+                                <span className="warning-icon">⚠️</span>
+                                <span className="warning-text">{specialCharWarning}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="button-group">
