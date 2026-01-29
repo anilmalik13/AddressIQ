@@ -1,0 +1,22 @@
+MasterId,Property Type,Name,Address1,Address2,Address3,City,County,State,StateCode,PostalCode,Country,CountryCode,ExpectedSplitCount,SplitRule
+1001,Test,No Split - Range 1,211-245 Wheelhouse Lane,,,Test City,Test County,Texas,TX,75001,United States,US,1,no split - range
+1002,Test,No Split - Range 2,96-100 Pane Road,,,Test City,Test County,Texas,TX,75002,United States,US,1,no split - range
+1003,Test,No Split - Unit 1,3800 West Ray Road Unit B3 (B15-B20),,,Test City,Test County,Texas,TX,75003,United States,US,1,no split - fractional
+1004,Test,No Split - Units,6120 & 6132 Brookshire Blvd Units M N & F,,,Test City,Test County,Texas,TX,75004,United States,US,1,no split - fractional
+1005,Test,No Split - Floor,140 Vann St NE 1st Floor - 310/320,,,Test City,Test County,Georgia,GA,30001,United States,US,1,no split - fractional
+1006,Test,No Split - Directional 1,E of S Aspen Ave; S/S of E 91st S,,,Test City,Test County,Oklahoma,OK,74001,United States,US,1,no split - directional
+1007,Test,No Split - Directional 2,NEQ OF THE SEQ OF SECTION 26 TOWNSHIP 15 SOUTH RANGE 67 WEST OF THE 6TH P.M.,,,Test City,Test County,Colorado,CO,80001,United States,US,1,no split - directional
+1008,Test,No Split - Directional 3,W/L of S. Rangerville Road SW of S. Expressway 83,,,Test City,Test County,Texas,TX,78501,United States,US,1,no split - directional
+1009,Test,No Split - Directional 4,1/4 Mile South of 195th Ave SE on Kandi-Meeker Rd SE,,,Test City,Test County,Washington,WA,98001,United States,US,1,no split - directional
+1010,Test,No Split - Highway Intersection,Highway 40 and K,,,Test City,Test County,Kansas,KS,67001,United States,US,1,no split - no street numbers
+1011,Test,No Split - Parentheses,Main Street (Hwy 20),,,Test City,Test County,Texas,TX,75011,United States,US,1,no split - no and/&
+2001,Test,Split - Comma Numbers,"5250 NW 86th St, 8651, 8751, 8801 Northpark Dr",,,Test City,Test County,Texas,TX,75021,United States,US,4,potential split - comma separated
+2002,Test,Split - And with Commas,"2905 S Regal St, 2908 E 29th Ave & 2917 S Regal St",,,Test City,Test County,Texas,TX,75022,United States,US,3,potential split - and/& with commas
+2003,Test,Split - Simple And,8894 and 8896 Fort Smallwood Rd,,,Test City,Test County,Maryland,MD,21001,United States,US,2,potential split - and
+2004,Test,Split - Different Streets,34 Fairview St and 45 Oakwood Ave,,,Test City,Test County,New York,NY,10001,United States,US,2,potential split - and
+2005,Test,Split - Ampersand,10659 West Fairview Avenue & 1421 North Five Mile Road,,,Test City,Test County,Michigan,MI,48001,United States,US,2,potential split - ampersand
+2532779,Retail,McDonalds,Hwy 180 and Jack Borden Way,,,Weatherford,Parker,Texas,TX,76086,United States,US,2,CSV Row 1
+2532767,Industrial,Iron Rock,10255 and 10261 Iron Rock Way,,,Elk Grove,Sacramento,California,CA,95624,United States,US,2,CSV Row 2
+2532669,Retail,Morrisville Plaza,"0, 19, 20, 97 & 105 Morrisville Plaza",,,Morristown,Lamoille,Vermont,VT,5661,United States,US,5,CSV Row 3
+2532627,Industrial,Two Building Industrial Property,14942 and 15012 South Post Oak Road,,,Houston,County,Texas,TX,77053,United States,US,2,CSV Row 4
+3001,Test,Split - Address1 and Address2,2504 and 2506 Zeppelin Rd,2510 and 2520 Aviation Way,,Springfield,County,Illinois,IL,62701,United States,US,4,potential split - address1 and address2

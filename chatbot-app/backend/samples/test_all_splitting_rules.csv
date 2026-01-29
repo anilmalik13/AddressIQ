@@ -1,0 +1,17 @@
+MasterId,PropertyType,Name,Address1,Address2,Address3,City,County,State,StateCode,PostalCode,Country,CountryCode,Latitude,Longitude
+2532777,Retail,Griffin Farm at Midtown,211-245 Wheelhouse Lane,NULL,NULL,Lake Mary,Seminole,Florida,FL,32746,United States,US,28.754691,-81.334457
+2532776,Retail,Jung's Golden Dragon Restaurant,3009 Magazine Street,NULL,NULL,New Orleans,Orleans,Louisiana,LA,70115,United States,US,29.925056,-90.085034
+2532749,Industrial,List HQ,West side of SW Tom Mackie Blvd South of SW Trade Center Dr,NULL,NULL,Port St Lucie,St. Lucie,Florida,FL,34984,United States,US,27.254839,-80.33475
+2532747,Retail,Victory Chevrolet,717 Rhyne Rd,NULL,NULL,Charlotte,Mecklenburg,North Carolina,NC,28214,United States,US,35.28312,-80.96722
+2532737,Land,"2.673 AC, 29,555 PAC, 12-2024","E/L of 2nd Street, S of SH 6",NULL,NULL,Hitchcock,Galveston,Texas,TX,77563,United States,US,29.343124,-95.019151
+2532733,Land,"10.96 AC, 173,358 PAC","SW/L of Lake Road, SE of Main Street",NULL,NULL,La Marque,Galveston,Texas,TX,77568,United States,US,29.355845,-94.981379
+2532729,Special,Due North Car Wash,15480 85th Street NE St NE,NULL,NULL,Otsego,Wright,Minnesota,MN,55330,United States,US,45.27413,-93.5669
+2532711,Land,"10.177 AC, 44,217 PAC, 08-2024","S/L Renaud Drive, W of N University Ave.",NULL,NULL,Scott,Lafayette,Louisiana,LA,70583,United States,US,30.251229,-92.052654
+2532708,Industrial,"2011 W State Road 84, UNIT 244","2011 W State Road 84, Unit 244",NULL,NULL,Fort Lauderdale,Broward,Florida,FL,33315,United States,US,26.090515,-80.167175
+2532702,Hotel,Rodeway Inn Metairie,5733 Airline Drive,NULL,NULL,Metairie,Jefferson Parish,Louisiana,LA,70003,United States,US,29.977479,-90.194469
+2532687,Land,Devine & Heidt Aptartment Site,2300 Devine Street,NULL,NULL,Columbia,Richland,South Carolina,SC,29205,United States,US,33.998427,-81.012127
+2532455,Retail,George's Field Shopping Center,"7, 11 and 18 George's Field",NULL,NULL,Hinsdale,Cheshire,New Hampshire,NH,3451,United States,US,42.851513,-72.54845
+2532369,Office,749 & 757 E Washington Blvd,749 & 757 E Washington Blvd,NULL,NULL,Los Angeles,Los Angeles,California,CA,90021,United States,US,34.027035,-118.25559
+2532286,Residential,Proposed Multifamily,"5107, 5111, 5115, 5117 & 5135 N Emerson",NULL,NULL,Denver,Denver,Colorado,CO,80216,United States,US,39.789867,-104.976181
+2532231,Retail,Merle Hay Mall,"3800, 3850 and 4000 Merle Hay Rd",NULL,NULL,Des Moines,Polk,Iowa,IA,50310,United States,US,41.6329,-93.700066
+2532125,Retail,Amsterdam Cafe,408 and 410 S Gay St,NULL,NULL,Auburn,Lee,Alabama,AL,36830,United States,US,32.59825,-85.48024
