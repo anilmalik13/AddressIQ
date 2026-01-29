@@ -521,15 +521,25 @@ Return your response as a JSON object with this structure:
         """
         
         try:
-            # Try to extract JSON from response
-            # GPT might wrap it in markdown code blocks
-            json_str = response
-            if '```json' in response:
-                json_str = response.split('```json')[1].split('```')[0].strip()
-            elif '```' in response:
-                json_str = response.split('```')[1].split('```')[0].strip()
-            
-            result_data = json.loads(json_str)
+            # Handle response that's already a dictionary (from connect_wso2)
+            if isinstance(response, dict):
+                # Extract the content from the OpenAI response structure
+                if 'choices' in response and len(response['choices']) > 0:
+                    content = response['choices'][0].get('message', {}).get('content', '')
+                    # Now parse the content as JSON
+                    result_data = json.loads(content)
+                else:
+                    raise ValueError("Invalid OpenAI response structure")
+            else:
+                # Try to extract JSON from response string
+                # GPT might wrap it in markdown code blocks
+                json_str = response
+                if '```json' in response:
+                    json_str = response.split('```json')[1].split('```')[0].strip()
+                elif '```' in response:
+                    json_str = response.split('```')[1].split('```')[0].strip()
+                
+                result_data = json.loads(json_str)
             
             should_split = result_data.get('should_split', False)
             reason = result_data.get('reason', 'GPT analysis')

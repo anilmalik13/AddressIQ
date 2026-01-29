@@ -1,0 +1,7 @@
+MasterId,Property Type,Name,Address1,Address2,Address3,City,County,State,StateCode,PostalCode,Country,CountryCode,TestScenario
+5001,Commercial,Law Firm,Smith and Jones Law Firm 123 Main St,,,TestCity,TestCounty,TestState,TS,12345,United States,US,Business name with and
+5002,Commercial,Corner Property,Corner of Broadway and 5th Street,,,TestCity,TestCounty,TestState,TS,12345,United States,US,Directional description
+5003,Mixed,Properties,"Properties include the north and south buildings at 1000 Tech Drive",,,TestCity,TestCounty,TestState,TS,12345,United States,US,Multiple buildings one location
+5004,Commercial,Lots,"Lots A, B, and C at 100 Industrial Way",,,TestCity,TestCounty,TestState,TS,12345,United States,US,Lot designations
+5005,Residential,Primary Secondary,123 Oak St (primary) and 456 Elm St (secondary),,,TestCity,TestCounty,TestState,TS,12345,United States,US,Addresses with qualifiers
+5006,Commercial,Simple Split,123 Main St and 456 Oak Ave,,,TestCity,TestCounty,TestState,TS,12345,United States,US,Simple case - both should work
