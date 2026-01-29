@@ -79,6 +79,9 @@ class AddressSplitter:
         
         # Pattern for detecting street numbers
         self.street_number_pattern = re.compile(r'\b\d+[A-Z]?\b')
+        
+        # Pattern for highway/route designations (to detect intersections like "Highway 40 and K")
+        self.highway_pattern = re.compile(r'\b(Highway|Hwy|Route|Rt|State Road|SR|County Road|CR|Farm Road|FM)\b', re.IGNORECASE)
     
     def should_not_split(self, address: str) -> Tuple[bool, str]:
         """
@@ -100,17 +103,41 @@ class AddressSplitter:
         if self.directional_pattern.search(address):
             return True, "Contains directional identifiers"
         
-        # Rule 4: No street numbers
+        # Rule 4: Check for highway/route intersections (e.g., "Highway 40 and K")
+        # These look like they have "and" but are actually single intersection locations
+        if self.highway_pattern.search(address):
+            # Check if this is a highway intersection (highway designation followed by short identifier)
+            # Pattern: "Highway XX and Y" or "Hwy 40 and K" where Y is very short (1-2 chars/words)
+            parts = re.split(r'\s+and\s+|\s*&\s*', address, flags=re.IGNORECASE)
+            if len(parts) == 2:
+                # Check if both parts are highway-like or one part is very short (intersection ID)
+                highway_count = sum(1 for p in parts if self.highway_pattern.search(p))
+                short_part = any(len(p.strip()) <= 2 or len(p.strip().split()) == 1 for p in parts)
+                
+                if highway_count >= 1 and short_part:
+                    return True, "Highway/route intersection (not separate addresses)"
+        
+        # Rule 5: No street numbers (check for actual street address numbers, not highway numbers)
+        # If all we have are highway designations, no real street numbers exist
         street_numbers = self.street_number_pattern.findall(address)
         if not street_numbers:
             return True, "No street numbers found"
+        
+        # Additional check: if we have numbers but they're all in highway designations
+        # Remove highway designations and check if any numbers remain
+        address_without_highways = self.highway_pattern.sub('', address)
+        remaining_numbers = self.street_number_pattern.findall(address_without_highways)
+        if not remaining_numbers:
+            return True, "No street numbers found (only highway designations)"
         
         return False, ""
     
     def detect_potential_split(self, address: str, address2: str = None) -> Tuple[bool, str]:
         """
         Detects if an address could potentially be split into multiple addresses.
-        Only splits on coordinating conjunctions (and, &) - NOT on commas.
+        Splits on:
+        1. Coordinating conjunctions (and, &)
+        2. Comma-separated street numbers (e.g., "5250 NW 86th St, 8651, 8751, 8801 Northpark Dr")
         
         Args:
             address: Primary address field
@@ -128,22 +155,39 @@ class AddressSplitter:
         # Check for "and" or "&" in the address (coordinating conjunctions)
         has_and = self.and_pattern.search(address)
         
-        # ONLY split if we have coordinating conjunctions (and, &)
-        # Commas are NOT used as split delimiters - they're part of normal address formatting
-        if not has_and:
+        # Check for comma-separated street numbers pattern
+        # Pattern: "5250 NW 86th St, 8651, 8751, 8801 Northpark Dr"
+        # This means: full address, comma, bare numbers, comma, bare numbers, street name
+        has_comma_separated_numbers = False
+        if ',' in address:
+            # Split by comma and check if we have standalone numbers
+            parts = [p.strip() for p in address.split(',')]
+            # Check if we have at least one standalone number (not part of a complete address)
+            standalone_numbers = [p for p in parts if re.match(r'^\d+$', p)]
+            if len(standalone_numbers) > 0:
+                # Verify we also have a street name (word with 3+ letters)
+                has_street_name = any(re.search(r'[A-Za-z]{3,}', p) for p in parts)
+                if has_street_name:
+                    has_comma_separated_numbers = True
+        
+        # If no "and"/"&" and no comma-separated numbers pattern
+        if not has_and and not has_comma_separated_numbers:
             # Check if address2 contains separate addresses with coordinating conjunctions
             if address2 and address2.strip():
                 if self.and_pattern.search(address2):
                     return True, "Address2 contains coordinating conjunctions"
-            return False, "No coordinating conjunctions ('and' or '&') found"
+            return False, "No coordinating conjunctions ('and' or '&') or comma-separated numbers found"
         
-        # Has "and" or "&" - this is a potential split
+        # Has "and" or "&" or comma-separated numbers - this is a potential split
         # Check for special characters that would indicate it's NOT multiple addresses
         special_chars = ['(', ')', '[', ']', '{', '}', ':', ';']
         has_special = any(char in address for char in special_chars)
         
         if has_special:
             return False, "Contains special characters indicating single address context"
+        
+        if has_comma_separated_numbers:
+            return True, "Contains comma-separated street numbers - potential multiple addresses"
         
         return True, "Contains coordinating conjunctions ('and' or '&') - potential multiple addresses"
     
@@ -166,9 +210,15 @@ class AddressSplitter:
             # Return original address as single item
             return [address]
         
-        # Perform the split - ONLY split on coordinating conjunctions (and, &)
-        # Commas are preserved as part of the address formatting
-        addresses = self._split_and_addresses(address)
+        # Check if this is comma-separated numbers (no "and"/"&")
+        has_and = self.and_pattern.search(address)
+        
+        if not has_and and ',' in address:
+            # Use comma-separated splitting
+            addresses = self._split_comma_separated_addresses(address)
+        else:
+            # Perform the split on coordinating conjunctions (and, &)
+            addresses = self._split_and_addresses(address)
         
         # Handle address2 if present
         if address2 and address2.strip():
