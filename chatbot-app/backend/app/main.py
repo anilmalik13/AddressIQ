@@ -888,33 +888,48 @@ def process_compare_background(processing_id, filename):
 def process_split_file_background(processing_id, filename, enable_split=True, split_mode='rule', model=None):
     """Process uploaded file with address splitting enabled - using in-process execution."""
     try:
+        # Check if job is already being processed or completed
+        job_status = job_manager.get_job(processing_id)
+        if job_status and job_status.get('status') in ['completed', 'error']:
+            print(f"⚠️  Job {processing_id} already processed with status: {job_status.get('status')}")
+            return
+        
         inbound_file = INBOUND_FOLDER / filename
         if not inbound_file.exists():
             _update_status(processing_id, status='error', message='Uploaded file not found on server', 
                          progress=100, error='Missing inbound file', log='Inbound file missing')
             return
 
+        print(f"🚀 Starting processing for job: {processing_id}")
         _update_status(processing_id, status='processing', message='Initializing processor...', 
                       progress=20, log='Processor initialization with split enabled')
 
         # Use in-process CSV processor for better control
         try:
+            print(f"📂 Creating processor with base_directory: {BASE_DIR}")
             processor = CSVAddressProcessor(base_directory=str(BASE_DIR))
-            
-            # Configure splitting if enabled
-            if enable_split:
-                processor.enable_address_splitting = True
-                processor.use_gpt_split = (split_mode == 'gpt')
-                if model:
-                    processor.model = model
             
             _update_status(processing_id, message='Reading input file...', 
                           progress=35, log=f'Reading file with split mode: {split_mode}')
             
             _update_status(processing_id, message='Detecting and splitting addresses...', progress=50)
             
-            # Process the file
-            output_path = processor.process_csv_file(str(inbound_file))
+            print(f"🔄 Starting process_csv_file with enable_split={enable_split}, use_gpt_split={split_mode == 'gpt'}")
+            print(f"📄 Input file: {inbound_file}")
+            
+            # Process the file with splitting enabled
+            try:
+                output_path = processor.process_csv_file(
+                    str(inbound_file),
+                    enable_split=enable_split,
+                    use_gpt_split=(split_mode == 'gpt')
+                )
+                print(f"✅ process_csv_file completed. Output path: {output_path}")
+            except Exception as proc_error:
+                print(f"❌ process_csv_file failed: {str(proc_error)}")
+                import traceback
+                traceback.print_exc()
+                raise
             
             _update_status(processing_id, message='Finalizing output...', progress=90, 
                           log='Processing complete, locating output file')
@@ -1880,6 +1895,8 @@ def upload_split_file():
         )
         thread.daemon = True
         thread.start()
+        
+        print(f"✅ Upload completed - Background thread started for job: {processing_id}")
         
         return jsonify({
             'message': f'File uploaded successfully. Processing {file_info["rows"]} addresses with splitting enabled.',

@@ -611,12 +611,18 @@ const AddressSplit: React.FC = () => {
                                         <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
                                             Processing ID: <strong>{fileStatus.processing_id}</strong>
                                         </p>
-                                        <div style={{ marginTop: '12px' }}>
+                                        <div style={{ marginTop: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                             <button
                                                 onClick={() => handleDownloadFile(fileStatus.output_file)}
                                                 className="modern-btn modern-btn-primary"
                                             >
                                                 📥 Download Processed File
+                                            </button>
+                                            <button
+                                                onClick={handleReset}
+                                                className="modern-btn modern-btn-gray"
+                                            >
+                                                🔄 Process Another File
                                             </button>
                                         </div>
                                     </div>
