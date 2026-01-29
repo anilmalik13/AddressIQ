@@ -885,6 +885,66 @@ def process_compare_background(processing_id, filename):
     except Exception as e:
         _update_status(processing_id, status='error', message='Batch comparison failed with error', progress=100, error=str(e), log=f'Exception: {e}')
 
+def process_split_file_background(processing_id, filename, enable_split=True, split_mode='rule', model=None):
+    """Process uploaded file with address splitting enabled - using in-process execution."""
+    try:
+        inbound_file = INBOUND_FOLDER / filename
+        if not inbound_file.exists():
+            _update_status(processing_id, status='error', message='Uploaded file not found on server', 
+                         progress=100, error='Missing inbound file', log='Inbound file missing')
+            return
+
+        _update_status(processing_id, status='processing', message='Initializing processor...', 
+                      progress=20, log='Processor initialization with split enabled')
+
+        # Use in-process CSV processor for better control
+        try:
+            processor = CSVAddressProcessor(base_directory=str(BASE_DIR))
+            
+            # Configure splitting if enabled
+            if enable_split:
+                processor.enable_address_splitting = True
+                processor.use_gpt_split = (split_mode == 'gpt')
+                if model:
+                    processor.model = model
+            
+            _update_status(processing_id, message='Reading input file...', 
+                          progress=35, log=f'Reading file with split mode: {split_mode}')
+            
+            _update_status(processing_id, message='Detecting and splitting addresses...', progress=50)
+            
+            # Process the file
+            output_path = processor.process_csv_file(str(inbound_file))
+            
+            _update_status(processing_id, message='Finalizing output...', progress=90, 
+                          log='Processing complete, locating output file')
+            
+            if output_path and os.path.exists(output_path):
+                _update_status(processing_id, status='completed', 
+                              message='Address splitting and standardization completed', 
+                              progress=100, output_file=os.path.basename(output_path), 
+                              output_path=output_path, 
+                              finished_at=datetime.utcnow().isoformat() + 'Z',
+                              log=f'Processing completed: {os.path.basename(output_path)}')
+            else:
+                _update_status(processing_id, status='error', message='Output file not generated', 
+                             progress=100, error='Processor did not return output path', 
+                             log='No output file located')
+                             
+        except Exception as pe:
+            import traceback
+            error_detail = traceback.format_exc()
+            _update_status(processing_id, status='error', message='Processing failed', 
+                         progress=100, error=str(pe), log=f'Processor exception: {error_detail}')
+            return
+                      
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        _update_status(processing_id, status='error', 
+                      message='Address splitting failed with error', 
+                      progress=100, error=str(e), log=f'Exception: {error_detail}')
+
 @app.route('/api/processing-status/<processing_id>', methods=['GET'])
 def get_processing_status(processing_id):
     """Get the status of file processing - now with database persistence"""
@@ -1706,6 +1766,129 @@ def split_address():
         
     except Exception as e:
         return jsonify({'error': f'Address splitting failed: {str(e)}'}), 500
+
+@app.route('/api/upload-split-file', methods=['POST'])
+def upload_split_file():
+    """Handle CSV/Excel file upload for batch address splitting and standardization"""
+    try:
+        # Check if a file was uploaded
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        
+        # Check if file was selected
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Check if file type is allowed
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type. Please upload Excel (.xlsx, .xls) or CSV files.'}), 400
+        
+        # Get optional parameters
+        enable_split = request.form.get('enable_split', 'true').lower() == 'true'
+        split_mode = request.form.get('split_mode', 'rule')  # 'rule' or 'gpt'
+        model = request.form.get('model', None)
+        
+        # Generate secure filename with timestamp
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        name, ext = os.path.splitext(filename)
+        unique_filename = f"{name}_split_{timestamp}{ext}"
+        
+        # Save file to inbound directory
+        file_path = os.path.join(app.config['INBOUND_FOLDER'], unique_filename)
+        file.save(file_path)
+        
+        # Validate file content
+        try:
+            if ext.lower() in ['.csv', '.txt']:
+                df = read_csv_with_encoding_detection(file_path)
+            else:
+                df = pd.read_excel(file_path)
+
+            # Check if file is empty
+            if df.shape[0] == 0:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                return jsonify({'error': 'The uploaded file contains no data rows. Please upload a file with at least one record.'}), 400
+            
+            # Check if file has no columns
+            if df.shape[1] == 0:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                return jsonify({'error': 'The uploaded file contains no columns. Please upload a valid file with data.'}), 400
+
+            file_info = {
+                'rows': int(df.shape[0]),
+                'columns': int(df.shape[1]),
+                'column_names': df.columns.tolist() if hasattr(df, 'columns') else [],
+                'enable_split': enable_split,
+                'split_mode': split_mode
+            }
+
+        except Exception as e:
+            # If file is invalid, remove it and return error
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+            error_msg = str(e)
+            if 'Error tokenizing data' in error_msg or 'ParserError' in error_msg:
+                return jsonify({'error': f'Failed to parse the file. Please ensure it is a valid Excel or CSV file. Error: {error_msg}'}), 400
+            elif 'XLRDError' in error_msg or 'BadZipFile' in error_msg:
+                return jsonify({'error': f'The Excel file appears to be corrupted or in an unsupported format. Please try re-saving the file and uploading again. Error: {error_msg}'}), 400
+            else:
+                return jsonify({'error': f'Invalid file format or corrupted file: {error_msg}'}), 400
+        
+        # Generate processing ID for tracking
+        processing_id = f"split_{timestamp}_{hash(unique_filename) % 10000}"
+        
+        # Create job in database
+        job_manager.create_job(
+            job_id=processing_id,
+            filename=unique_filename,
+            original_filename=filename,
+            component='address-split',
+            file_size=os.path.getsize(file_path),
+            file_rows=file_info['rows'],
+            file_columns=file_info['columns'],
+            file_info=file_info,
+            progress=10,
+            message='File uploaded for address splitting',
+            user_ip=request.remote_addr,
+            steps=[
+                {'name': 'upload', 'label': 'Upload', 'target': 10},
+                {'name': 'initialize', 'label': 'Initialize', 'target': 20},
+                {'name': 'detect', 'label': 'Detect Splits', 'target': 35},
+                {'name': 'split', 'label': 'Split Addresses', 'target': 50},
+                {'name': 'standardize', 'label': 'Standardize', 'target': 75},
+                {'name': 'finalize', 'label': 'Finalize', 'target': 90},
+                {'name': 'complete', 'label': 'Complete', 'target': 100}
+            ],
+            logs=[{'ts': datetime.utcnow().isoformat() + 'Z', 'message': f'Upload received ({file_info["rows"]} rows)', 'progress': 10}]
+        )
+        
+        # Start background processing
+        thread = threading.Thread(
+            target=process_split_file_background,
+            args=(processing_id, unique_filename, enable_split, split_mode, model)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            'message': f'File uploaded successfully. Processing {file_info["rows"]} addresses with splitting enabled.',
+            'processing_id': processing_id,
+            'file_info': file_info
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'File upload failed: {str(e)}'}), 500
 
 @app.route('/api/public/standardize', methods=['POST', 'GET'])
 def public_standardize():
@@ -2613,7 +2796,7 @@ def api_v1_list_jobs():
     try:
         # Get query parameters
         status = request.args.get('status')  # Filter by status (optional)
-        limit = int(request.args.get('limit', 100))
+        limit = int(request.args.get('limit', 50))  # Reduced default for better performance
         offset = int(request.args.get('offset', 0))
         
         # Get jobs from database
