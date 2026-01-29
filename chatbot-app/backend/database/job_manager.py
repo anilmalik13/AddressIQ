@@ -105,8 +105,13 @@ class JobManager:
     @contextmanager
     def _get_connection(self):
         """Context manager for database connections"""
-        conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        conn = sqlite3.connect(str(self.db_path), check_same_thread=False, timeout=10.0)
         conn.row_factory = sqlite3.Row
+        # Enable WAL mode for better concurrency (reads don't block writes)
+        conn.execute('PRAGMA journal_mode=WAL')
+        # Optimize for speed
+        conn.execute('PRAGMA synchronous=NORMAL')
+        conn.execute('PRAGMA cache_size=10000')
         try:
             yield conn
         finally:
@@ -175,66 +180,79 @@ class JobManager:
         Returns:
             bool: True if updated successfully
         """
-        try:
-            # Build dynamic UPDATE query
-            set_clauses = []
-            values = []
-            
-            for key, value in fields.items():
-                # Handle JSON fields
-                if key in ['steps', 'logs', 'file_info']:
-                    if isinstance(value, (list, dict)):
-                        value = json.dumps(value)
-                        key = f"{key}_json"
-                    else:
-                        key = f"{key}_json"
+        max_retries = 3
+        retry_delay = 0.1
+        
+        for attempt in range(max_retries):
+            try:
+                # Build dynamic UPDATE query
+                set_clauses = []
+                values = []
                 
-                # Handle logs - append instead of replace
-                if key == 'logs_json' and isinstance(fields.get('logs'), list):
-                    # Get existing logs and append
-                    existing_job = self.get_job(job_id)
-                    if existing_job:
-                        existing_logs = existing_job.get('logs', [])
-                        existing_logs.extend(fields['logs'])
-                        value = json.dumps(existing_logs)
+                for key, value in fields.items():
+                    # Handle JSON fields
+                    if key in ['steps', 'logs', 'file_info']:
+                        if isinstance(value, (list, dict)):
+                            value = json.dumps(value)
+                            key = f"{key}_json"
+                        else:
+                            key = f"{key}_json"
+                    
+                    # Handle logs - append instead of replace
+                    if key == 'logs_json' and isinstance(fields.get('logs'), list):
+                        # Get existing logs and append
+                        existing_job = self.get_job(job_id)
+                        if existing_job:
+                            existing_logs = existing_job.get('logs', [])
+                            existing_logs.extend(fields['logs'])
+                            value = json.dumps(existing_logs)
+                    
+                    set_clauses.append(f"{key} = ?")
+                    values.append(value)
                 
-                set_clauses.append(f"{key} = ?")
-                values.append(value)
-            
-            if not set_clauses:
+                if not set_clauses:
+                    return False
+                
+                # Always update updated_at timestamp
+                set_clauses.append("updated_at = CURRENT_TIMESTAMP")
+                
+                # Set expires_at when job completes (if not already set)
+                if fields.get('status') == 'completed' and 'expires_at' not in fields:
+                    expires_at = datetime.utcnow() + timedelta(days=self.retention_days)
+                    set_clauses.append("expires_at = ?")
+                    values.append(expires_at.isoformat())
+                
+                # Set finished_at when job completes or fails
+                if fields.get('status') in ['completed', 'failed', 'error'] and 'finished_at' not in fields:
+                    set_clauses.append("finished_at = CURRENT_TIMESTAMP")
+                
+                # Set started_at when job starts processing (if not already set)
+                if fields.get('status') == 'processing':
+                    # Check if started_at is already set
+                    existing = self.get_job(job_id)
+                    if existing and not existing.get('started_at'):
+                        set_clauses.append("started_at = CURRENT_TIMESTAMP")
+                
+                values.append(job_id)
+                query = f"UPDATE jobs SET {', '.join(set_clauses)} WHERE job_id = ?"
+                
+                with self._get_connection() as conn:
+                    cursor = conn.execute(query, values)
+                    conn.commit()
+                    return cursor.rowcount > 0
+                    
+            except sqlite3.OperationalError as e:
+                if 'locked' in str(e).lower() and attempt < max_retries - 1:
+                    import time
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                print(f"❌ Failed to update job {job_id} after retries: {e}")
                 return False
-            
-            # Always update updated_at timestamp
-            set_clauses.append("updated_at = CURRENT_TIMESTAMP")
-            
-            # Set expires_at when job completes (if not already set)
-            if fields.get('status') == 'completed' and 'expires_at' not in fields:
-                expires_at = datetime.utcnow() + timedelta(days=self.retention_days)
-                set_clauses.append("expires_at = ?")
-                values.append(expires_at.isoformat())
-            
-            # Set finished_at when job completes or fails
-            if fields.get('status') in ['completed', 'failed', 'error'] and 'finished_at' not in fields:
-                set_clauses.append("finished_at = CURRENT_TIMESTAMP")
-            
-            # Set started_at when job starts processing (if not already set)
-            if fields.get('status') == 'processing':
-                # Check if started_at is already set
-                existing = self.get_job(job_id)
-                if existing and not existing.get('started_at'):
-                    set_clauses.append("started_at = CURRENT_TIMESTAMP")
-            
-            values.append(job_id)
-            query = f"UPDATE jobs SET {', '.join(set_clauses)} WHERE job_id = ?"
-            
-            with self._get_connection() as conn:
-                cursor = conn.execute(query, values)
-                conn.commit()
-                return cursor.rowcount > 0
-                
-        except Exception as e:
-            print(f"❌ Failed to update job {job_id}: {e}")
-            return False
+            except Exception as e:
+                print(f"❌ Failed to update job {job_id}: {e}")
+                return False
+        
+        return False
     
     def add_log(self, job_id: str, message: str, progress: Optional[int] = None) -> bool:
         """
@@ -281,16 +299,16 @@ class JobManager:
             print(f"❌ Failed to get job {job_id}: {e}")
             return None
     
-    def get_jobs(self, status: Optional[str] = None, limit: int = 100, offset: int = 0, 
-                 order_by: str = 'created_at', order_desc: bool = True) -> List[Dict[str, Any]]:
+    def get_jobs(self, status: Optional[str] = None, limit: int = 50, offset: int = 0, 
+                 order_by: str = 'updated_at', order_desc: bool = True) -> List[Dict[str, Any]]:
         """
         Get jobs with optional filtering and pagination
         
         Args:
             status: Filter by status (None = all)
-            limit: Maximum number of jobs to return
+            limit: Maximum number of jobs to return (default: 50 for better performance)
             offset: Number of jobs to skip
-            order_by: Field to order by
+            order_by: Field to order by (default: updated_at for better index usage)
             order_desc: Order descending if True
         
         Returns:
@@ -307,6 +325,15 @@ class JobManager:
                     rows = conn.execute(query, (limit, offset)).fetchall()
                 
                 return [self._row_to_dict(row) for row in rows]
+        except sqlite3.OperationalError as e:
+            if 'locked' in str(e).lower():
+                print(f"⚠️  Database locked, retrying...")
+                # Quick retry for lock errors
+                import time
+                time.sleep(0.1)
+                return self.get_jobs(status, limit, offset, order_by, order_desc)
+            print(f"❌ Failed to get jobs: {e}")
+            return []
         except Exception as e:
             print(f"❌ Failed to get jobs: {e}")
             return []

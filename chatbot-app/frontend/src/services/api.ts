@@ -87,6 +87,44 @@ export const uploadCompareFile = async (file: File, model?: string, onProgress?:
     }
 };
 
+// Upload for address splitting
+export const uploadSplitFile = async (
+    file: File, 
+    enableSplit: boolean = true,
+    splitMode: 'rule' | 'gpt' = 'rule',
+    model?: string,
+    onProgress?: (progress: number) => void
+): Promise<{message: string, processing_id: string, file_info: any}> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('enable_split', enableSplit.toString());
+    formData.append('split_mode', splitMode);
+    if (model) {
+        formData.append('model', model);
+    }
+    try {
+        const response = await api.post('/upload-split-file', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (pe) => {
+                if (onProgress && pe.total) {
+                    const progress = Math.round((pe.loaded * 100) / pe.total);
+                    onProgress(progress);
+                }
+            },
+        });
+        return {
+            message: response.data.message || 'File uploaded for address splitting',
+            processing_id: response.data.processing_id,
+            file_info: response.data.file_info
+        };
+    } catch (error: any) {
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error('Split file upload failed. Please try again.');
+    }
+};
+
 // Check processing status
 export const checkProcessingStatus = async (processingId: string) => {
     try {
@@ -406,13 +444,13 @@ export const downloadSampleFile = async (sampleUrl: string, filename: string) =>
 };
 
 // Job History API - NEW endpoints for async job management
-export const getJobHistory = async (status?: string, limit: number = 100, offset: number = 0): Promise<any[]> => {
+export const getJobHistory = async (status?: string, limit: number = 50, offset: number = 0): Promise<any[]> => {
     try {
         const params: any = { limit, offset };
         if (status) {
             params.status = status;
         }
-        const response = await api.get('/v1/files/jobs', { params });
+        const response = await api.get('/v1/files/jobs', { params, timeout: 10000 });
         return response.data.jobs || [];
     } catch (error: any) {
         console.error('Error fetching job history:', error);
