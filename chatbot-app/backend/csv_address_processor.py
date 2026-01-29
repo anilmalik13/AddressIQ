@@ -214,7 +214,7 @@ class CSVAddressProcessor:
         
         return all_files
     
-    def process_all_inbound_files(self, batch_size: int = 10, use_free_apis: bool = True, enable_split: bool = False, use_gpt_split: bool = False):
+    def process_all_inbound_files(self, batch_size: int = 10, use_free_apis: bool = False, enable_split: bool = False, use_gpt_split: bool = False):
         """Process all files in the inbound directory"""
         print("🚀 Starting batch processing of inbound files...")
         print("=" * 60)
@@ -516,7 +516,7 @@ class CSVAddressProcessor:
                               address_columns: List[str] = None,
                               limit: int = None,
                               batch_size: int = 10,
-                              use_free_apis: bool = True) -> Dict[str, Any]:
+                              use_free_apis: bool = False) -> Dict[str, Any]:
         """
         Process addresses directly from database input
         
@@ -901,7 +901,7 @@ class CSVAddressProcessor:
         combined_address = ', '.join(address_parts)
         return combined_address if combined_address.strip() else ""
     
-    def standardize_single_address(self, address: str, row_index: int, target_country: str = None, use_free_apis: bool = True) -> Dict[str, Any]:
+    def standardize_single_address(self, address: str, row_index: int, target_country: str = None, use_free_apis: bool = False) -> Dict[str, Any]:
         """Standardize a single address with database caching and error handling"""
         try:
             if pd.isna(address) or not str(address).strip():
@@ -1059,7 +1059,7 @@ class CSVAddressProcessor:
                 'from_cache': False
             }
     
-    def standardize_addresses_batch(self, address_batch: List[str], start_index: int, target_country: str = None, use_free_apis: bool = True) -> List[Dict[str, Any]]:
+    def standardize_addresses_batch(self, address_batch: List[str], start_index: int, target_country: str = None, use_free_apis: bool = False) -> List[Dict[str, Any]]:
         """
         Standardize a batch of addresses efficiently using batch API calls
         
@@ -1306,7 +1306,7 @@ class CSVAddressProcessor:
     
     def process_csv_file(self, input_file: str, output_file: str = None, 
                         address_column: str = None, address_columns: List[str] = None,
-                        batch_size: int = 10, use_free_apis: bool = True, 
+                        batch_size: int = 10, use_free_apis: bool = False, 
                         enable_batch_processing: bool = True, enable_split: bool = False,
                         use_gpt_split: bool = False) -> str:
         """
@@ -1403,7 +1403,7 @@ class CSVAddressProcessor:
             
         return result_file
     
-    def process_site_address_format(self, df: pd.DataFrame, output_file: str = None, use_free_apis: bool = True, enable_split: bool = False) -> str:
+    def process_site_address_format(self, df: pd.DataFrame, output_file: str = None, use_free_apis: bool = False, enable_split: bool = False) -> str:
         """Process CSV with site address column structure"""
         
         print(f"\n🏢 Processing Site Address Format")
@@ -1563,7 +1563,7 @@ class CSVAddressProcessor:
         return self.save_and_summarize_results(df, output_file, processed_count, success_count, error_count, ["Combined_Address"])
     
     def process_user_specified_columns(self, df: pd.DataFrame, address_columns: List[str], 
-                                     output_file: str = None, use_free_apis: bool = True, enable_split: bool = False) -> str:
+                                     output_file: str = None, use_free_apis: bool = False, enable_split: bool = False) -> str:
         """Process CSV with user-specified columns to combine into addresses - completely column name independent"""
         
         print(f"\n🎯 Processing User-Specified Address Columns")
@@ -1704,7 +1704,7 @@ class CSVAddressProcessor:
         
         return self.save_and_summarize_results(df, output_file, processed_count, success_count, error_count, ["Combined_Address"])
 
-    def process_regular_address_format(self, df: pd.DataFrame, address_column: str = None, output_file: str = None, use_free_apis: bool = True, enable_batch_processing: bool = True, enable_split: bool = False) -> str:
+    def process_regular_address_format(self, df: pd.DataFrame, address_column: str = None, output_file: str = None, use_free_apis: bool = False, enable_batch_processing: bool = True, enable_split: bool = False) -> str:
         """Process CSV with regular address format"""
         
         # Detect country column
@@ -1820,6 +1820,10 @@ class CSVAddressProcessor:
                 # Process in batches
                 for batch_start in range(0, total_rows, batch_size):
                     batch_end = min(batch_start + batch_size, total_rows)
+                    
+                    print(f"   Processing batch {batch_start//batch_size + 1}: rows {batch_start+1}-{batch_end}")
+                    batch_extract_start = time.time()
+                    
                     batch_df = df.iloc[batch_start:batch_end]
                     
                     # Extract addresses for this batch
@@ -1838,10 +1842,12 @@ class CSVAddressProcessor:
                         batch_countries.append(target_country)
                         batch_indices.append(batch_start + idx)
                     
+                    batch_extract_time = time.time() - batch_extract_start
+                    print(f"   ⏱️  Batch extraction time: {batch_extract_time:.2f}s")
+                    
                     # Process this batch
+                    batch_api_start = time.time()
                     if len(batch_addresses) > 1:
-                        print(f"   Processing batch {batch_start//batch_size + 1}: rows {batch_start+1}-{batch_end}")
-                        
                         # Use the most common country in the batch, or None
                         common_country = max(set(batch_countries), key=batch_countries.count) if any(batch_countries) else None
                         
@@ -1863,7 +1869,12 @@ class CSVAddressProcessor:
                             )
                             batch_results.append(result)
                     
+                    batch_api_time = time.time() - batch_api_start
+                    print(f"   ⏱️  API processing time: {batch_api_time:.2f}s")
+                    
                     # Update DataFrame with batch results
+                    df_update_start = time.time()
+                    
                     for i, result in enumerate(batch_results):
                         df_index = batch_start + i
                         df.at[df_index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
@@ -1902,6 +1913,9 @@ class CSVAddressProcessor:
                             
                         if result.get('from_cache', False):
                             cached_count += 1
+                    
+                    df_update_time = time.time() - df_update_start
+                    print(f"   ⏱️  DataFrame update time: {df_update_time:.2f}s ({len(batch_results)} addresses × 26 columns)")
                 
                 print(f"✅ Batch processing completed: {processed_count} addresses processed")
             else:
@@ -1968,7 +1982,12 @@ class CSVAddressProcessor:
             total_success += success_count
             total_errors += error_count
         
-        return self.save_and_summarize_results(df, output_file, total_processed, total_success, total_errors, address_columns)
+        print(f"\n⏱️  Starting save_and_summarize_results...")
+        save_start = time.time()
+        result = self.save_and_summarize_results(df, output_file, total_processed, total_success, total_errors, address_columns)
+        save_time = time.time() - save_start
+        print(f"⏱️  save_and_summarize_results took: {save_time:.2f}s")
+        return result
     
     def save_and_summarize_results(self, df: pd.DataFrame, output_file: str, processed_count: int, success_count: int, error_count: int, address_columns: List[str]) -> str:
         """Save results and display summary"""

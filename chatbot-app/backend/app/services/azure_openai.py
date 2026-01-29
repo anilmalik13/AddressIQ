@@ -33,22 +33,42 @@ try:
     
     CONFIG_AVAILABLE = True
     # Avoid non-ASCII emoji in import-time logs to prevent encoding issues on some consoles
-    print("✅ Address configuration loaded successfully")
+    print("[OK] Address configuration loaded successfully")
 except ImportError as e:
     CONFIG_AVAILABLE = False
     print(f"❌ Warning: address_config.py not found, using fallback prompts. Error: {e}")
 except Exception as e:
     CONFIG_AVAILABLE = False
-    print(f"❌ Error loading address config: {e}")
+    print(f"[ERROR] Error loading address config: {e}")
 
 # Load environment variables
 load_dotenv()
 
+# Token cache - stores token and expiration time
+_token_cache = {
+    'token': None,
+    'expires_at': 0
+}
+
 def get_access_token():
+    """
+    Get access token with caching to avoid unnecessary API calls.
+    Token is cached until 5 minutes before expiration for safety margin.
+    """
+    import time
+    
+    # Check if cached token is still valid (with 5-minute safety margin)
+    current_time = time.time()
+    if _token_cache['token'] and current_time < _token_cache['expires_at'] - 300:
+        print(f"🔄 Using cached token (expires in {int((_token_cache['expires_at'] - current_time) / 60)} minutes)")
+        return _token_cache['token']
+    
+    # Token expired or doesn't exist, get new one
     client_id = os.getenv("CLIENT_ID", "Client_ID")
     client_secret = os.getenv("CLIENT_SECRET", "Client_secret")
     auth_token_endpoint = os.getenv("WSO2_AUTH_URL", "https://api-test.cbre.com:443/token")
 
+    print(f"🔑 Requesting new token...")
     print(f"Using client_id: {client_id}")
     print(f"Using client_secret: {client_secret[:4]}...")  # Don't print full secret in logs
     print(f"Auth endpoint: {auth_token_endpoint}")
@@ -63,7 +83,17 @@ def get_access_token():
     print(f"Token response body: {response.text}")
 
     if response.status_code == 200:
-        return response.json()['access_token']
+        token_data = response.json()
+        access_token = token_data['access_token']
+        expires_in = token_data.get('expires_in', 3600)  # Default 1 hour if not provided
+        
+        # Cache the token with expiration time
+        _token_cache['token'] = access_token
+        _token_cache['expires_at'] = current_time + expires_in
+        
+        print(f"✅ Token cached (valid for {expires_in / 60:.1f} minutes)")
+        
+        return access_token
     else:
         raise Exception(f'Failed to obtain access token: {response.text}')
 
@@ -432,7 +462,13 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
     
     # Get batch size from config
     batch_size = PROMPT_CONFIG.get("batch_size", 10) if CONFIG_AVAILABLE else 10
+    max_batch_size = PROMPT_CONFIG.get("max_batch_size", 15) if CONFIG_AVAILABLE else 15
     enable_batch = PROMPT_CONFIG.get("enable_batch_processing", True) if CONFIG_AVAILABLE else True
+    
+    # Enforce maximum batch size to prevent token limit issues
+    if batch_size > max_batch_size:
+        print(f"⚠️ Batch size {batch_size} exceeds maximum {max_batch_size}, using {max_batch_size}")
+        batch_size = max_batch_size
     
     # If batch processing is disabled or not requested, fall back to individual processing
     if not use_batch or not enable_batch:
@@ -444,7 +480,7 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
             standardized_addresses.append(result)
         return standardized_addresses
     
-    print(f"🚀 Batch processing {len(address_list)} addresses (batch size: {batch_size})...")
+    print(f"🚀 Batch processing {len(address_list)} addresses (batch size: {batch_size}, max: {max_batch_size})...")
     all_results = []
     
     # Process addresses in batches
@@ -520,12 +556,19 @@ def _process_address_batch(address_list: list, target_country: str = None, batch
         else:
             system_prompt = get_custom_system_prompt("batch_address_standardization")
         
+        # Calculate dynamic max_tokens based on batch size
+        # Each address needs ~250 tokens, add 500 buffer for JSON structure
+        tokens_per_address = 300
+        dynamic_max_tokens = len(address_list) * tokens_per_address + 500
+        
+        print(f"   Calculated max_tokens: {dynamic_max_tokens} ({len(address_list)} addresses × {tokens_per_address} + 500 buffer)")
+        
         # Call OpenAI with batch prompt
         response = connect_wso2(
             access_token=access_token,
             user_content=enhanced_content,
             system_prompt=system_prompt,
-            max_tokens=3000  # Higher token limit for batch processing to handle 5 addresses
+            max_tokens=dynamic_max_tokens  # Dynamic token limit based on batch size
         )
         
         # Extract and parse the batch response

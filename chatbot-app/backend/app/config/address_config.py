@@ -418,7 +418,8 @@ PROMPT_CONFIG = {
     "frequency_penalty": 0,
     "presence_penalty": 0,
     # Batch processing settings
-    "batch_size": 5,  # Reduced for API reliability - 5 pairs per batch to avoid timeouts
+    "batch_size": 15,  # Testing maximum batch size: 15 addresses per batch (each needs ~250 tokens = 3750 total + 500 buffer = 4250 tokens)
+    "max_batch_size": 15,  # Maximum safe batch size before hitting token limits
     "enable_batch_processing": True,
     "enable_batch_comparison": True  # Enable true batch comparison
 }
