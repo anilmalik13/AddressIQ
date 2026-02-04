@@ -445,17 +445,38 @@ class AddressSplitter:
             system_prompt = """You are an expert address parser specializing in identifying when a single address field contains multiple distinct addresses that should be separated.
 
 Your task is to analyze address fields and determine:
-1. Whether the address contains multiple distinct addresses
+1. Whether the address contains multiple distinct street addresses
 2. If yes, split them into individual addresses
 3. Provide reasoning for your decision
 
-Follow these rules:
+CRITICAL RULES (CHECK IN THIS ORDER):
+
+RULE 1 - INTERSECTIONS (NO SPLIT):
+If there are NO street numbers in the address, it's describing an INTERSECTION or cross-street (ONE location), NOT multiple addresses.
+- "Route 22 and 25th Street" = ONE location (no numbers) → DO NOT SPLIT
+- "Main Street and 5th Avenue" = ONE location (no numbers) → DO NOT SPLIT
+- "Highway 40 and K" = ONE location (no numbers) → DO NOT SPLIT
+
+RULE 2 - BUILDING NAMES (NO SPLIT):
 - DO NOT SPLIT if the address contains a range (e.g., "123-456 Main St")
 - DO NOT SPLIT if it contains unit/apt/suite identifiers (e.g., "Units A, B, C")
 - DO NOT SPLIT if it has directional descriptions (e.g., "NE of", "SW corner")
-- DO NOT SPLIT if there are no street numbers (e.g., "Highway 40 and K")
-- DO SPLIT if it contains "and" or "&" separating complete addresses
-- DO SPLIT if it has comma-separated street numbers with a street name (e.g., "100, 200, 300 Main St")
+- DO NOT SPLIT building/complex/business park names (e.g., "Riverwoods Research & Business Park")
+- DO NOT SPLIT if Address2 contains building names, complex names, or suite information
+- Keywords: "Park", "Building", "Complex", "Tower", "Plaza", "Center", "Research", "Business"
+
+RULE 3 - ADDRESS CONTINUATION (COMBINE, DON'T SPLIT):
+If Address1 ends with an incomplete address (missing street name) and Address2 has street name info, COMBINE them.
+- Address1="3432 S." + Address2="Semoran Blvd. In Orlando" → Combine to "3432 S. Semoran Blvd. In Orlando"
+
+RULE 4 - MULTIPLE COMPLETE ADDRESSES (SPLIT):
+DO SPLIT if Address1 contains "and" or "&" separating complete street addresses WITH NUMBERS:
+- "300 West & 5200 North" = TWO addresses (has numbers) → SPLIT
+- "17249 & 17435 N. 7th St." = TWO addresses (has numbers) → SPLIT
+
+KEY DISTINCTION:
+- WITH numbers (300 West & 5200 North) = Multiple addresses → SPLIT
+- WITHOUT numbers (Route 22 and 25th Street) = One intersection → DO NOT SPLIT
 
 Return a JSON object with:
 - should_split: boolean
@@ -486,18 +507,54 @@ Return a JSON object with:
         """
         
         if address2 and address2.strip():
-            prompt = f"""Analyze these address fields and determine if they contain multiple addresses that should be split:
+            prompt = f"""Analyze these address fields and determine if they contain multiple COMPLETE STREET ADDRESSES that should be split:
 
-Address Field 1: {address1}
-Address Field 2: {address2}
+Address Field 1 (Primary Address): {address1}
+Address Field 2 (Secondary - often building/suite info): {address2}
 
-Should these be split into multiple separate addresses? If yes, provide each individual address.
+CRITICAL RULES:
+1. Address Field 2 is typically:
+   - A building/complex name (e.g., "Riverwoods Research & Business Park") - DO NOT SPLIT
+   - Suite/unit information - DO NOT SPLIT
+   - A CONTINUATION of an incomplete address from Field 1 (e.g., Field1="3432 S." + Field2="Semoran Blvd. In Orlando") - COMBINE, don't split separately
 
-Return your response as a JSON object with this structure:
+2. DO NOT SPLIT intersections or cross-streets (single locations):
+   - "Route 22 and 25th Street" = ONE location at intersection - DO NOT SPLIT
+   - "Main Street and 5th Avenue" = ONE location at intersection - DO NOT SPLIT
+   - If there are NO street numbers, it's likely an intersection - DO NOT SPLIT
+
+3. Only split when there are multiple COMPLETE street addresses with:
+   - Complete street numbers AND street names (e.g., "300 West & 5200 North")
+   - NOT when describing an intersection without numbers
+   - NOT when Address Field 2 completes an incomplete address from Field 1
+
+4. Keywords like "Park", "Building", "Complex", "Tower", "Plaza", "Center", "Research", "Business" in Address Field 2 usually indicate a building NAME, not a street address - DO NOT SPLIT
+
+EXAMPLES:
+✓ SPLIT: Address1="300 West & 5200 North", Address2="Riverwoods Research & Business Park"
+  → Split Field1 into: ["300 West", "5200 North"]
+  → Keep Field2 as building name (don't split)
+  → Reason: Has street NUMBERS, indicating two different addresses
+
+✗ DON'T SPLIT: Address1="Route 22 and 25th Street", Address2=""
+  → Keep as single address: ["Route 22 and 25th Street"]
+  → Reason: No street numbers = intersection/cross-street (ONE location)
+
+✓ SPLIT: Address1="17249 & 17435 N. 7th St.", Address2=""
+  → Split into: ["17249 N. 7th St.", "17435 N. 7th St."]
+  → Reason: Has street NUMBERS, indicating two different addresses
+
+✓ COMBINE: Address1="220 S. Semoran Blvd. In Winter Park and 3432 S.", Address2="Semoran Blvd. In Orlando"
+  → Split into: ["220 S. Semoran Blvd. In Winter Park", "3432 S. Semoran Blvd. In Orlando"]
+  → Notice how "3432 S." was COMBINED with Address2 content, not split separately
+
+If Address Field 1 ends with an incomplete address (missing street name) and Address Field 2 has street name info, COMBINE them before splitting.
+
+Return your response as a JSON object:
 {{
     "should_split": true/false,
     "reason": "explanation of decision",
-    "addresses": ["address1", "address2", ...]
+    "addresses": ["complete_address1", "complete_address2", ...]
 }}"""
         else:
             prompt = f"""Analyze this address field and determine if it contains multiple addresses that should be split:

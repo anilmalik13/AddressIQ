@@ -1247,6 +1247,8 @@ class CSVAddressProcessor:
                 continue
             
             # Analyze and split if needed
+            # When using GPT-based splitting, it will intelligently determine
+            # if Address2 contains additional addresses or just building/suite info
             split_result = self.address_splitter.analyze_and_split(address1, address2)
             
             if split_result['should_split'] and split_result['split_count'] > 1:

@@ -1,2 +1,6 @@
-Site_Name,Site_Address_1,Site_Address_2,Site_Address_3,Site_Address_4,Site_City,Site_State,Site_Postcode,Site_Country
-Head Office,123 Main Street,,,Suite 500,London,Greater London,SW1A 1AA,United Kingdom
+MasterId,Name,Address1,Address2,Address3,City,County,State,StateCode,PostalCode,Country,CountryCode,Latitude,Longitude
+318560,Various Sites In Riverwoods Park,300 West & 5200 North,Riverwoods Research & Business Park,NULL,Provo,Utah County,Utah,UT,NULL,United States,US,40.303773,-111.662357
+208856,The Sands,17249 & 17435 N. 7th St.,NULL,NULL,Phoenix,Maricopa,Arizona,AZ,85022,United States,US,33.64476,-112.065504
+203149,The Willows and Seville Oaks,220 S. Semoran Blvd. In Winter Park and 3432 S.,Semoran Blvd. In Orlando,NULL,Orlando,Orange,Florida,FL,32822,United States,US,28.541461,-81.310733
+477384,Former Shoney's / Current Lone Star Steakhouse,Route 22 and 25th Street,NULL,NULL,Palmer Twp.,Northampton,Pennsylvania,PA,NULL,United States,US,40.686345,-75.251763
+314873,Lowe's Site,Routes 11 & 15 at Lori Lane,NULL,NULL,Selinsgrove,Snyder,Pennsylvania,PA,NULL,United States,US,40.828995,-76.841842
