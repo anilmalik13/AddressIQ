@@ -470,13 +470,18 @@ If Address1 ends with an incomplete address (missing street name) and Address2 h
 - Address1="3432 S." + Address2="Semoran Blvd. In Orlando" → Combine to "3432 S. Semoran Blvd. In Orlando"
 
 RULE 4 - MULTIPLE COMPLETE ADDRESSES (SPLIT):
-DO SPLIT if Address1 contains "and" or "&" separating complete street addresses WITH NUMBERS:
-- "300 West & 5200 North" = TWO addresses (has numbers) → SPLIT
-- "17249 & 17435 N. 7th St." = TWO addresses (has numbers) → SPLIT
+DO SPLIT if the address contains multiple street numbers (separated by commas, "and", or "&") on the SAME or DIFFERENT streets:
+- "300 West & 5200 North" = TWO different streets with numbers → SPLIT
+- "17249 & 17435 N. 7th St." = TWO numbers on same street → SPLIT
+- "100 & 300 Plaza Alicante" = TWO numbers on same street → SPLIT
+- "4120, 4140, 4160, 4170 & 4196 Oceanside Blvd" = FIVE numbers on same street → SPLIT into 5 addresses
+- "2, 4, 5, 7, 9 and 11 Technology Drive" = SIX numbers on same street → SPLIT into 6 addresses
+
+Each street NUMBER represents a distinct physical location that needs separate geocoding.
 
 KEY DISTINCTION:
-- WITH numbers (300 West & 5200 North) = Multiple addresses → SPLIT
-- WITHOUT numbers (Route 22 and 25th Street) = One intersection → DO NOT SPLIT
+- WITH street numbers (multiple) = Multiple physical locations → SPLIT each number
+- WITHOUT street numbers (Route 22 and 25th Street) = One intersection → DO NOT SPLIT
 
 Return a JSON object with:
 - should_split: boolean
@@ -534,7 +539,15 @@ EXAMPLES:
 ✓ SPLIT: Address1="300 West & 5200 North", Address2="Riverwoods Research & Business Park"
   → Split Field1 into: ["300 West", "5200 North"]
   → Keep Field2 as building name (don't split)
-  → Reason: Has street NUMBERS, indicating two different addresses
+  → Reason: Has street NUMBERS on different streets, indicating two different addresses
+
+✓ SPLIT: Address1="4120, 4140, 4160, 4170 & 4196 Oceanside Blvd", Address2=""
+  → Split into: ["4120 Oceanside Blvd", "4140 Oceanside Blvd", "4160 Oceanside Blvd", "4170 Oceanside Blvd", "4196 Oceanside Blvd"]
+  → Reason: Has MULTIPLE street numbers = multiple distinct physical locations
+
+✓ SPLIT: Address1="100 & 300 Plaza Alicante", Address2=""
+  → Split into: ["100 Plaza Alicante", "300 Plaza Alicante"]
+  → Reason: Two street numbers = two distinct buildings
 
 ✗ DON'T SPLIT: Address1="Route 22 and 25th Street", Address2=""
   → Keep as single address: ["Route 22 and 25th Street"]
