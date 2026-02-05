@@ -256,7 +256,6 @@ const DatabaseConnect: React.FC = () => {
     <div className="modern-container">
       {/* Hero Section */}
       <div className="modern-hero">
-        <div className="modern-hero-icon">🗄️</div>
         <h1 className="modern-hero-title">Database Connect</h1>
         <p className="modern-hero-subtitle">Connect to your database and process data using table columns or SQL queries</p>
       </div>
@@ -266,7 +265,6 @@ const DatabaseConnect: React.FC = () => {
         {/* Info Cards */}
         <div className="modern-info-cards">
           <div className="modern-info-card modern-info-card-blue">
-            <div className="modern-info-card-icon">📊</div>
             <div className="modern-info-card-content">
               <div className="modern-info-card-title">Flexible Data Source</div>
               <div className="modern-info-card-text">Choose between table-based selection or custom SQL queries for maximum flexibility</div>
@@ -274,7 +272,6 @@ const DatabaseConnect: React.FC = () => {
           </div>
           
           <div className="modern-info-card modern-info-card-amber">
-            <div className="modern-info-card-icon">⚠️</div>
             <div className="modern-info-card-content">
               <div className="modern-info-card-title">Coming Soon</div>
               <div className="modern-info-card-text">Compare mode is in progress and will be available soon</div>

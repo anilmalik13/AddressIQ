@@ -78,87 +78,17 @@ const App: React.FC = () => {
 
     const TABS = useMemo(
         () => [
-            { key: 'upload', label: 'File Upload', icon: 'upload' },
-            { key: 'compare', label: 'Compare Upload', icon: 'compare' },
-            { key: 'processing', label: 'Address Processing', icon: 'process' },
-            { key: 'split', label: 'Address Splitting', icon: 'split' },
-            { key: 'map', label: 'Map View', icon: 'map' },
-            { key: 'publicapi', label: 'Public API', icon: 'api' },
-            { key: 'dbconnect', label: 'Database connect', icon: 'db' },
-            { key: 'jobs', label: 'Processing History', icon: 'history' },
+            { key: 'upload', label: 'File Upload' },
+            { key: 'compare', label: 'Compare Upload' },
+            { key: 'processing', label: 'Address Processing' },
+            { key: 'split', label: 'Address Splitting' },
+            { key: 'map', label: 'Map View' },
+            { key: 'publicapi', label: 'Public API' },
+            { key: 'dbconnect', label: 'Database connect' },
+            { key: 'jobs', label: 'Processing History' },
         ],
         []
     );
-
-    const Icon: React.FC<{ name: string }> = ({ name }) => {
-        switch (name) {
-            case 'upload':
-                return (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                );
-            case 'compare':
-                return (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d="M10 3H5a2 2 0 0 0-2 2v5h7z" />
-                        <path d="M14 21h5a2 2 0 0 0 2-2v-5h-7z" />
-                        <path d="M21 8V7a2 2 0 0 0-2-2h-5" />
-                        <path d="M3 16v1a2 2 0 0 0 2 2h5" />
-                    </svg>
-                );
-            case 'process':
-                return (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d="M3 12h3l3 7 4-14 3 7h5" />
-                    </svg>
-                );
-            case 'split':
-                return (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <circle cx="12" cy="5" r="1" />
-                        <circle cx="12" cy="12" r="1" />
-                        <circle cx="12" cy="19" r="1" />
-                        <path d="M12 2v2M12 11v2M12 18v2" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                );
-            case 'map':
-                return (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21" />
-                        <line x1="8" y1="3" x2="8" y2="18" />
-                        <line x1="16" y1="6" x2="16" y2="21" />
-                    </svg>
-                );
-            case 'api':
-                return (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <polyline points="4 17 10 11 4 5" />
-                        <polyline points="20 17 14 11 20 5" />
-                    </svg>
-                );
-            case 'db':
-                return (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <ellipse cx="12" cy="5" rx="9" ry="3" />
-                        <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
-                        <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3" />
-                    </svg>
-                );
-            case 'history':
-                return (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                );
-            default:
-                return null;
-        }
-    };
 
     return (
         <div className="app-shell">
@@ -170,11 +100,7 @@ const App: React.FC = () => {
                         aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
                         title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
                     >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <line x1="3" y1="12" x2="21" y2="12" />
-                            <line x1="3" y1="18" x2="21" y2="18" />
-                        </svg>
+                        <span aria-hidden>☰</span>
                     </button>
                     <div className="topbar__brand" aria-label="Brand">CBRE AddressIQ</div>
                     <div className="topbar__actions">
@@ -186,25 +112,7 @@ const App: React.FC = () => {
                             aria-label="Toggle dark mode"
                             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                         >
-                            {/* Sun and Moon icons */}
-                            <span className="theme-toggle__icon theme-toggle__icon--sun" aria-hidden>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="4" />
-                                    <line x1="12" y1="2" x2="12" y2="4" />
-                                    <line x1="12" y1="20" x2="12" y2="22" />
-                                    <line x1="4.93" y1="4.93" x2="6.34" y2="6.34" />
-                                    <line x1="17.66" y1="17.66" x2="19.07" y2="19.07" />
-                                    <line x1="2" y1="12" x2="4" y2="12" />
-                                    <line x1="20" y1="12" x2="22" y2="12" />
-                                    <line x1="4.93" y1="19.07" x2="6.34" y2="17.66" />
-                                    <line x1="17.66" y1="6.34" x2="19.07" y2="4.93" />
-                                </svg>
-                            </span>
-                            <span className="theme-toggle__icon theme-toggle__icon--moon" aria-hidden>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
-                                </svg>
-                            </span>
+                            <span aria-hidden>{theme === 'dark' ? '☀' : '☾'}</span>
                         </button>
                     </div>
                 </header>
@@ -222,9 +130,6 @@ const App: React.FC = () => {
                                     aria-current={activeView === (tab.key as ActiveView) ? 'page' : undefined}
                     data-tooltip={tab.label}
                                 >
-                                    <span className="nav__iconbox">
-                                        <span className="nav__icon"><Icon name={tab.icon} /></span>
-                                    </span>
                                     <span className="nav__label">{tab.label}</span>
                                 </button>
                             ))}

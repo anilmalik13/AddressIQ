@@ -76,7 +76,6 @@ const AddressProcessing: React.FC = () => {
         <div className="modern-container">
             {/* Hero Section */}
             <div className="modern-hero">
-                <div className="modern-hero-icon">🏠</div>
                 <h1 className="modern-hero-title">Address Processing</h1>
                 <p className="modern-hero-subtitle">Standardize and validate addresses with AI-powered processing</p>
             </div>
@@ -86,7 +85,6 @@ const AddressProcessing: React.FC = () => {
                 {/* Info Cards */}
                 <div className="modern-info-cards">
                     <div className="modern-info-card modern-info-card-blue">
-                        <div className="modern-info-card-icon">🎯</div>
                         <div className="modern-info-card-content">
                             <div className="modern-info-card-title">Single or Batch</div>
                             <div className="modern-info-card-text">Process one address or multiple addresses at once</div>
@@ -94,7 +92,6 @@ const AddressProcessing: React.FC = () => {
                     </div>
                     
                     <div className="modern-info-card modern-info-card-green">
-                        <div className="modern-info-card-icon">✨</div>
                         <div className="modern-info-card-content">
                             <div className="modern-info-card-title">AI-Powered</div>
                             <div className="modern-info-card-text">Advanced standardization with confidence scoring</div>
@@ -126,7 +123,6 @@ const AddressProcessing: React.FC = () => {
                 {/* AI Model Selector */}
                 <div className="model-selector-card">
                     <div className="model-selector-header">
-                        <span className="model-icon">🤖</span>
                         <span className="model-label">AI Model</span>
                     </div>
                     <select
@@ -145,7 +141,7 @@ const AddressProcessing: React.FC = () => {
                             ))
                         )}
                     </select>
-                    <p className="model-coming-soon">💡 Additional AI models coming soon</p>
+                    <p className="model-coming-soon">Additional AI models coming soon</p>
                 </div>
 
                 {/* Input Section */}
@@ -202,7 +198,6 @@ const AddressProcessing: React.FC = () => {
                     <div className="result-card result-success">
                         <div className="result-header-row">
                             <div>
-                                <div className="result-icon">✓</div>
                                 <h3 className="result-title">Standardized Address</h3>
                             </div>
                             <button 
@@ -210,7 +205,7 @@ const AddressProcessing: React.FC = () => {
                                 className="copy-button"
                                 title="Copy standardized address"
                             >
-                                📋 Copy
+                                Copy
                             </button>
                         </div>
                         <textarea 
@@ -252,11 +247,11 @@ const AddressProcessing: React.FC = () => {
                                             onClick={() => handleCopyResult(r.processedAddress)} 
                                             className="action-copy-btn"
                                         >
-                                            📋 Copy
+                                            Copy
                                         </button>
                                         {r.error && (
                                             <span className="error-badge" title={r.error}>
-                                                ⚠ {r.error}
+                                                {r.error}
                                             </span>
                                         )}
                                     </div>
@@ -269,7 +264,6 @@ const AddressProcessing: React.FC = () => {
                 {/* Error Result */}
                 {error && (
                     <div className="result-card result-error">
-                        <div className="result-icon">✕</div>
                         <h3 className="result-title">Error</h3>
                         <p className="result-message">{error}</p>
                     </div>
