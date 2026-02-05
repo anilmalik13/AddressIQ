@@ -334,7 +334,6 @@ const AddressSplit: React.FC = () => {
     return (
         <div className="modern-container">
             <div className="modern-hero">
-                <div className="modern-hero-icon">🔀</div>
                 <h1 className="modern-hero-title">Address Splitting</h1>
                 <p className="modern-hero-subtitle">
                     Intelligently split and standardize addresses with coordinating conjunctions
@@ -349,7 +348,6 @@ const AddressSplit: React.FC = () => {
                         className={`mode-btn ${mode === 'text' ? 'active' : ''}`}
                         disabled={processing || fileProcessing}
                     >
-                        <span className="mode-icon">✍️</span>
                         <span className="mode-text">
                             <strong>Text Input</strong>
                             <small>Enter addresses manually</small>
@@ -360,7 +358,6 @@ const AddressSplit: React.FC = () => {
                         className={`mode-btn ${mode === 'file' ? 'active' : ''}`}
                         disabled={processing || fileProcessing}
                     >
-                        <span className="mode-icon">📄</span>
                         <span className="mode-text">
                             <strong>File Upload</strong>
                             <small>Process CSV or Excel file</small>
@@ -370,7 +367,6 @@ const AddressSplit: React.FC = () => {
 
                 <div className="modern-info-cards">
                     <div className="modern-info-card modern-info-card-blue">
-                        <div className="modern-info-card-icon">✨</div>
                         <div className="modern-info-card-content">
                             <div className="modern-info-card-title">Smart Detection</div>
                             <div className="modern-info-card-text">
@@ -380,7 +376,6 @@ const AddressSplit: React.FC = () => {
                     </div>
 
                     <div className="modern-info-card modern-info-card-green">
-                        <div className="modern-info-card-icon">🎯</div>
                         <div className="modern-info-card-content">
                             <div className="modern-info-card-title">AI-Powered</div>
                             <div className="modern-info-card-text">
@@ -407,12 +402,11 @@ const AddressSplit: React.FC = () => {
                                 rows={4}
                             />
                             <small className="split-hint">
-                                💡 Example: "10255 and 10261 Iron Rock Way" will be split into 2 addresses
+                                Example: "10255 and 10261 Iron Rock Way" will be split into 2 addresses
                             </small>
                             
                             {specialCharWarning && (
                                 <div className="modern-alert modern-alert-warning">
-                                    <span className="modern-alert-icon">⚠️</span>
                                     <span>{specialCharWarning}</span>
                                 </div>
                             )}
@@ -468,7 +462,6 @@ const AddressSplit: React.FC = () => {
                                         id="file-upload-split"
                                     />
                                     <label htmlFor="file-upload-split" className="file-upload-label">
-                                        <div className="upload-icon">📁</div>
                                         <div className="upload-text">
                                             <strong>Click to upload</strong> or drag and drop
                                         </div>
@@ -482,7 +475,6 @@ const AddressSplit: React.FC = () => {
                             {selectedFile && !fileProcessing && !fileStatus && (
                                 <div className="file-selected-card">
                                     <div className="file-selected-info">
-                                        <div className="file-icon">📄</div>
                                         <div className="file-details">
                                             <div className="file-name">{selectedFile.name}</div>
                                             <div className="file-size">
@@ -511,7 +503,6 @@ const AddressSplit: React.FC = () => {
                                                 onClick={() => setSplitMode('rule')}
                                                 className={`split-mode-btn ${splitMode === 'rule' ? 'active' : ''}`}
                                             >
-                                                <span className="split-mode-icon">📋</span>
                                                 <span className="split-mode-text">
                                                     <strong>Rule-Based</strong>
                                                     <small>Fast & efficient</small>
@@ -521,7 +512,6 @@ const AddressSplit: React.FC = () => {
                                                 onClick={() => setSplitMode('gpt')}
                                                 className={`split-mode-btn ${splitMode === 'gpt' ? 'active' : ''}`}
                                             >
-                                                <span className="split-mode-icon">🤖</span>
                                                 <span className="split-mode-text">
                                                     <strong>AI-Powered</strong>
                                                     <small>GPT-based analysis</small>
@@ -536,7 +526,6 @@ const AddressSplit: React.FC = () => {
                                             disabled={!selectedFile}
                                             className="modern-btn modern-btn-primary"
                                         >
-                                            <span>🔀</span>
                                             Process File
                                         </button>
                                         <button
@@ -552,7 +541,6 @@ const AddressSplit: React.FC = () => {
                             {fileProcessing && waitChoice === null && (
                                 <div className="upload-progress-card">
                                     <div className="upload-progress-header">
-                                        <div className="upload-progress-icon">📤</div>
                                         <div className="upload-progress-text">
                                             <strong>Uploading file...</strong>
                                             <small>{uploadProgress}% complete</small>
@@ -570,7 +558,6 @@ const AddressSplit: React.FC = () => {
                             {fileProcessing && waitChoice === 'wait' && (
                                 <div className="upload-progress-card">
                                     <div className="upload-progress-header">
-                                        <div className="upload-progress-icon">⚙️</div>
                                         <div className="upload-progress-text">
                                             <strong>Processing file...</strong>
                                             <small>{processingMessage}</small>
@@ -590,7 +577,6 @@ const AddressSplit: React.FC = () => {
 
                             {fileStatus && fileStatus.status === 'queued' && (
                                 <div className="modern-alert modern-alert-success" style={{ marginTop: '20px' }}>
-                                    <span className="modern-alert-icon">✓</span>
                                     <div>
                                         <strong>File uploaded successfully!</strong>
                                         <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
@@ -605,7 +591,6 @@ const AddressSplit: React.FC = () => {
                             
                             {fileStatus && fileStatus.status === 'completed' && (
                                 <div className="modern-alert modern-alert-success" style={{ marginTop: '20px' }}>
-                                    <span className="modern-alert-icon">✓</span>
                                     <div>
                                         <strong>File processed successfully!</strong>
                                         <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
@@ -616,13 +601,13 @@ const AddressSplit: React.FC = () => {
                                                 onClick={() => handleDownloadFile(fileStatus.output_file)}
                                                 className="modern-btn modern-btn-primary"
                                             >
-                                                📥 Download Processed File
+                                                Download Processed File
                                             </button>
                                             <button
                                                 onClick={handleReset}
                                                 className="modern-btn modern-btn-gray"
                                             >
-                                                🔄 Process Another File
+                                                Process Another File
                                             </button>
                                         </div>
                                     </div>
@@ -654,7 +639,7 @@ const AddressSplit: React.FC = () => {
                                 </div>
                                 <div className="split-time-info">
                                     <span className="split-time-elapsed">
-                                        ⏱️ {elapsedTime}s elapsed
+                                        {elapsedTime}s elapsed
                                     </span>
                                     {elapsedTime < estimatedTime && (
                                         <span className="split-time-estimate">
@@ -664,7 +649,6 @@ const AddressSplit: React.FC = () => {
                                 </div>
                                 {estimatedTime > 20 && elapsedTime < 10 && (
                                     <div className="modern-alert modern-alert-info" style={{ marginTop: '12px' }}>
-                                        <span className="modern-alert-icon">💡</span>
                                         <span>
                                             Complex splits require standardizing each address individually for accurate results.
                                         </span>
@@ -678,9 +662,6 @@ const AddressSplit: React.FC = () => {
                 {result && (
                     <div className="split-results-section">
                         <div className={`split-result-header ${result.split ? 'split-detected' : 'no-split'}`}>
-                            <div className="split-result-icon">
-                                {result.split ? '✂️' : '✓'}
-                            </div>
                             <div className="split-result-content">
                                 <h3 className="split-result-title">
                                     {result.split 
@@ -708,7 +689,7 @@ const AddressSplit: React.FC = () => {
                                                     </span>
                                                 )}
                                                 <span className={`split-badge status ${addr.status}`}>
-                                                    {addr.status === 'success' ? '✓' : addr.status === 'error' ? '✗' : '⚠'}  {addr.status}
+                                                    {addr.status}
                                                 </span>
                                                 {result.split && addr.splitNumber && (
                                                     <span className="split-badge info">
@@ -731,13 +712,12 @@ const AddressSplit: React.FC = () => {
                                                         onClick={() => handleCopyResult(addr.processedAddress)}
                                                         title="Copy standardized address"
                                                     >
-                                                        📋 Copy
+                                                        Copy
                                                     </button>
                                                 </div>
 
                                                 {addr.explanation && (
                                                     <div className="modern-alert modern-alert-info" style={{ margin: '12px 0 0' }}>
-                                                        <span className="modern-alert-icon">💡</span>
                                                         <span style={{ fontSize: '13px' }}>{addr.explanation}</span>
                                                     </div>
                                                 )}
@@ -745,7 +725,7 @@ const AddressSplit: React.FC = () => {
                                                 {addr.components && Object.keys(addr.components).some(k => addr.components[k]) && (
                                                     <details className="split-components-details">
                                                         <summary className="split-components-summary">
-                                                            🗂️ View Components ({Object.keys(addr.components).filter(k => addr.components[k]).length})
+                                                            View Components ({Object.keys(addr.components).filter(k => addr.components[k]).length})
                                                         </summary>
                                                         <div className="split-components-grid">
                                                             {Object.entries(addr.components).filter(([_, value]) => value).map(([key, value]) => (
@@ -762,7 +742,6 @@ const AddressSplit: React.FC = () => {
 
                                                 {addr.error && (
                                                     <div className="modern-alert modern-alert-error">
-                                                        <span className="modern-alert-icon">❌</span>
                                                         <span>{addr.error}</span>
                                                     </div>
                                                 )}
@@ -777,7 +756,6 @@ const AddressSplit: React.FC = () => {
 
                 {error && (
                     <div className="modern-alert modern-alert-error split-error-message">
-                        <span className="modern-alert-icon">❌</span>
                         <span>{error}</span>
                     </div>
                 )}
@@ -795,7 +773,6 @@ const AddressSplit: React.FC = () => {
                             <p>Your file has been uploaded. Would you like to wait here for processing to complete?</p>
                             <div className="modal-options">
                                 <div className="modal-option-card">
-                                    <div className="modal-option-icon">⏱️</div>
                                     <h4>Wait Here</h4>
                                     <p>Stay on this page and download the processed file when ready</p>
                                     <button 
@@ -806,7 +783,6 @@ const AddressSplit: React.FC = () => {
                                     </button>
                                 </div>
                                 <div className="modal-option-card">
-                                    <div className="modal-option-icon">📋</div>
                                     <h4>Process in Background</h4>
                                     <p>Continue uploading files and check Processing History later</p>
                                     <button 

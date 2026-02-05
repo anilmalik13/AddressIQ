@@ -183,7 +183,6 @@ const FileUpload: React.FC = () => {
         <div className="file-upload-container">
             {/* Hero Section */}
             <div className="hero-section">
-                <div className="hero-icon">📄</div>
                 <h1 className="hero-title">Upload & Process</h1>
                 <p className="hero-subtitle">Transform your address data with AI-powered standardization</p>
             </div>
@@ -193,14 +192,12 @@ const FileUpload: React.FC = () => {
                 {/* Info Cards Row */}
                 <div className="info-cards-grid">
                     <div className="info-card info-card-blue">
-                        <div className="info-card-icon">💡</div>
                         <div className="info-card-content">
                             <div className="info-card-title">Batch Processing</div>
                             <div className="info-card-text">Records processed in batches of 5 for optimal performance</div>
                         </div>
                     </div>
                     <div className="info-card info-card-amber">
-                        <div className="info-card-icon">📋</div>
                         <div className="info-card-content">
                             <div className="info-card-title">Required Headers</div>
                             <div className="info-card-text">Site_Name, Site_Address_1-4, City, State, Postcode, Country</div>
@@ -211,7 +208,6 @@ const FileUpload: React.FC = () => {
                 {/* Sample File Download */}
                 <div className="sample-download-section">
                     <button onClick={handleDownloadSample} className="sample-download-btn">
-                        <span className="sample-icon">⬇</span>
                         <span>Download Sample File</span>
                     </button>
                     <span className="sample-help-text">Not sure about the format? Get our template</span>
@@ -235,18 +231,15 @@ const FileUpload: React.FC = () => {
                         <label htmlFor="file-input" className="file-upload-zone">
                             {!selectedFile ? (
                                 <>
-                                    <div className="upload-icon">📁</div>
                                     <div className="upload-text-primary">Drop your file here or click to browse</div>
                                     <div className="upload-text-secondary">Supports .xlsx, .xls, and .csv files</div>
                                 </>
                             ) : (
                                 <div className="selected-file-display">
-                                    <div className="file-icon">📄</div>
                                     <div className="file-details">
                                         <div className="file-name">{selectedFile.name}</div>
                                         <div className="file-size">{formatFileSize(selectedFile.size)}</div>
                                     </div>
-                                    <div className="file-checkmark">✓</div>
                                 </div>
                             )}
                         </label>
@@ -255,7 +248,6 @@ const FileUpload: React.FC = () => {
                     {/* AI Model Selector */}
                     <div className="model-selector-card">
                         <div className="model-selector-header">
-                            <span className="model-icon">🤖</span>
                             <span className="model-label">AI Model</span>
                         </div>
                         <select
@@ -274,7 +266,7 @@ const FileUpload: React.FC = () => {
                                 ))
                             )}
                         </select>
-                        <p className="model-coming-soon">💡 Additional AI models coming soon</p>
+                        <p className="model-coming-soon">Additional AI models coming soon</p>
                     </div>
 
                     {/* Action Buttons */}
@@ -314,7 +306,6 @@ const FileUpload: React.FC = () => {
                                 onClick={handleDownload}
                                 className="btn btn-success"
                             >
-                                <span>⬇</span>
                                 <span>Download Result</span>
                             </button>
                         )}
@@ -323,7 +314,6 @@ const FileUpload: React.FC = () => {
                     {/* Processing Tip */}
                     {isProcessing && (
                         <div className="processing-tip">
-                            <span className="tip-icon">💡</span>
                             <span className="tip-text">
                                 <strong>Pro Tip:</strong> You can reset and process other files. Completed files appear in Processing History.
                             </span>
@@ -363,7 +353,7 @@ const FileUpload: React.FC = () => {
                                         const reached = currentProgress >= s.target;
                                         return (
                                             <div key={s.name} className={`progress-step ${reached ? 'completed' : ''}`}>
-                                                <div className="step-dot">{reached ? '✓' : ''}</div>
+                                                <div className="step-dot"></div>
                                                 <div className="step-name">{s.label}</div>
                                             </div>
                                         );
@@ -406,7 +396,6 @@ const FileUpload: React.FC = () => {
                     {/* Success Result */}
                     {isCompleted && (
                         <div className="result-card result-success">
-                            <div className="result-icon">✓</div>
                             <div className="result-title">Processing Complete!</div>
                             <div className="result-message">{processingStatus?.message}</div>
                             {processingStatus?.output_file && (
@@ -420,7 +409,6 @@ const FileUpload: React.FC = () => {
 
                     {uploadResult && !processingStatus && (
                         <div className="result-card result-success">
-                            <div className="result-icon">✓</div>
                             <div className="result-title">Upload Complete!</div>
                             <div className="result-message">{uploadResult}</div>
                         </div>
@@ -429,7 +417,6 @@ const FileUpload: React.FC = () => {
                     {/* Error Result */}
                     {hasError && (
                         <div className="result-card result-error">
-                            <div className="result-icon">✕</div>
                             <div className="result-title">Error Occurred</div>
                             <div className="result-message">{error || processingStatus?.error}</div>
                         </div>

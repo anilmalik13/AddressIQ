@@ -243,7 +243,6 @@ const CompareUpload: React.FC = () => {
     <div className="modern-container">
       {/* Hero Section */}
       <div className="modern-hero">
-        <div className="modern-hero-icon">⚖️</div>
         <h1 className="modern-hero-title">Batch Compare Upload</h1>
         <p className="modern-hero-subtitle">Upload your file to run intelligent address comparison and standardization</p>
       </div>
@@ -253,7 +252,6 @@ const CompareUpload: React.FC = () => {
         {/* Info Cards Grid */}
         <div className="modern-info-cards">
           <div className="modern-info-card modern-info-card-blue">
-            <div className="modern-info-card-icon">📊</div>
             <div className="modern-info-card-content">
               <div className="modern-info-card-title">Batch Processing</div>
               <div className="modern-info-card-text">Records processed in batches of 5 for optimal performance and accuracy</div>
@@ -261,7 +259,6 @@ const CompareUpload: React.FC = () => {
           </div>
           
           <div className="modern-info-card modern-info-card-amber">
-            <div className="modern-info-card-icon">📋</div>
             <div className="modern-info-card-content">
               <div className="modern-info-card-title">Required Headers</div>
               <div className="modern-info-card-text">Site_Name, Site_Address_1-4, Site_City, Site_State, Site_Postcode, Site_Country</div>
@@ -272,7 +269,6 @@ const CompareUpload: React.FC = () => {
         {/* Sample Download Section */}
         <div className="sample-download-section">
           <button onClick={handleDownloadSample} className="sample-download-btn">
-            <span className="sample-icon">📥</span>
             Download Sample File
           </button>
           <span className="sample-help-text">See the required format</span>
@@ -281,7 +277,6 @@ const CompareUpload: React.FC = () => {
         {/* AI Model Selector */}
         <div className="model-selector-card">
           <div className="model-selector-header">
-            <span className="model-icon">🤖</span>
             <span className="model-label">AI Model</span>
           </div>
           <select
@@ -300,7 +295,7 @@ const CompareUpload: React.FC = () => {
               ))
             )}
           </select>
-          <p className="model-coming-soon">💡 Additional AI models coming soon</p>
+          <p className="model-coming-soon">Additional AI models coming soon</p>
         </div>
 
         {/* Upload Area */}
@@ -318,18 +313,15 @@ const CompareUpload: React.FC = () => {
           <label htmlFor="compare-file-input" className="file-upload-zone">
             {!selectedFile ? (
               <>
-                <div className="upload-icon">📁</div>
                 <div className="upload-text-primary">Choose your file</div>
                 <div className="upload-text-secondary">Drag & drop or click to browse (.xlsx, .xls, .csv)</div>
               </>
             ) : (
               <div className="selected-file-display">
-                <div className="file-icon">📄</div>
                 <div className="file-details">
                   <div className="file-name">{selectedFile.name}</div>
                   <div className="file-size">{formatFileSize(selectedFile.size)}</div>
                 </div>
-                <div className="file-checkmark">✓</div>
               </div>
             )}
           </label>
@@ -356,7 +348,6 @@ const CompareUpload: React.FC = () => {
           
           {isCompleted && processingStatus?.output_file && (
             <button onClick={handleDownload} className="modern-btn modern-btn-success">
-              <span>📥</span>
               Download Result
             </button>
           )}
@@ -365,7 +356,6 @@ const CompareUpload: React.FC = () => {
         {/* Processing Tip */}
         {isProcessing && (
           <div className="processing-tip">
-            <span className="tip-icon">💡</span>
             <div className="tip-text">
               <strong>Tip:</strong> You can click Reset and continue processing other files. Completed files will appear in Processing History.
             </div>
@@ -400,7 +390,7 @@ const CompareUpload: React.FC = () => {
                   const reached = currentProgress >= s.target;
                   return (
                     <div key={s.name} className={`progress-step ${reached ? 'completed' : ''}`}>
-                      <div className="step-dot">{reached ? '✓' : s.target}</div>
+                      <div className="step-dot"></div>
                       <div className="step-name">{s.label}</div>
                     </div>
                   );
@@ -443,7 +433,6 @@ const CompareUpload: React.FC = () => {
         {/* Success Result */}
         {isCompleted && (
           <div className="result-card result-success">
-            <div className="result-icon">✓</div>
             <h3 className="result-title">Comparison Complete!</h3>
             <p className="result-message">{processingStatus?.message}</p>
             {processingStatus?.output_file && (
@@ -535,7 +524,6 @@ const CompareUpload: React.FC = () => {
         {/* Error Result */}
         {hasError && (
           <div className="result-card result-error">
-            <div className="result-icon">✕</div>
             <h3 className="result-title">Error Occurred</h3>
             <p className="result-message">{error || processingStatus?.error}</p>
           </div>
