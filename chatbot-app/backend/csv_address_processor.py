@@ -1210,6 +1210,7 @@ class CSVAddressProcessor:
     def apply_address_splitting(self, df: pd.DataFrame, address_columns: List[str]) -> pd.DataFrame:
         """
         Apply address splitting to the dataframe. Creates new rows for split addresses.
+        Uses batch processing for GPT-based splitting for better performance.
         
         Args:
             df: Input dataframe
@@ -1232,13 +1233,42 @@ class CSVAddressProcessor:
                 address2_col = col
                 break
         
+        # Get the primary address column
+        primary_addr_col = address_columns[0]
+        
+        # Collect all address pairs for batch processing
+        address_pairs = []
+        row_indices = []
+        
+        for index, row in df.iterrows():
+            address1 = str(row[primary_addr_col]) if pd.notna(row[primary_addr_col]) else ""
+            address2 = str(row[address2_col]) if address2_col and pd.notna(row[address2_col]) else None
+            
+            # Only process non-empty addresses
+            if address1.strip():
+                address_pairs.append((address1, address2))
+                row_indices.append(index)
+        
+        # Perform batch split analysis if using GPT, otherwise process individually
+        if self.address_splitter and self.address_splitter.use_gpt and len(address_pairs) > 0:
+            print(f"   Using GPT batch processing for {len(address_pairs)} addresses...")
+            split_results = self.address_splitter.analyze_and_split_batch(address_pairs)
+        else:
+            print(f"   Using individual processing for {len(address_pairs)} addresses...")
+            split_results = []
+            for addr1, addr2 in address_pairs:
+                split_results.append(self.address_splitter.analyze_and_split(addr1, addr2))
+        
+        # Map results back to rows
+        result_map = {}
+        for idx, result in zip(row_indices, split_results):
+            result_map[idx] = result
+        
+        # Process all rows with results
         for index, row in df.iterrows():
             row_dict = row.to_dict()
             
-            # Get the primary address column
-            primary_addr_col = address_columns[0]
             address1 = str(row[primary_addr_col]) if pd.notna(row[primary_addr_col]) else ""
-            address2 = str(row[address2_col]) if address2_col and pd.notna(row[address2_col]) else None
             
             # Skip empty addresses
             if not address1.strip():
@@ -1246,10 +1276,14 @@ class CSVAddressProcessor:
                 no_split_count += 1
                 continue
             
-            # Analyze and split if needed
-            # When using GPT-based splitting, it will intelligently determine
-            # if Address2 contains additional addresses or just building/suite info
-            split_result = self.address_splitter.analyze_and_split(address1, address2)
+            # Get the split result for this row
+            split_result = result_map.get(index)
+            
+            if not split_result:
+                # Shouldn't happen, but handle gracefully
+                new_rows.append(row_dict)
+                no_split_count += 1
+                continue
             
             if split_result['should_split'] and split_result['split_count'] > 1:
                 # Address was split - create multiple rows
@@ -1274,6 +1308,7 @@ class CSVAddressProcessor:
                     new_row['Split_Address_Number'] = f"{split_idx} of {split_result['split_count']}"
                     
                     # Clear address2 if it was used in splitting
+                    address2 = str(row[address2_col]) if address2_col and pd.notna(row[address2_col]) else None
                     if address2_col and address2:
                         new_row[address2_col] = ''
                     

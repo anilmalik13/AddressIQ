@@ -506,6 +506,262 @@ Return a JSON object with:
             print(f"⚠️  GPT splitting failed: {str(e)}, falling back to rule-based")
             return self._rule_based_split(address1, address2)
     
+    def analyze_and_split_batch(self, address_pairs: List[Tuple[str, Optional[str]]]) -> List[Dict[str, Any]]:
+        """
+        Analyze and split multiple addresses in batch using GPT (more efficient for large datasets)
+        
+        Args:
+            address_pairs: List of tuples (address1, address2) to analyze
+            
+        Returns:
+            List of split results for each address pair
+        """
+        if not self.use_gpt or not GPT_AVAILABLE:
+            print("⚠️  Batch processing requires GPT mode, falling back to individual processing")
+            return [self.analyze_and_split(addr1, addr2) for addr1, addr2 in address_pairs]
+        
+        if not address_pairs:
+            return []
+        
+        print(f"\n� Processing batch of {len(address_pairs)} addresses using GPT...")
+        
+        try:
+            # Create batch prompt
+            batch_prompt = self._create_batch_split_prompt(address_pairs)
+            
+            print(f"📤 Sending batch prompt to GPT (length: {len(batch_prompt)} chars)")
+            print(f"📤 First 400 chars of prompt: {batch_prompt[:400]}")
+            
+            # Get access token and call GPT
+            access_token = get_access_token()
+            
+            # Use the same system prompt but adjusted for batch
+            system_prompt = """You are an expert address parser specializing in identifying when address fields contain multiple distinct addresses that should be separated.
+
+Your task is to analyze MULTIPLE address entries and for each one determine:
+1. Whether it contains multiple distinct street addresses
+2. If yes, split them into individual addresses
+3. Provide reasoning for each decision
+
+CRITICAL RULES (CHECK IN THIS ORDER):
+
+RULE 1 - INTERSECTIONS (NO SPLIT):
+If there are NO street numbers in the address, it's describing an INTERSECTION or cross-street (ONE location), NOT multiple addresses.
+- "Route 22 and 25th Street" = ONE location (no numbers) → DO NOT SPLIT
+- "Main Street and 5th Avenue" = ONE location (no numbers) → DO NOT SPLIT
+- "Highway 40 and K" = ONE location (no numbers) → DO NOT SPLIT
+
+RULE 2 - BUILDING NAMES (NO SPLIT):
+- DO NOT SPLIT if the address contains a range (e.g., "123-456 Main St")
+- DO NOT SPLIT if it contains unit/apt/suite identifiers (e.g., "Units A, B, C")
+- DO NOT SPLIT if it has directional descriptions (e.g., "NE of", "SW corner")
+- DO NOT SPLIT building/complex/business park names (e.g., "Riverwoods Research & Business Park")
+- DO NOT SPLIT if Address2 contains building names, complex names, or suite information
+- Keywords: "Park", "Building", "Complex", "Tower", "Plaza", "Center", "Research", "Business"
+
+RULE 3 - ADDRESS CONTINUATION (COMBINE, DON'T SPLIT):
+If Address1 ends with an incomplete address (missing street name) and Address2 has street name info, COMBINE them.
+- Address1="3432 S." + Address2="Semoran Blvd. In Orlando" → Combine to "3432 S. Semoran Blvd. In Orlando"
+
+RULE 4 - MULTIPLE COMPLETE ADDRESSES (SPLIT):
+DO SPLIT if the address contains multiple street numbers (separated by commas, "and", or "&") on the SAME or DIFFERENT streets:
+- "300 West & 5200 North" = TWO different streets with numbers → SPLIT
+- "17249 & 17435 N. 7th St." = TWO numbers on same street → SPLIT
+- "100 & 300 Plaza Alicante" = TWO numbers on same street → SPLIT
+- "4120, 4140, 4160, 4170 & 4196 Oceanside Blvd" = FIVE numbers on same street → SPLIT into 5 addresses
+
+Each street NUMBER represents a distinct physical location that needs separate geocoding.
+
+KEY DISTINCTION:
+- WITH street numbers (multiple) = Multiple physical locations → SPLIT each number
+- WITHOUT street numbers (Route 22 and 25th Street) = One intersection → DO NOT SPLIT
+
+Return a JSON array with one object per input address."""
+
+            response = connect_wso2(
+                access_token=access_token,
+                user_content=batch_prompt,
+                system_prompt=system_prompt,
+                prompt_type="address_splitting_batch",
+                max_tokens=3000  # Increased for batch processing
+            )
+            
+            print(f"📥 Received response from GPT")
+            print(f"📥 Response type: {type(response)}")
+            if isinstance(response, dict):
+                print(f"📥 Response keys: {response.keys()}")
+            
+            # Parse batch response
+            results = self._parse_batch_gpt_response(response, address_pairs)
+            
+            print(f"✅ Batch processing complete: {sum(1 for r in results if r['should_split'])} to split, {sum(1 for r in results if not r['should_split'])} not to split\n")
+            return results
+            
+        except Exception as e:
+            print(f"⚠️  Batch GPT splitting failed: {str(e)}, falling back to individual processing")
+            return [self.analyze_and_split(addr1, addr2) for addr1, addr2 in address_pairs]
+    
+    def _create_batch_split_prompt(self, address_pairs: List[Tuple[str, Optional[str]]]) -> str:
+        """
+        Create a batch prompt for multiple address analyses
+        """
+        prompt = """Analyze these address entries and determine which should be split.
+
+CRITICAL RULES:
+
+1. **MULTIPLE STREET NUMBERS** → ALWAYS SPLIT (unless shared units apply)
+   - "300 West & 5200 North" → SPLIT into 2 addresses (has 2 numbers: 300, 5200)
+   - "17249 & 17435 N. 7th St." → SPLIT into 2 addresses
+   - "4120, 4140, 4160 Blvd" → SPLIT into 3 addresses
+   - Each street NUMBER = one physical location
+
+2. **SHARED UNIT DESIGNATIONS** → DO NOT SPLIT
+   - "6120 & 6132 Brookshire Blvd, Units M, N & F" → DO NOT split (units apply to both)
+   - "100 & 200 Main St, Suite A-D" → DO NOT split (shared suite designation)
+   - When unit/suite info follows multiple addresses, treat as single property
+
+3. **INTERSECTIONS** (no distinct street numbers) → DO NOT SPLIT
+   - "Route 22 and 25th Street" → DO NOT split (intersection reference)
+   - "Routes 11 & 15 at Lori Lane" → DO NOT split
+
+4. **ADDRESS CONTINUATION** (Field 1 incomplete, Field 2 completes) → COMBINE THEN EVALUATE
+   - Field 1: "220 S. Semoran Blvd. In Winter Park and 3432 S."
+   - Field 2: "Semoran Blvd. In Orlando"
+   - → COMBINE: "3432 S." + "Semoran Blvd. In Orlando" = "3432 S. Semoran Blvd. In Orlando"
+   - → THEN SPLIT: ["220 S. Semoran Blvd. In Winter Park", "3432 S. Semoran Blvd. In Orlando"]
+
+5. **ADDRESS FIELD 2 AS CONTEXT ONLY** → IGNORE FOR SPLITTING
+   - "Riverwoods Research & Business Park" in Field 2 = building name only
+   - Only look at Field 1 for split decision (unless Rule 4 applies)
+
+Entries to analyze:
+
+"""
+        for idx, (addr1, addr2) in enumerate(address_pairs, 1):
+            if addr2 and addr2.strip():
+                prompt += f"""Entry {idx}:
+  Address Field 1: {addr1}
+  Address Field 2: {addr2}
+
+"""
+            else:
+                prompt += f"""Entry {idx}:
+  Address Field 1: {addr1}
+  Address Field 2: (none)
+
+"""
+        
+        prompt += """
+Return JSON array (one object per entry):
+[
+  {
+    "entry_number": 1,
+    "should_split": true/false,
+    "reason": "why",
+    "addresses": ["addr1", "addr2", ...]
+  }
+]
+
+Remember: Multiple street NUMBERS in Field 1 = SPLIT. No numbers or intersection = NO SPLIT."""
+        
+        return prompt
+    
+    def _parse_batch_gpt_response(self, response: str, address_pairs: List[Tuple[str, Optional[str]]]) -> List[Dict[str, Any]]:
+        """
+        Parse batch GPT response and map results back to input addresses
+        """
+        try:
+            # Handle response that's already a dictionary (from connect_wso2)
+            content = None
+            if isinstance(response, dict):
+                if 'choices' in response and len(response['choices']) > 0:
+                    content = response['choices'][0].get('message', {}).get('content', '')
+                else:
+                    raise ValueError("Invalid response structure from GPT")
+            else:
+                content = response
+            
+            print(f"📝 GPT batch response content (first 500 chars): {content[:500]}")
+            
+            # Try to extract JSON from markdown code blocks if present
+            if '```json' in content:
+                # Extract JSON from code block
+                start = content.find('```json') + 7
+                end = content.find('```', start)
+                if end > start:
+                    content = content[start:end].strip()
+            elif '```' in content:
+                # Extract from generic code block
+                start = content.find('```') + 3
+                end = content.find('```', start)
+                if end > start:
+                    content = content[start:end].strip()
+            
+            # Parse as JSON array
+            batch_results = json.loads(content)
+            
+            if not isinstance(batch_results, list):
+                print(f"⚠️  GPT returned non-array response, trying to wrap it")
+                batch_results = [batch_results]
+            
+            print(f"✅ Parsed {len(batch_results)} results from GPT batch response")
+            
+            # Map results back to address pairs
+            results = []
+            for idx, (addr1, addr2) in enumerate(address_pairs):
+                # Find matching result by entry_number
+                matching_result = None
+                for result in batch_results:
+                    if result.get('entry_number') == idx + 1:
+                        matching_result = result
+                        break
+                
+                if matching_result:
+                    # Convert to standard format
+                    should_split = matching_result.get('should_split', False)
+                    addresses = matching_result.get('addresses', [addr1])
+                    
+                    print(f"   Entry {idx+1}: should_split={should_split}, {len(addresses)} addresses")
+                    
+                    results.append({
+                        'original_address1': addr1,
+                        'original_address2': addr2 if addr2 else '',
+                        'should_split': should_split,
+                        'split_reason': matching_result.get('reason', 'GPT batch analysis'),
+                        'addresses': addresses if should_split else [addr1],
+                        'split_count': len(addresses) if should_split else 1,
+                        'method_used': 'gpt-batch'
+                    })
+                else:
+                    # Fallback if result not found
+                    print(f"⚠️  No result found for entry {idx + 1}, using no-split")
+                    results.append({
+                        'original_address1': addr1,
+                        'original_address2': addr2 if addr2 else '',
+                        'should_split': False,
+                        'split_reason': 'batch result missing',
+                        'addresses': [addr1],
+                        'split_count': 1,
+                        'method_used': 'gpt-batch-fallback'
+                    })
+            
+            return results
+            
+        except Exception as e:
+            print(f"⚠️  Error parsing batch GPT response: {str(e)}")
+            print(f"⚠️  Response type: {type(response)}")
+            print(f"⚠️  Response (first 1000 chars): {str(response)[:1000]}")
+            # Fallback to no-split for all
+            return [{
+                'original_address1': addr1,
+                'original_address2': addr2 if addr2 else '',
+                'should_split': False,
+                'split_reason': f'parsing error: {str(e)}',
+                'addresses': [addr1],
+                'split_count': 1,
+                'method_used': 'gpt-batch-error'
+            } for addr1, addr2 in address_pairs]
+    
     def _create_gpt_split_prompt(self, address1: str, address2: str = None) -> str:
         """
         Create the prompt for GPT address splitting
