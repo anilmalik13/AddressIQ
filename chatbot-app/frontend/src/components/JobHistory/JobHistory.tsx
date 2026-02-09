@@ -133,7 +133,6 @@ const JobHistory: React.FC = () => {
         <div className="modern-container">
             {/* Hero Section */}
             <div className="modern-hero">
-                <div className="modern-hero-icon">📜</div>
                 <h1 className="modern-hero-title">Processing History</h1>
                 <p className="modern-hero-subtitle">View and manage your file processing jobs</p>
             </div>
@@ -143,7 +142,6 @@ const JobHistory: React.FC = () => {
                 {/* Info Card about retention policy */}
                 <div className="modern-info-cards">
                     <div className="modern-info-card modern-info-card-green">
-                        <div className="modern-info-card-icon">📦</div>
                         <div className="modern-info-card-content">
                             <div className="modern-info-card-title">File Retention Policy</div>
                             <div className="modern-info-card-text">
@@ -194,7 +192,6 @@ const JobHistory: React.FC = () => {
                     </div>
                 ) : filteredJobs.length === 0 ? (
                     <div className="empty-state">
-                        <div className="empty-icon">📋</div>
                         <h3>No jobs found</h3>
                         <p>{filter === 'all' ? 'Upload a file to get started!' : `No ${filter} jobs found.`}</p>
                     </div>

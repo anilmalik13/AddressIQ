@@ -223,7 +223,6 @@ const RegionCityMap: React.FC = () => {
     <div className="modern-container">
       {/* Hero Section */}
       <div className="modern-hero">
-        <div className="modern-hero-icon">🗺️</div>
         <h1 className="modern-hero-title">Map View</h1>
         <p className="modern-hero-subtitle">Visualize site locations with geographical coordinates</p>
       </div>
@@ -240,7 +239,6 @@ const RegionCityMap: React.FC = () => {
             {/* Info Card */}
             <div className="modern-info-cards">
               <div className="modern-info-card modern-info-card-amber">
-                <div className="modern-info-card-icon">⚠️</div>
                 <div className="modern-info-card-content">
                   <div className="modern-info-card-title">Test Data Notice</div>
                   <div className="modern-info-card-text">The locations and coordinates displayed are for testing and illustration purposes only. Verify coordinates independently before production use.</div>
@@ -287,7 +285,6 @@ const RegionCityMap: React.FC = () => {
 
             {locations.length > 0 && (
               <div className="location-count">
-                <span className="count-icon">📍</span>
                 <span className="count-text">Found {locations.length} location{locations.length > 1 ? 's' : ''} in {selectedCountry}</span>
               </div>
             )}

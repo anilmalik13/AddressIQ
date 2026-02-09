@@ -231,7 +231,6 @@ const PublicAPI: React.FC = () => {
     <div className="modern-container">
       {/* Hero Section */}
       <div className="modern-hero">
-        <div className="modern-hero-icon">🔗</div>
         <h1 className="modern-hero-title">Public API</h1>
         <p className="modern-hero-subtitle">Comprehensive API documentation and testing interface for all AddressIQ features</p>
       </div>
@@ -241,7 +240,6 @@ const PublicAPI: React.FC = () => {
         {/* Info Cards */}
         <div className="modern-info-cards">
           <div className="modern-info-card modern-info-card-blue">
-            <div className="modern-info-card-icon">📚</div>
             <div className="modern-info-card-content">
               <div className="modern-info-card-title">RESTful API Endpoints</div>
               <div className="modern-info-card-text">
@@ -250,7 +248,6 @@ const PublicAPI: React.FC = () => {
             </div>
           </div>
           <div className="modern-info-card modern-info-card-green">
-            <div className="modern-info-card-icon">📥</div>
             <div className="modern-info-card-content">
               <div className="modern-info-card-title">Sample Files & Guides</div>
               <div className="modern-info-card-text">
@@ -273,7 +270,7 @@ const PublicAPI: React.FC = () => {
                 </span>
                 <h3>{endpoint.title}</h3>
               </div>
-              <span className="accordion-icon">
+              <span className="accordion-arrow">
                 {activeAccordion[endpoint.id] ? '▼' : '▶'}
               </span>
             </div>
