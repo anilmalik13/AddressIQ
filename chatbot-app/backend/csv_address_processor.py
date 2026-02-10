@@ -1250,9 +1250,21 @@ class CSVAddressProcessor:
                 row_indices.append(index)
         
         # Perform batch split analysis if using GPT, otherwise process individually
+        BATCH_SIZE = 10  # Process 10 addresses per batch to avoid token limits
+        
         if self.address_splitter and self.address_splitter.use_gpt and len(address_pairs) > 0:
-            print(f"   Using GPT batch processing for {len(address_pairs)} addresses...")
-            split_results = self.address_splitter.analyze_and_split_batch(address_pairs)
+            print(f"   Using GPT batch processing for {len(address_pairs)} addresses (batch size: {BATCH_SIZE})...")
+            split_results = []
+            
+            # Process in chunks of BATCH_SIZE
+            for i in range(0, len(address_pairs), BATCH_SIZE):
+                batch = address_pairs[i:i + BATCH_SIZE]
+                batch_num = (i // BATCH_SIZE) + 1
+                total_batches = (len(address_pairs) + BATCH_SIZE - 1) // BATCH_SIZE
+                
+                print(f"   Processing batch {batch_num}/{total_batches} ({len(batch)} addresses)...")
+                batch_results = self.address_splitter.analyze_and_split_batch(batch)
+                split_results.extend(batch_results)
         else:
             print(f"   Using individual processing for {len(address_pairs)} addresses...")
             split_results = []
