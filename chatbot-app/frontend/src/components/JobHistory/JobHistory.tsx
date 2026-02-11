@@ -145,7 +145,7 @@ const JobHistory: React.FC = () => {
                         <div className="modern-info-card-content">
                             <div className="modern-info-card-title">File Retention Policy</div>
                             <div className="modern-info-card-text">
-                                Processed files are automatically deleted <strong>7 days</strong> after creation. 
+                                Processed files are automatically deleted <strong>7 days</strong> after upload. 
                                 Download your files promptly as deleted files cannot be recovered.
                             </div>
                         </div>
@@ -204,7 +204,7 @@ const JobHistory: React.FC = () => {
                                 <th>Source</th>
                                 <th>Status</th>
                                 <th>Progress</th>
-                                <th>Created</th>
+                                <th>Uploaded</th>
                                 <th>Completed</th>
                                 <th>Expires</th>
                                 <th>Actions</th>
