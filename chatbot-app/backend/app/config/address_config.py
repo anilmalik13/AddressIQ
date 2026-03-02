@@ -1,6 +1,10 @@
 # Address Standardization Configuration
 # Optimized version with concise, effective prompts
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 # STANDARDIZED MATCH LEVELS DEFINITION
 # Used consistently across all address comparison operations
 # 
@@ -408,6 +412,12 @@ Apply {target_country} specific formatting rules and populate all relevant geogr
     return format_instruction
 
 # Prompt configuration settings
+# Parallel-batching values are read from .env so they can be changed without redeployment.
+_env_batch_size    = int(os.getenv("PARALLEL_BATCH_SIZE", "10"))
+_env_workers       = int(os.getenv("PARALLEL_BATCH_WORKERS", "3"))
+_env_timeout       = int(os.getenv("PARALLEL_BATCH_TIMEOUT_SECONDS", "30"))
+_env_parallel_flag = os.getenv("ENABLE_PARALLEL_BATCHING", "false").strip().lower() == "true"
+
 PROMPT_CONFIG = {
     "use_address_standardization_prompt": True,  # Use JSON-based prompt for CSV processing
     "use_organization_prompt": False,           # Keep disabled
@@ -418,8 +428,12 @@ PROMPT_CONFIG = {
     "frequency_penalty": 0,
     "presence_penalty": 0,
     # Batch processing settings
-    "batch_size": 10,  # Stable batch size: 10 addresses per batch (each needs ~250 tokens = 2500 total + 500 buffer = 3000 tokens)
-    "max_batch_size": 10,  # Maximum safe batch size before hitting token limits
+    "batch_size": _env_batch_size,   # Driven by PARALLEL_BATCH_SIZE in .env
+    "max_batch_size": _env_batch_size,
     "enable_batch_processing": True,
-    "enable_batch_comparison": True  # Enable true batch comparison
+    "enable_batch_comparison": True,  # Enable true batch comparison
+    # Parallel batch processing settings (controlled via .env)
+    "enable_parallel_batching": _env_parallel_flag,       # ENABLE_PARALLEL_BATCHING in .env
+    "parallel_batch_workers": _env_workers,               # PARALLEL_BATCH_WORKERS in .env
+    "parallel_batch_timeout_seconds": _env_timeout,       # PARALLEL_BATCH_TIMEOUT_SECONDS in .env
 }

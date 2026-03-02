@@ -480,6 +480,22 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
             standardized_addresses.append(result)
         return standardized_addresses
     
+    # ------------------------------------------------------------------
+    # Routing: parallel (new) vs sequential (original, unchanged)
+    # Controlled by ENABLE_PARALLEL_BATCHING in .env
+    # ------------------------------------------------------------------
+    enable_parallel = PROMPT_CONFIG.get("enable_parallel_batching", False) if CONFIG_AVAILABLE else False
+
+    if enable_parallel:
+        # Delegate entirely to the dedicated parallel processor.
+        # Lazy import avoids a circular-import at module load time.
+        from app.services.parallel_batch_processor import ParallelBatchProcessor
+        processor = ParallelBatchProcessor()
+        return processor.process(address_list, target_country)
+
+    # ------------------------------------------------------------------
+    # Original sequential implementation — zero changes below this line
+    # ------------------------------------------------------------------
     print(f"🚀 Batch processing {len(address_list)} addresses (batch size: {batch_size}, max: {max_batch_size})...")
     all_results = []
     
