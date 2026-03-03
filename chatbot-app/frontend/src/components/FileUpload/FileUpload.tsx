@@ -16,6 +16,27 @@ function formatFileSize(bytes: number): string {
     return `${gb.toFixed(2)} GB`;
 }
 
+const computeElapsedSeconds = (start?: string | null, end?: string | null, nowOverride?: number): number | null => {
+    if (!start) return null;
+    const startMs = new Date(start).getTime();
+    const effectiveEnd = end ? new Date(end).getTime() : (nowOverride ?? Date.now());
+    if (!Number.isFinite(startMs) || !Number.isFinite(effectiveEnd)) return null;
+    const diff = (effectiveEnd - startMs) / 1000;
+    return diff >= 0 ? diff : 0;
+};
+
+const formatDuration = (seconds: number | null): string => {
+    if (seconds == null) return '—';
+    const totalSeconds = Math.max(seconds, 0);
+    const mins = Math.floor(totalSeconds / 60);
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    const remSecs = totalSeconds % 60;
+    if (hrs > 0) return `${hrs}h ${remMins}m ${remSecs.toFixed(1)}s`;
+    if (mins > 0) return `${mins}m ${remSecs.toFixed(1)}s`;
+    return `${remSecs.toFixed(1)}s`;
+};
+
 const FileUpload: React.FC = () => {
     const dispatch = useAppDispatch();
     const { uploading, uploadProgress, uploadResult, error, processingId, processingStatus } = useAppSelector(
@@ -25,6 +46,7 @@ const FileUpload: React.FC = () => {
     const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
     const [selectedModel, setSelectedModel] = useState<string>('');
     const [loadingModels, setLoadingModels] = useState<boolean>(true);
+    const [nowTick, setNowTick] = useState<number>(Date.now());
     // Use a ref for the polling interval to avoid triggering re-renders
     const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -89,6 +111,15 @@ const FileUpload: React.FC = () => {
             statusIntervalRef.current = null;
         }
     }, []);
+
+    // Local ticker so elapsed time keeps updating between status polls
+    useEffect(() => {
+        const active = processingStatus && ['uploaded', 'processing', 'completed'].includes(processingStatus.status);
+        if (processingStatus?.started_at && active) {
+            const timer = setInterval(() => setNowTick(Date.now()), 1000);
+            return () => clearInterval(timer);
+        }
+    }, [processingStatus]);
 
     const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -174,6 +205,13 @@ const FileUpload: React.FC = () => {
     const isProcessing = processingStatus && ['uploaded', 'processing'].includes(processingStatus.status);
     const isCompleted = processingStatus?.status === 'completed';
     const hasError = processingStatus?.status === 'error' || !!error;
+
+    const elapsedSeconds = processingStatus
+        ? processingStatus.elapsed_seconds ?? computeElapsedSeconds(processingStatus.started_at, processingStatus.finished_at, isProcessing ? nowTick : undefined)
+        : null;
+    const elapsedLabel = processingStatus
+        ? processingStatus.elapsed_human ?? formatDuration(elapsedSeconds)
+        : '—';
 
     const steps = processingStatus?.steps || [];
     const currentProgress = processingStatus?.progress || 0;
@@ -345,6 +383,15 @@ const FileUpload: React.FC = () => {
                                     : 'Uploading your file...'
                                 }
                             </div>
+
+                            {processingStatus && (
+                                <div className="file-metadata">
+                                    <span className="metadata-item">
+                                        <span className="metadata-label">Elapsed:</span>
+                                        <span className="metadata-value">{elapsedLabel}</span>
+                                    </span>
+                                </div>
+                            )}
                             
                             {/* Processing Steps */}
                             {steps.length > 0 && (
@@ -398,6 +445,7 @@ const FileUpload: React.FC = () => {
                         <div className="result-card result-success">
                             <div className="result-title">Processing Complete!</div>
                             <div className="result-message">{processingStatus?.message}</div>
+                            <div className="result-meta">Elapsed time: {elapsedLabel}</div>
                             {processingStatus?.output_file && (
                                 <div className="result-file">
                                     <span className="file-label">Output file:</span>

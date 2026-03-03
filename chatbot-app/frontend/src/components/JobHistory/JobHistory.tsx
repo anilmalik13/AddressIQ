@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { loadJobHistory } from '../../store/slices/fileUploadSlice';
 import { downloadFile } from '../../services/api';
+import { Job } from '../../types';
 import '../../styles/shared.css';
 import './JobHistory.css';
 
@@ -82,6 +83,32 @@ const JobHistory: React.FC = () => {
         } catch {
             return dateStr;
         }
+    };
+
+    const formatDuration = (seconds: number | null) => {
+        if (seconds == null) return '—';
+        const mins = Math.floor(seconds / 60);
+        const hrs = Math.floor(mins / 60);
+        const remMins = mins % 60;
+        const remSecs = seconds % 60;
+        if (hrs > 0) return `${hrs}h ${remMins}m ${remSecs.toFixed(1)}s`;
+        if (mins > 0) return `${mins}m ${remSecs.toFixed(1)}s`;
+        return `${remSecs.toFixed(1)}s`;
+    };
+
+    const computeElapsedSeconds = (start?: string, end?: string) => {
+        if (!start) return null;
+        const startMs = new Date(start).getTime();
+        const endMs = end ? new Date(end).getTime() : Date.now();
+        if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+        const diff = (endMs - startMs) / 1000;
+        return diff >= 0 ? diff : 0;
+    };
+
+    const getElapsedLabel = (job: Job) => {
+        if (job.elapsed_human) return job.elapsed_human;
+        const seconds = job.elapsed_seconds ?? computeElapsedSeconds(job.started_at || job.created_at, job.finished_at || job.updated_at);
+        return formatDuration(seconds);
     };
 
     const getTimeRemaining = (expiresAt?: string) => {
@@ -206,6 +233,7 @@ const JobHistory: React.FC = () => {
                                 <th>Progress</th>
                                 <th>Uploaded</th>
                                 <th>Completed</th>
+                                <th>Elapsed</th>
                                 <th>Expires</th>
                                 <th>Actions</th>
                             </tr>
@@ -239,6 +267,7 @@ const JobHistory: React.FC = () => {
                                     </td>
                                     <td>{formatDate(job.created_at)}</td>
                                     <td>{formatDate(job.finished_at)}</td>
+                                    <td>{getElapsedLabel(job)}</td>
                                     <td>
                                         {job.expires_at ? (
                                             <span className="expires-badge">

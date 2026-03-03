@@ -4,7 +4,7 @@ from flasgger import Swagger, swag_from
 import os
 import pandas as pd
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 import subprocess
 import time
@@ -399,6 +399,62 @@ def _send_webhook_notification(job_id: str):
     thread = threading.Thread(target=send_webhook, daemon=True)
     thread.start()
 
+
+def _parse_iso8601(ts: str):
+    """Parse an ISO8601-ish timestamp, tolerating trailing Z."""
+    try:
+        dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _elapsed_seconds(start_ts: str | None, end_ts: str | None = None) -> float | None:
+    """Compute elapsed seconds between two timestamp strings."""
+    if not start_ts:
+        return None
+    start_dt = _parse_iso8601(start_ts)
+    if not start_dt:
+        return None
+    if end_ts:
+        end_dt = _parse_iso8601(end_ts)
+    else:
+        end_dt = datetime.now(timezone.utc)
+    if not end_dt:
+        return None
+    try:
+        return max((end_dt - start_dt).total_seconds(), 0.0)
+    except Exception:
+        return None
+
+
+def _format_elapsed(seconds: float | None) -> str:
+    """Format seconds into a compact human string (h m s)."""
+    if seconds is None:
+        return ''
+    total_seconds = float(seconds)
+    mins, secs = divmod(total_seconds, 60)
+    hours, mins = divmod(mins, 60)
+    if hours >= 1:
+        return f"{int(hours)}h {int(mins)}m {secs:.1f}s"
+    if mins >= 1:
+        return f"{int(mins)}m {secs:.1f}s"
+    return f"{secs:.1f}s"
+
+
+def _with_elapsed_fields(data: dict) -> dict:
+    """Return a copy of data with derived elapsed fields attached."""
+    result = dict(data) if data is not None else {}
+    start_ts = result.get('started_at') or result.get('created_at')
+    end_ts = result.get('finished_at') or None
+    elapsed = _elapsed_seconds(start_ts, end_ts)
+    if elapsed is not None:
+        result['elapsed_seconds'] = round(elapsed, 2)
+        result['elapsed_human'] = _format_elapsed(elapsed)
+    return result
+
 @app.route('/api/processing-status/<processing_id>/logs', methods=['GET'])
 def get_processing_logs(processing_id):
     entry = processing_status.get(processing_id)
@@ -649,6 +705,14 @@ def _execute_database_query_sync(connection_string: str, source_type: str, data:
 
 def process_db_task(processing_id: str, payload: dict):
     """Background task: fetch from DB (table/query), save to inbound, process to outbound."""
+    start_perf = time.perf_counter()
+
+    def _log_elapsed(prefix: str) -> str:
+        elapsed = time.perf_counter() - start_perf
+        human = _format_elapsed(elapsed)
+        print(f"⏱️ {prefix} {processing_id} in {human} ({elapsed:.2f}s)")
+        return human
+
     try:
         conn_str = payload.get('connectionString') or ''
         source_type = payload.get('sourceType')
@@ -678,6 +742,7 @@ def process_db_task(processing_id: str, payload: dict):
             _update_status(processing_id, log=f"ConnString warnings: {' | '.join(warns)}")
             # If required attrs are missing, fail early with clear error
             if any(w.startswith('Missing required attributes') for w in warns):
+                human = _log_elapsed('DB task failed')
                 _update_status(processing_id, status='error', message='Invalid connection string', progress=100, error='; '.join(warns))
                 return
 
@@ -708,6 +773,7 @@ def process_db_task(processing_id: str, payload: dict):
                 df = raw.head(limit) if limit and limit > 0 else raw
 
         if df is None or df.empty:
+            human = _log_elapsed('DB task ended')
             _update_status(processing_id, status='error', message='No data returned from database', progress=100, error='Empty dataset', log='Query returned zero rows')
             return
 
@@ -720,10 +786,22 @@ def process_db_task(processing_id: str, payload: dict):
         output_path = processor.process_csv_file(str(INBOUND_FOLDER / inbound_filename))
 
         if output_path and os.path.exists(output_path):
-            _update_status(processing_id, status='completed', message='Database data processed successfully', progress=100, output_file=os.path.basename(output_path), output_path=output_path, finished_at=datetime.utcnow().isoformat() + 'Z', log=f'Output: {os.path.basename(output_path)}')
+            human = _log_elapsed('DB task completed')
+            _update_status(
+                processing_id,
+                status='completed',
+                message=f'Database data processed successfully ({human})',
+                progress=100,
+                output_file=os.path.basename(output_path),
+                output_path=output_path,
+                finished_at=datetime.utcnow().isoformat() + 'Z',
+                log=f'Output: {os.path.basename(output_path)} | Elapsed: {human}'
+            )
         else:
+            human = _log_elapsed('DB task failed')
             _update_status(processing_id, status='error', message='Processing completed but no output file found', progress=100, error='No outbound output', log='Missing output file')
     except Exception as e:
+        human = _log_elapsed('DB task crashed')
         _update_status(processing_id, status='error', message='DB processing failed', progress=100, error=str(e), log=f'Exception: {e}')
 
 # Inbound preview removed per requirement change
@@ -783,9 +861,18 @@ def upload_excel_redirect():
 
 def process_file_background(processing_id, filename):
     """Process the uploaded file in-process using CSVAddressProcessor for better progress feedback."""
+    start_perf = time.perf_counter()
+
+    def _log_elapsed(prefix: str) -> str:
+        elapsed = time.perf_counter() - start_perf
+        human = _format_elapsed(elapsed)
+        print(f"⏱️ {prefix} {processing_id} in {human} ({elapsed:.2f}s)")
+        return human
+
     try:
         inbound_file = INBOUND_FOLDER / filename
         if not inbound_file.exists():
+            human = _log_elapsed('Processing failed')
             _update_status(processing_id, status='error', message='Uploaded file not found on server', progress=100, error='Missing inbound file', log='Inbound file missing')
             return
 
@@ -802,17 +889,38 @@ def process_file_background(processing_id, filename):
         time.sleep(0.1)
 
         if output_path and os.path.exists(output_path):
-            _update_status(processing_id, status='completed', message='File processed successfully', progress=100, output_file=os.path.basename(output_path), output_path=output_path, finished_at=datetime.utcnow().isoformat() + 'Z', log='Processing completed')
+            human = _log_elapsed('Processing completed')
+            _update_status(
+                processing_id,
+                status='completed',
+                message=f'File processed successfully ({human})',
+                progress=100,
+                output_file=os.path.basename(output_path),
+                output_path=output_path,
+                finished_at=datetime.utcnow().isoformat() + 'Z',
+                log=f'Processing completed in {human}'
+            )
         else:
+            human = _log_elapsed('Processing failed')
             _update_status(processing_id, status='error', message='Output file not generated', progress=100, error='Processor did not return output path', log='No output file located')
     except Exception as e:
+        human = _log_elapsed('Processing crashed')
         _update_status(processing_id, status='error', message='Processing failed with error', progress=100, error=str(e), log=f'Exception: {e}')
 
 def process_compare_background(processing_id, filename):
     """Run batch compare across inbound via subprocess and detect produced outbound file."""
+    start_perf = time.perf_counter()
+
+    def _log_elapsed(prefix: str) -> str:
+        elapsed = time.perf_counter() - start_perf
+        human = _format_elapsed(elapsed)
+        print(f"⏱️ {prefix} {processing_id} in {human} ({elapsed:.2f}s)")
+        return human
+
     try:
         inbound_file = INBOUND_FOLDER / filename
         if not inbound_file.exists():
+            human = _log_elapsed('Compare failed')
             _update_status(processing_id, status='error', message='Uploaded file not found on server', progress=100, error='Missing inbound file', log='Inbound file missing')
             return
 
@@ -854,9 +962,11 @@ def process_compare_background(processing_id, filename):
                 ret = proc.wait()
                 if ret != 0:
                     tail = '\n'.join(recent_lines[-10:])
-                    _update_status(processing_id, status='error', message='Batch comparison failed', progress=100, error=f'return code {ret}: {tail}', log=f'Batch-compare exited {ret}')
+                    human = _log_elapsed('Compare failed')
+                    _update_status(processing_id, status='error', message=f'Batch comparison failed ({human})', progress=100, error=f'return code {ret}: {tail}', log=f'Batch-compare exited {ret}')
                     return
         except Exception as se:
+            human = _log_elapsed('Compare failed to start')
             _update_status(processing_id, status='error', message='Failed to start batch comparison', progress=100, error=str(se), log=f'Subprocess error: {se}')
             return
 
@@ -873,20 +983,31 @@ def process_compare_background(processing_id, filename):
                 continue
 
         if not candidates:
+            human = _log_elapsed('Compare failed')
             _update_status(processing_id, status='error', message='Comparison output not found', progress=100, error='No new file in outbound', log='No outbound file detected')
             return
 
         candidates.sort(key=lambda x: x[0], reverse=True)
         newest = candidates[0][1]
 
-        _update_status(processing_id, status='completed', message='Comparison completed', progress=100,
+        human = _log_elapsed('Compare completed')
+        _update_status(processing_id, status='completed', message=f'Comparison completed ({human})', progress=100,
                        output_file=newest.name, output_path=str(newest), finished_at=datetime.utcnow().isoformat() + 'Z',
-                       log=f'Found output: {newest.name}')
+                       log=f'Found output: {newest.name} | Elapsed: {human}')
     except Exception as e:
+        human = _log_elapsed('Compare crashed')
         _update_status(processing_id, status='error', message='Batch comparison failed with error', progress=100, error=str(e), log=f'Exception: {e}')
 
 def process_split_file_background(processing_id, filename, enable_split=True, split_mode='rule', model=None):
     """Process uploaded file with address splitting enabled - using in-process execution."""
+    start_perf = time.perf_counter()
+
+    def _log_elapsed(prefix: str) -> str:
+        elapsed = time.perf_counter() - start_perf
+        human = _format_elapsed(elapsed)
+        print(f"⏱️ {prefix} {processing_id} in {human} ({elapsed:.2f}s)")
+        return human
+
     try:
         # Check if job is already being processed or completed
         job_status = job_manager.get_job(processing_id)
@@ -896,6 +1017,7 @@ def process_split_file_background(processing_id, filename, enable_split=True, sp
         
         inbound_file = INBOUND_FOLDER / filename
         if not inbound_file.exists():
+            human = _log_elapsed('Split failed')
             _update_status(processing_id, status='error', message='Uploaded file not found on server', 
                          progress=100, error='Missing inbound file', log='Inbound file missing')
             return
@@ -935,13 +1057,15 @@ def process_split_file_background(processing_id, filename, enable_split=True, sp
                           log='Processing complete, locating output file')
             
             if output_path and os.path.exists(output_path):
+                human = _log_elapsed('Split completed')
                 _update_status(processing_id, status='completed', 
-                              message='Address splitting and standardization completed', 
+                              message=f'Address splitting and standardization completed ({human})', 
                               progress=100, output_file=os.path.basename(output_path), 
                               output_path=output_path, 
                               finished_at=datetime.utcnow().isoformat() + 'Z',
-                              log=f'Processing completed: {os.path.basename(output_path)}')
+                              log=f'Processing completed: {os.path.basename(output_path)} | Elapsed: {human}')
             else:
+                human = _log_elapsed('Split failed')
                 _update_status(processing_id, status='error', message='Output file not generated', 
                              progress=100, error='Processor did not return output path', 
                              log='No output file located')
@@ -949,6 +1073,7 @@ def process_split_file_background(processing_id, filename, enable_split=True, sp
         except Exception as pe:
             import traceback
             error_detail = traceback.format_exc()
+            human = _log_elapsed('Split crashed')
             _update_status(processing_id, status='error', message='Processing failed', 
                          progress=100, error=str(pe), log=f'Processor exception: {error_detail}')
             return
@@ -956,6 +1081,7 @@ def process_split_file_background(processing_id, filename, enable_split=True, sp
     except Exception as e:
         import traceback
         error_detail = traceback.format_exc()
+        human = _log_elapsed('Split crashed')
         _update_status(processing_id, status='error', 
                       message='Address splitting failed with error', 
                       progress=100, error=str(e), log=f'Exception: {error_detail}')
@@ -967,11 +1093,11 @@ def get_processing_status(processing_id):
         # Try database first
         job = job_manager.get_job(processing_id)
         if job:
-            return jsonify(job), 200
+            return jsonify(_with_elapsed_fields(job)), 200
         
         # LEGACY: Fallback to in-memory dict for backwards compatibility
         if processing_id in processing_status:
-            return jsonify(processing_status[processing_id]), 200
+            return jsonify(_with_elapsed_fields(processing_status[processing_id])), 200
         
         return jsonify({'error': 'Processing ID not found'}), 404
     except Exception as e:
@@ -2832,6 +2958,11 @@ def api_v1_list_jobs():
                 'finished_at': job.get('finished_at'),
                 'expires_at': job.get('expires_at')
             }
+
+            elapsed = _elapsed_seconds(job.get('started_at') or job.get('created_at'), job.get('finished_at') or job.get('updated_at'))
+            if elapsed is not None:
+                job_data['elapsed_seconds'] = round(elapsed, 2)
+                job_data['elapsed_human'] = _format_elapsed(elapsed)
             
             # Add download URL if completed
             if job['status'] == 'completed' and job.get('output_file'):

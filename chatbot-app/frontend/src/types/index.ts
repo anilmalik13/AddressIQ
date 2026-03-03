@@ -16,6 +16,8 @@ export interface ProcessingStatus {
     updated_at?: string;
     finished_at?: string | null;
     expires_at?: string | null;
+    elapsed_seconds?: number;
+    elapsed_human?: string;
     logs?: { ts: string; message: string; progress?: number }[];
     steps?: { name: string; label: string; target: number }[];
 }
@@ -27,12 +29,15 @@ export interface Job {
     component?: string;
     progress: number;
     created_at: string;
+    started_at?: string;
     updated_at?: string;
     finished_at?: string;
     expires_at?: string;
     download_url?: string;
     output_file?: string;
     error?: string;
+    elapsed_seconds?: number;
+    elapsed_human?: string;
 }
 
 export interface FileUploadState {

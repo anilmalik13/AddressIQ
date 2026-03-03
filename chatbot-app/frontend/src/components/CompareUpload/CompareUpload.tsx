@@ -3,6 +3,27 @@ import { uploadCompareFile, checkProcessingStatus, downloadFile, previewResultFi
 import '../../styles/shared.css';
 import './CompareUpload.css';
 
+const computeElapsedSeconds = (start?: string | null, end?: string | null, nowOverride?: number): number | null => {
+  if (!start) return null;
+  const startMs = new Date(start).getTime();
+  const effectiveEnd = end ? new Date(end).getTime() : (nowOverride ?? Date.now());
+  if (!Number.isFinite(startMs) || !Number.isFinite(effectiveEnd)) return null;
+  const diff = (effectiveEnd - startMs) / 1000;
+  return diff >= 0 ? diff : 0;
+};
+
+const formatDuration = (seconds: number | null): string => {
+  if (seconds == null) return '—';
+  const totalSeconds = Math.max(seconds, 0);
+  const mins = Math.floor(totalSeconds / 60);
+  const hrs = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  const remSecs = totalSeconds % 60;
+  if (hrs > 0) return `${hrs}h ${remMins}m ${remSecs.toFixed(1)}s`;
+  if (mins > 0) return `${mins}m ${remSecs.toFixed(1)}s`;
+  return `${remSecs.toFixed(1)}s`;
+};
+
 // Human-readable file size formatter to avoid showing 0.00 MB for small files
 function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return '-';
@@ -28,6 +49,7 @@ const CompareUpload: React.FC = () => {
   const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [loadingModels, setLoadingModels] = useState<boolean>(true);
+  const [nowTick, setNowTick] = useState<number>(Date.now());
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -89,6 +111,15 @@ const CompareUpload: React.FC = () => {
       statusIntervalRef.current = null;
     }
   }, []);
+
+  // Local ticker so elapsed time keeps updating between polls
+  useEffect(() => {
+    const active = processingStatus && ['uploaded', 'processing', 'completed'].includes(processingStatus.status);
+    if (processingStatus?.started_at && active) {
+      const timer = setInterval(() => setNowTick(Date.now()), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [processingStatus]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -235,6 +266,12 @@ const CompareUpload: React.FC = () => {
   const isProcessing = processingStatus && ['uploaded', 'processing'].includes(processingStatus.status);
   const isCompleted = processingStatus?.status === 'completed';
   const hasError = processingStatus?.status === 'error' || !!error;
+  const elapsedSeconds = processingStatus
+    ? processingStatus.elapsed_seconds ?? computeElapsedSeconds(processingStatus.started_at, processingStatus.finished_at, isProcessing ? nowTick : undefined)
+    : null;
+  const elapsedLabel = processingStatus
+    ? processingStatus.elapsed_human ?? formatDuration(elapsedSeconds)
+    : '—';
   const steps = processingStatus?.steps || [];
   const currentProgress = processingStatus?.progress || 0;
   const recentLogs = (processingStatus?.logs || []).slice(-5).reverse();
@@ -383,6 +420,15 @@ const CompareUpload: React.FC = () => {
               {isProcessing ? processingStatus?.message || 'Processing records...' : `${uploadProgress}% uploaded`}
             </p>
 
+            {processingStatus && (
+              <div className="file-metadata">
+                <span className="metadata-item">
+                  <span className="metadata-label">Elapsed:</span>
+                  <span className="metadata-value">{elapsedLabel}</span>
+                </span>
+              </div>
+            )}
+
             {/* Progress Steps */}
             {steps.length > 0 && (
               <div className="progress-steps">
@@ -435,6 +481,7 @@ const CompareUpload: React.FC = () => {
           <div className="result-card result-success">
             <h3 className="result-title">Comparison Complete!</h3>
             <p className="result-message">{processingStatus?.message}</p>
+            <div className="result-meta">Elapsed time: {elapsedLabel}</div>
             {processingStatus?.output_file && (
               <div className="result-file">
                 <span className="file-label">Output File:</span>

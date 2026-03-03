@@ -2,6 +2,27 @@ import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { splitAddress, uploadSplitFile, checkProcessingStatus } from '../../services/api';
 import './AddressSplit.css';
 
+const computeElapsedSeconds = (start?: string | null, end?: string | null, nowOverride?: number): number | null => {
+    if (!start) return null;
+    const startMs = new Date(start).getTime();
+    const effectiveEnd = end ? new Date(end).getTime() : (nowOverride ?? Date.now());
+    if (!Number.isFinite(startMs) || !Number.isFinite(effectiveEnd)) return null;
+    const diff = (effectiveEnd - startMs) / 1000;
+    return diff >= 0 ? diff : 0;
+};
+
+const formatDuration = (seconds: number | null): string => {
+    if (seconds == null) return '—';
+    const totalSeconds = Math.max(seconds, 0);
+    const mins = Math.floor(totalSeconds / 60);
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    const remSecs = totalSeconds % 60;
+    if (hrs > 0) return `${hrs}h ${remMins}m ${remSecs.toFixed(1)}s`;
+    if (mins > 0) return `${mins}m ${remSecs.toFixed(1)}s`;
+    return `${remSecs.toFixed(1)}s`;
+};
+
 interface SplitAddressResult {
     originalAddress: string;
     processedAddress: string;
@@ -47,6 +68,7 @@ const AddressSplit: React.FC = () => {
     const [fileProcessing, setFileProcessing] = useState<boolean>(false);
     const [fileStatus, setFileStatus] = useState<any>(null);
     const [splitMode, setSplitMode] = useState<SplitMode>('rule');
+    const [nowTick, setNowTick] = useState<number>(Date.now());
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
     
@@ -197,17 +219,11 @@ const AddressSplit: React.FC = () => {
                 const status = await checkProcessingStatus(procId);
                 setProcessingProgress(status.progress || 0);
                 setProcessingMessage(status.message || 'Processing...');
-                
+                setFileStatus(status);
+
                 if (status.status === 'completed') {
                     clearInterval(pollIntervalRef.current!);
                     setFileProcessing(false);
-                    setFileStatus({
-                        status: 'completed',
-                        message: 'File processed successfully!',
-                        processing_id: procId,
-                        output_file: status.output_file,
-                        output_path: status.output_path
-                    });
                     setSelectedFile(null);
                     if (fileInputRef.current) {
                         fileInputRef.current.value = '';
@@ -286,6 +302,11 @@ const AddressSplit: React.FC = () => {
         };
     }, []);
 
+    useEffect(() => {
+        const timer = setInterval(() => setNowTick(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
     const handleReset = useCallback(() => {
         setInputAddress('');
         setResult(null);
@@ -330,6 +351,10 @@ const AddressSplit: React.FC = () => {
         setResult(null);
         setFileStatus(null);
     }, []);
+
+    const fileElapsedSeconds = fileStatus?.elapsed_seconds ?? computeElapsedSeconds(fileStatus?.started_at, fileStatus?.finished_at, nowTick);
+    const fileElapsedHuman = fileStatus?.elapsed_human ?? (fileElapsedSeconds != null ? formatDuration(fileElapsedSeconds) : null);
+    const isFileActive = fileProcessing || (fileStatus && (fileStatus.status === 'processing' || fileStatus.status === 'in_progress'));
 
     return (
         <div className="modern-container">
@@ -562,6 +587,7 @@ const AddressSplit: React.FC = () => {
                                             <strong>Processing file...</strong>
                                             <small>{processingMessage}</small>
                                         </div>
+                                        <div className="upload-progress-meta">Elapsed: {fileElapsedHuman ?? '—'}</div>
                                     </div>
                                     <div className="modern-progress">
                                         <div 
@@ -571,6 +597,7 @@ const AddressSplit: React.FC = () => {
                                     </div>
                                     <div className="split-time-info" style={{ marginTop: '8px' }}>
                                         <span>{processingProgress}% complete</span>
+                                        <span>Elapsed: {fileElapsedHuman ?? '—'}</span>
                                     </div>
                                 </div>
                             )}
@@ -595,6 +622,9 @@ const AddressSplit: React.FC = () => {
                                         <strong>File processed successfully!</strong>
                                         <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
                                             Processing ID: <strong>{fileStatus.processing_id}</strong>
+                                        </p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '13px', opacity: '0.9' }}>
+                                            Elapsed: {fileElapsedHuman ?? '—'}
                                         </p>
                                         <div style={{ marginTop: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                             <button

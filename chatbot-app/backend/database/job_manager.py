@@ -2,7 +2,7 @@
 Job Manager for handling job persistence in SQLite database
 Manages job lifecycle: creation, updates, status tracking, and cleanup
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import sqlite3
 import json
 import os
@@ -493,6 +493,28 @@ class JobManager:
     def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
         """Convert SQLite row to dictionary with JSON parsing"""
         d = dict(row)
+
+        def _normalize_ts(ts):
+            if not ts:
+                return None
+            try:
+                if isinstance(ts, str):
+                    if ts.endswith('Z'):
+                        return ts
+                    dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                else:
+                    dt = ts
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                else:
+                    dt = dt.astimezone(timezone.utc)
+                return dt.isoformat().replace('+00:00', 'Z')
+            except Exception:
+                return ts
+
+        for key in ['created_at', 'started_at', 'updated_at', 'finished_at', 'expires_at']:
+            if key in d:
+                d[key] = _normalize_ts(d.get(key))
         
         # Parse JSON fields
         if d.get('steps_json'):
