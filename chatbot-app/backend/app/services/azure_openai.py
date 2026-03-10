@@ -2,12 +2,14 @@ import requests
 import json
 import os
 import importlib
+import time
 try:
     chardet = importlib.import_module("chardet")
 except Exception:  # pragma: no cover
     chardet = None
 import pandas as pd
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import address configuration
 try:
@@ -57,10 +59,14 @@ def get_access_token():
     """
     import time
     
+    # Get debug mode from config
+    debug_mode = PROMPT_CONFIG.get("debug_mode", False) if CONFIG_AVAILABLE else False
+    
     # Check if cached token is still valid (with 5-minute safety margin)
     current_time = time.time()
     if _token_cache['token'] and current_time < _token_cache['expires_at'] - 300:
-        print(f"🔄 Using cached token (expires in {int((_token_cache['expires_at'] - current_time) / 60)} minutes)")
+        if debug_mode:
+            print(f"🔄 Using cached token (expires in {int((_token_cache['expires_at'] - current_time) / 60)} minutes)")
         return _token_cache['token']
     
     # Token expired or doesn't exist, get new one
@@ -68,10 +74,11 @@ def get_access_token():
     client_secret = os.getenv("CLIENT_SECRET", "Client_secret")
     auth_token_endpoint = os.getenv("WSO2_AUTH_URL", "https://api-test.cbre.com:443/token")
 
-    print(f"🔑 Requesting new token...")
-    print(f"Using client_id: {client_id}")
-    print(f"Using client_secret: {client_secret[:4]}...")  # Don't print full secret in logs
-    print(f"Auth endpoint: {auth_token_endpoint}")
+    if debug_mode:
+        print(f"🔑 Requesting new token...")
+        print(f"Using client_id: {client_id}")
+        print(f"Using client_secret: {client_secret[:4]}...")  # Don't print full secret in logs
+        print(f"Auth endpoint: {auth_token_endpoint}")
 
     response = requests.post(auth_token_endpoint, data={
         'grant_type': 'client_credentials',
@@ -79,8 +86,9 @@ def get_access_token():
         'client_secret': client_secret
     })
 
-    print(f"Token response status: {response.status_code}")
-    print(f"Token response body: {response.text}")
+    if debug_mode:
+        print(f"Token response status: {response.status_code}")
+        print(f"Token response body: {response.text}")
 
     if response.status_code == 200:
         token_data = response.json()
@@ -91,7 +99,8 @@ def get_access_token():
         _token_cache['token'] = access_token
         _token_cache['expires_at'] = current_time + expires_in
         
-        print(f"✅ Token cached (valid for {expires_in / 60:.1f} minutes)")
+        if debug_mode:
+            print(f"✅ Token cached (valid for {expires_in / 60:.1f} minutes)")
         
         return access_token
     else:
@@ -104,7 +113,11 @@ def connect_wso2(access_token, user_content: str, system_prompt: str = None, pro
     url_variable = proxy_url.format(deployment_id=deployment_id)
     url_with_param = f'{url_variable}?api-version={api_version}'
 
-    print(f"OpenAI URL: {url_with_param}")
+    # Get debug mode from config
+    debug_mode = PROMPT_CONFIG.get("debug_mode", False) if CONFIG_AVAILABLE else False
+    
+    if debug_mode:
+        print(f"OpenAI URL: {url_with_param}")
 
     if not system_prompt:
         system_prompt = get_custom_system_prompt(prompt_type)
@@ -136,53 +149,86 @@ def connect_wso2(access_token, user_content: str, system_prompt: str = None, pro
     # Check request size to prevent timeouts
     request_body_json = json.dumps(request_body, ensure_ascii=False)
     request_size_kb = len(request_body_json.encode('utf-8')) / 1024
-    print(f"Request size: {request_size_kb:.1f} KB")
     
-    if request_size_kb > 100:  # Warn if request is getting large
-        print(f"⚠️ Large request detected ({request_size_kb:.1f} KB) - may timeout")
-
-    print(f"Request body: {request_body_json}")
+    if debug_mode:
+        print(f"Request size: {request_size_kb:.1f} KB")
+        if request_size_kb > 100:  # Warn if request is getting large
+            print(f"⚠️ Large request detected ({request_size_kb:.1f} KB) - may timeout")
+        print(f"Request body: {request_body_json}")
 
     headers = {
         'Content-Type': 'application/json; charset=utf-8', 
         'Authorization': f'Bearer {access_token}'
     }
 
-    # Add timeout settings to prevent hanging requests
-    response = requests.post(
-        url_with_param, 
-        headers=headers, 
-        data=json.dumps(request_body, ensure_ascii=False).encode('utf-8'),
-        timeout=(30, 120)  # (connection timeout, read timeout) in seconds
-    )
-    print(f"OpenAI response status: {response.status_code}")
-    print(f"OpenAI response body: {response.text}")
-
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise RuntimeError(f"OpenAI API error: {response.status_code} {response.text}")
+    # Retry logic for 503 errors
+    max_retries = 3
+    retry_delay = 2  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            # Add timeout settings to prevent hanging requests
+            response = requests.post(
+                url_with_param, 
+                headers=headers, 
+                data=json.dumps(request_body, ensure_ascii=False).encode('utf-8'),
+                timeout=(30, 120)  # (connection timeout, read timeout) in seconds
+            )
+            
+            if debug_mode:
+                print(f"OpenAI response status: {response.status_code}")
+                print(f"OpenAI response body: {response.text}")
+            
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 503 and attempt < max_retries - 1:
+                # Service temporarily unavailable - retry with delay
+                wait_time = retry_delay * (attempt + 1)
+                print(f"⚠️ 503 Service Unavailable - retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(wait_time)
+                continue
+            else:
+                raise RuntimeError(f"OpenAI API error: {response.status_code} {response.text}")
+                
+        except requests.exceptions.Timeout:
+            if attempt < max_retries - 1:
+                print(f"⚠️ Request timeout - retrying (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(retry_delay)
+                continue
+            else:
+                raise RuntimeError("OpenAI API timeout after multiple retries")
+    
+    raise RuntimeError("OpenAI API failed after all retry attempts")
 
 def get_address_standardization_prompt():
     """
     Returns the address standardization prompt from configuration file
     Falls back to simple prompt if config is not available
     """
-    print(f"🔧 DEBUG: CONFIG_AVAILABLE = {CONFIG_AVAILABLE}")
+    # Get debug mode from config
+    debug_mode = PROMPT_CONFIG.get("debug_mode", False) if CONFIG_AVAILABLE else False
+    
+    if debug_mode:
+        print(f"🔧 DEBUG: CONFIG_AVAILABLE = {CONFIG_AVAILABLE}")
     
     if CONFIG_AVAILABLE:
         use_enhanced_prompt = PROMPT_CONFIG.get("use_address_standardization_prompt", True)
-        print(f"🔧 DEBUG: use_address_standardization_prompt = {use_enhanced_prompt}")
-        print(f"🔧 DEBUG: PROMPT_CONFIG keys = {list(PROMPT_CONFIG.keys())}")
+        
+        if debug_mode:
+            print(f"🔧 DEBUG: use_address_standardization_prompt = {use_enhanced_prompt}")
+            print(f"🔧 DEBUG: PROMPT_CONFIG keys = {list(PROMPT_CONFIG.keys())}")
         
         if use_enhanced_prompt:
-            print("✅ Using ENHANCED ADDRESS_STANDARDIZATION_PROMPT with geographic intelligence")
+            if debug_mode:
+                print("✅ Using ENHANCED ADDRESS_STANDARDIZATION_PROMPT with geographic intelligence")
             return ADDRESS_STANDARDIZATION_PROMPT
         else:
-            print("⚠️ Enhanced prompt disabled in config")
+            if debug_mode:
+                print("⚠️ Enhanced prompt disabled in config")
             return "You are an address standardization system. Standardize the given address and return it in JSON format with fields: street_number, street_name, city, state, postal_code, country, formatted_address, confidence."
     else:
-        print("❌ CONFIG_AVAILABLE is False - using fallback prompt")
+        if debug_mode:
+            print("❌ CONFIG_AVAILABLE is False - using fallback prompt")
         # Simple fallback if config file is missing
         return "You are an address standardization system. Standardize the given address and return it in JSON format with fields: street_number, street_name, city, state, postal_code, country, formatted_address, confidence."
 
@@ -480,43 +526,194 @@ def standardize_multiple_addresses(address_list: list, target_country: str = Non
             standardized_addresses.append(result)
         return standardized_addresses
     
-    print(f"🚀 Batch processing {len(address_list)} addresses (batch size: {batch_size}, max: {max_batch_size})...")
-    all_results = []
+    # Get parallel processing config
+    enable_parallel = PROMPT_CONFIG.get("enable_parallel_batching", True) if CONFIG_AVAILABLE else True
+    max_parallel = PROMPT_CONFIG.get("max_parallel_batches", 3) if CONFIG_AVAILABLE else 3
+    parallel_timeout = PROMPT_CONFIG.get("parallel_timeout", 60) if CONFIG_AVAILABLE else 60
+    show_progress = PROMPT_CONFIG.get("show_progress", True) if CONFIG_AVAILABLE else True
     
-    # Process addresses in batches
+    # Create all batches upfront
+    batches = []
     for batch_start in range(0, len(address_list), batch_size):
         batch_end = min(batch_start + batch_size, len(address_list))
         batch_addresses = address_list[batch_start:batch_end]
-        
-        print(f"   Processing batch {batch_start//batch_size + 1}: addresses {batch_start+1}-{batch_end}")
-        
-        try:
-            # Process this batch
-            batch_results = _process_address_batch(batch_addresses, target_country, batch_start)
-            all_results.extend(batch_results)
-            
-        except Exception as e:
-            print(f"   ❌ Batch failed, falling back to individual processing: {str(e)}")
-            # Fallback to individual processing for this batch
-            for i, address in enumerate(batch_addresses):
-                try:
-                    result = standardize_address(address, target_country)
-                    result['input_index'] = batch_start + i
-                    all_results.append(result)
-                except Exception as individual_error:
-                    # Create error result
-                    error_result = {
-                        'input_index': batch_start + i,
-                        'error': str(individual_error),
-                        'original_address': address,
-                        'formatted_address': '',
-                        'confidence': 'low',
-                        'issues': ['processing_error']
-                    }
-                    all_results.append(error_result)
+        batches.append((batch_start, batch_end, batch_addresses))
     
-    print(f"✅ Batch processing completed: {len(all_results)} addresses processed")
-    return all_results
+    total_batches = len(batches)
+    batch_text = "batch" if total_batches == 1 else "batches"
+    
+    mode = "PARALLEL" if enable_parallel and total_batches >= 1 else "SEQUENTIAL"
+    print(f"🚀 Batch processing {len(address_list)} addresses in {total_batches} {batch_text} (size: {batch_size}, mode: {mode})...")
+    all_results = []
+    
+    # Process batches in parallel if enabled and beneficial
+    if enable_parallel and total_batches >= 1:
+        if show_progress:
+            print(f"   ⚡ Mode: PARALLEL with {max_parallel} concurrent workers")
+        
+        # Create executor
+        executor = ThreadPoolExecutor(max_workers=max_parallel)
+        try:
+            # Submit all batch processing jobs
+            future_to_batch = {}
+            for batch_start, batch_end, batch_addresses in batches:
+                batch_num = (batch_start // batch_size) + 1
+                future = executor.submit(_process_address_batch, batch_addresses, target_country, batch_start)
+                future_to_batch[future] = (batch_num, batch_start, batch_end, batch_addresses)
+            
+            if show_progress:
+                print(f"   📊 Submitted {total_batches} batches | Max concurrent: {min(max_parallel, total_batches)}")
+            
+            # Collect results as they complete
+            completed = 0
+            for future in as_completed(future_to_batch):
+                batch_num, batch_start, batch_end, batch_addresses = future_to_batch[future]
+                
+                try:
+                    batch_results = future.result(timeout=30)
+                    
+                    # Verify result count matches input count
+                    input_count = len(batch_addresses)
+                    output_count = len(batch_results) if batch_results else 0
+                    
+                    if output_count != input_count:
+                        print(f"   ⚠️  WARNING: Batch {batch_num} input/output mismatch! Input: {input_count}, Output: {output_count}")
+                    
+                    all_results.extend(batch_results)
+                    completed += 1
+                    remaining = total_batches - completed
+                    if show_progress:
+                        print(f"   ✅ Batch {batch_num}/{total_batches}: addresses {batch_start+1}-{batch_end} ({output_count} results) | Done: {completed}/{total_batches} | Remaining: {remaining}")
+                    
+                except Exception as e:
+                    print(f"   ❌ Batch {batch_num} of {total_batches} failed: {str(e)}")
+                    print(f"      ⚙️  Falling back to SEQUENTIAL (individual) processing for this batch...")
+                    # Fallback to individual processing for ONLY this failed batch
+                    batch_size_actual = len(batch_addresses)
+                    for i, address in enumerate(batch_addresses, 1):
+                        if show_progress:
+                            print(f"      🔄 Processing address {i} of {batch_size_actual} individually (sequential mode)...")
+                        try:
+                            result = standardize_address(address, target_country)
+                            result['input_index'] = batch_start + i - 1
+                            all_results.append(result)
+                            if show_progress:
+                                print(f"      ✅ Address {i} of {batch_size_actual} complete")
+                        except Exception as individual_error:
+                            if show_progress:
+                                print(f"      ❌ Address {i} of {batch_size_actual} failed: {str(individual_error)}")
+                            # Create error result
+                            error_result = {
+                                'input_index': batch_start + i - 1,
+                                'error': str(individual_error),
+                                'original_address': address,
+                                'formatted_address': '',
+                                'confidence': 'low',
+                                'issues': ['processing_error']
+                            }
+                            all_results.append(error_result)
+                    completed += 1
+            
+            # All futures collected
+            if show_progress:
+                print(f"   📋 All batches collected ({completed}/{total_batches})")
+        
+        finally:
+            # Explicit shutdown with immediate cleanup
+            if show_progress:
+                print(f"   🔒 Shutting down executor...")
+            executor.shutdown(wait=True)
+            if show_progress:
+                print(f"   ✅ Executor shutdown complete")
+            del executor
+            if show_progress:
+                print(f"   🗑️  Executor cleaned up")
+    
+    else:
+        # Sequential processing (original behavior)
+        if show_progress:
+            print(f"   🔄 Mode: SEQUENTIAL (processing one batch at a time)")
+        
+        completed = 0
+        for batch_start, batch_end, batch_addresses in batches:
+            batch_num = (batch_start // batch_size) + 1
+            if show_progress:
+                print(f"   � Batch {batch_num}/{total_batches}: addresses {batch_start+1}-{batch_end}...")
+            
+            try:
+                # Process this batch
+                batch_results = _process_address_batch(batch_addresses, target_country, batch_start)
+                all_results.extend(batch_results)
+                completed += 1
+                if show_progress:
+                    print(f"   ✅ Batch {batch_num}/{total_batches} complete | Done: {completed}/{total_batches}")
+                
+            except Exception as e:
+                print(f"   ❌ Batch {batch_num} failed, falling back to individual processing: {str(e)}")
+                print(f"      ⚙️  Processing in SEQUENTIAL mode (one address at a time)...")
+                # Fallback to individual processing for this batch
+                batch_size_actual = len(batch_addresses)
+                for i, address in enumerate(batch_addresses, 1):
+                    if show_progress:
+                        print(f"      🔄 Processing address {i} of {batch_size_actual} individually...")
+                    try:
+                        result = standardize_address(address, target_country)
+                        result['input_index'] = batch_start + i - 1
+                        all_results.append(result)
+                        if show_progress:
+                            print(f"      ✅ Address {i} of {batch_size_actual} complete")
+                    except Exception as individual_error:
+                        if show_progress:
+                            print(f"      ❌ Address {i} of {batch_size_actual} failed: {str(individual_error)}")
+                        # Create error result
+                        error_result = {
+                            'input_index': batch_start + i - 1,
+                            'error': str(individual_error),
+                            'original_address': address,
+                            'formatted_address': '',
+                            'confidence': 'low',
+                            'issues': ['processing_error']
+                        }
+                        all_results.append(error_result)
+                completed += 1
+                if show_progress:
+                    print(f"   ✅ Batch {batch_num}/{total_batches} complete (fallback) | Done: {completed}/{total_batches}")
+    
+    # Sort results by input_index to maintain original order
+    if show_progress:
+        print(f"   🔄 Sorting {len(all_results)} results by input_index...")
+    all_results.sort(key=lambda x: x.get('input_index', 0))
+    if show_progress:
+        print(f"   ✅ Sorting complete")
+    
+    # Verify we have all results
+    expected_count = len(address_list)
+    actual_count = len(all_results)
+    
+    if show_progress:
+        print(f"   🔍 Verifying results: expected={expected_count}, actual={actual_count}")
+    
+    if actual_count != expected_count:
+        print(f"⚠️  WARNING: Result count mismatch! Expected: {expected_count}, Got: {actual_count}")
+    
+    print(f"✅ Batch processing completed: {len(all_results)} addresses processed (expected: {expected_count})")
+    
+    if show_progress:
+        print(f"   📤 Returning {len(all_results)} results to caller...")
+        print(f"   🔬 Result type: {type(all_results)}, first item type: {type(all_results[0]) if all_results else 'N/A'}")
+    
+    # Create a copy to avoid any reference issues
+    results_copy = list(all_results)
+    
+    if show_progress:
+        print(f"   📋 Created results copy, clearing original list...")
+    
+    all_results.clear()
+    
+    if show_progress:
+        print(f"   🚀 Executing return statement...")
+    
+    return results_copy
 
 def _process_address_batch(address_list: list, target_country: str = None, batch_offset: int = 0):
     """
@@ -561,7 +758,11 @@ def _process_address_batch(address_list: list, target_country: str = None, batch
         tokens_per_address = 300
         dynamic_max_tokens = len(address_list) * tokens_per_address + 500
         
-        print(f"   Calculated max_tokens: {dynamic_max_tokens} ({len(address_list)} addresses × {tokens_per_address} + 500 buffer)")
+        # Get debug mode from config
+        debug_mode = PROMPT_CONFIG.get("debug_mode", False) if CONFIG_AVAILABLE else False
+        
+        if debug_mode:
+            print(f"   Calculated max_tokens: {dynamic_max_tokens} ({len(address_list)} addresses × {tokens_per_address} + 500 buffer)")
         
         # Call OpenAI with batch prompt
         response = connect_wso2(
@@ -647,7 +848,9 @@ def _process_address_batch(address_list: list, target_country: str = None, batch
                 
             except Exception as e:
                 # Log the problematic content for debugging
-                print(f"DEBUG: Failed to parse JSON content: {content[:500]}...")
+                debug_mode = PROMPT_CONFIG.get("debug_mode", False) if CONFIG_AVAILABLE else False
+                if debug_mode:
+                    print(f"DEBUG: Failed to parse JSON content: {content[:500]}...")
                 raise ValueError(f"Failed to parse batch response as JSON: {str(e)}")
         else:
             raise ValueError("No response received from OpenAI for batch")

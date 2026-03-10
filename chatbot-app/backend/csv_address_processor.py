@@ -1111,6 +1111,9 @@ class CSVAddressProcessor:
                     target_country=target_country, 
                     use_batch=True
                 )
+                print(f"   ✅ Received {len(batch_results)} results from standardize_multiple_addresses")
+                if use_free_apis:
+                    print(f"   ⚠️  Free API enhancement enabled - this will be slow (~1-3s per address)")
             except Exception as e:
                 print(f"   ❌ Batch processing failed, falling back to individual processing: {str(e)}")
                 # Fallback to individual processing
@@ -1133,8 +1136,12 @@ class CSVAddressProcessor:
                         batch_results.append(error_result)
         
         # Combine cached and batch processed results
+        print(f"   🔀 Combining results: {len(cached_results)} cached, {len(batch_results)} processed, {len(address_batch)} total")
         all_results = []
         for i in range(len(address_batch)):
+            if i % 50 == 0:
+                print(f"   📊 Processing result {i+1}/{len(address_batch)}...")
+            
             original_index = start_index + i
             
             # Check if we have a cached result
@@ -1184,6 +1191,8 @@ class CSVAddressProcessor:
                     }
                     
                     # Try to enhance with free APIs if enabled
+                    # Note: Free API enhancement is slow (1-3 seconds per address)
+                    # Only enable with --enable-free-apis flag when geocoding data is needed
                     if use_free_apis and enhanced_result['status'] == 'success':
                         enhanced_result = self.fill_missing_components_with_free_apis(
                             enhanced_result['original_address'], 
@@ -1204,6 +1213,7 @@ class CSVAddressProcessor:
                     })
         
         # No database saving
+        print(f"   ✅ Combined {len(all_results)} results successfully")
         print(f"✅ Batch completed: {len(all_results)} results")
         return all_results
     
@@ -1801,11 +1811,21 @@ class CSVAddressProcessor:
             
             print(f"Detected address columns: {', '.join(address_columns)}")
             
+            # Track original row count before splitting
+            original_row_count = len(df)
+            
             # Handle address splitting if enabled (for non-separated formats)
             if enable_split and self.address_splitter:
-                print(f"\n✂️  Address splitting is ENABLED - analyzing addresses...")
+                print(f"\n✂️  Address splitting is ENABLED - analyzing {original_row_count} addresses...")
                 df = self.apply_address_splitting(df, address_columns)
-                print(f"✅ Address splitting completed. New row count: {len(df)}")
+                new_row_count = len(df)
+                split_difference = new_row_count - original_row_count
+                if split_difference > 0:
+                    print(f"✅ Address splitting completed: {original_row_count} input → {new_row_count} output (+{split_difference} split addresses)")
+                else:
+                    print(f"✅ Address splitting completed: {new_row_count} addresses (no splits detected)")
+            else:
+                print(f"✂️  Address splitting: DISABLED ({original_row_count} addresses will be processed as-is)")
         
         print(f"Detected address columns: {', '.join(address_columns)}")
         
@@ -1856,117 +1876,102 @@ class CSVAddressProcessor:
             cached_count = 0
             
             if enable_batch_processing:
-                # Use batch processing
-                try:
-                    from app.config.address_config import PROMPT_CONFIG
-                    batch_size = PROMPT_CONFIG.get("batch_size", 5)
-                except ImportError:
-                    batch_size = 5
-                    
-                print(f"🚀 Processing {total_rows} addresses...")
-                print(f"   Using batch processing (batch size: {batch_size})")
+                # Use batch processing - process ALL addresses at once for optimal parallelization
+                print(f"\n🚀 Processing {total_rows} addresses (after splitting) with parallel batch API...")
                 
-                # Process in batches
-                for batch_start in range(0, total_rows, batch_size):
-                    batch_end = min(batch_start + batch_size, total_rows)
+                # Extract ALL addresses at once
+                all_addresses = []
+                all_countries = []
+                
+                for _, row in df.iterrows():
+                    address = row[addr_col]
+                    all_addresses.append(address)
                     
-                    print(f"   Processing batch {batch_start//batch_size + 1}: rows {batch_start+1}-{batch_end}")
-                    batch_extract_start = time.time()
-                    
-                    batch_df = df.iloc[batch_start:batch_end]
-                    
-                    # Extract addresses for this batch
-                    batch_addresses = []
-                    batch_countries = []
-                    batch_indices = []
-                    
-                    for idx, (_, row) in enumerate(batch_df.iterrows()):
-                        address = row[addr_col]
-                        batch_addresses.append(address)
-                        
-                        # Get target country from column if available
-                        target_country = None
-                        if country_column and country_column in row:
-                            target_country = str(row[country_column]).strip() if pd.notna(row[country_column]) else None
-                        batch_countries.append(target_country)
-                        batch_indices.append(batch_start + idx)
-                    
-                    batch_extract_time = time.time() - batch_extract_start
-                    print(f"   ⏱️  Batch extraction time: {batch_extract_time:.2f}s")
-                    
-                    # Process this batch
-                    batch_api_start = time.time()
-                    if len(batch_addresses) > 1:
-                        # Use the most common country in the batch, or None
-                        common_country = max(set(batch_countries), key=batch_countries.count) if any(batch_countries) else None
-                        
-                        batch_results = self.standardize_addresses_batch(
-                            batch_addresses, 
-                            batch_start, 
-                            target_country=common_country, 
-                            use_free_apis=use_free_apis
-                        )
+                    # Get target country from column if available
+                    target_country = None
+                    if country_column and country_column in row:
+                        target_country = str(row[country_column]).strip() if pd.notna(row[country_column]) else None
+                    all_countries.append(target_country)
+                
+                # Process ALL addresses at once (standardize_multiple_addresses handles internal batching & parallelization)
+                batch_api_start = time.time()
+                
+                # Use the most common country, or None
+                common_country = max(set(all_countries), key=all_countries.count) if any(all_countries) else None
+                
+                batch_results = self.standardize_addresses_batch(
+                    all_addresses, 
+                    0, 
+                    target_country=common_country, 
+                    use_free_apis=use_free_apis
+                )
+                
+                print(f"📥 Received {len(batch_results)} results from batch processing")
+                
+                batch_api_time = time.time() - batch_api_start
+                print(f"✅ Completed in {batch_api_time:.1f}s ({total_rows} addresses, avg {batch_api_time/total_rows:.2f}s each)")
+                
+                # Verify result count matches input count
+                if len(batch_results) != total_rows:
+                    print(f"⚠️  WARNING: Result count mismatch! Expected {total_rows} results, got {len(batch_results)}")
+                    print(f"   Missing {total_rows - len(batch_results)} addresses!")
+                
+                # Update DataFrame with all results - using bulk assignment for performance
+                print(f"📝 Updating DataFrame with {len(batch_results)} results...")
+                update_start = time.time()
+                
+                # Ensure batch_results matches DataFrame length
+                if len(batch_results) < total_rows:
+                    # Pad with error results for missing addresses
+                    for i in range(len(batch_results), total_rows):
+                        batch_results.append({
+                            'formatted_address': '',
+                            'error': 'Result not returned from API',
+                            'status': 'error',
+                            'confidence': 'low'
+                        })
+                
+                # Extract all values into lists for bulk assignment
+                df[f"{base_col_name}_formatted"] = [r.get('formatted_address', '') for r in batch_results]
+                df[f"{base_col_name}_street_number"] = [r.get('street_number', '') for r in batch_results]
+                df[f"{base_col_name}_street_name"] = [r.get('street_name', '') for r in batch_results]
+                df[f"{base_col_name}_street_type"] = [r.get('street_type', '') for r in batch_results]
+                df[f"{base_col_name}_unit_type"] = [r.get('unit_type', '') for r in batch_results]
+                df[f"{base_col_name}_unit_number"] = [r.get('unit_number', '') for r in batch_results]
+                df[f"{base_col_name}_city"] = [r.get('city', '') for r in batch_results]
+                df[f"{base_col_name}_state"] = [r.get('state', '') for r in batch_results]
+                df[f"{base_col_name}_postal_code"] = [r.get('postal_code', '') for r in batch_results]
+                df[f"{base_col_name}_country"] = [r.get('country', '') for r in batch_results]
+                df[f"{base_col_name}_country_code"] = [r.get('country_code', '') for r in batch_results]
+                df[f"{base_col_name}_district"] = [r.get('district', '') for r in batch_results]
+                df[f"{base_col_name}_region"] = [r.get('region', '') for r in batch_results]
+                df[f"{base_col_name}_suburb"] = [r.get('suburb', '') for r in batch_results]
+                df[f"{base_col_name}_locality"] = [r.get('locality', '') for r in batch_results]
+                df[f"{base_col_name}_sublocality"] = [r.get('sublocality', '') for r in batch_results]
+                df[f"{base_col_name}_canton"] = [r.get('canton', '') for r in batch_results]
+                df[f"{base_col_name}_prefecture"] = [r.get('prefecture', '') for r in batch_results]
+                df[f"{base_col_name}_oblast"] = [r.get('oblast', '') for r in batch_results]
+                df[f"{base_col_name}_confidence"] = [r.get('confidence', '') for r in batch_results]
+                df[f"{base_col_name}_issues"] = [r.get('issues', '') for r in batch_results]
+                df[f"{base_col_name}_status"] = [r.get('status', '') for r in batch_results]
+                df[f"{base_col_name}_api_source"] = [r.get('api_source', '') for r in batch_results]
+                df[f"{base_col_name}_latitude"] = [r.get('latitude', '') for r in batch_results]
+                df[f"{base_col_name}_longitude"] = [r.get('longitude', '') for r in batch_results]
+                df[f"{base_col_name}_address_id"] = [r.get('address_id', '') for r in batch_results]
+                df[f"{base_col_name}_from_cache"] = ['Yes' if r.get('from_cache', False) else 'No' for r in batch_results]
+                
+                update_time = time.time() - update_start
+                print(f"✅ DataFrame updated in {update_time:.2f}s")
+                
+                # Count statistics
+                for result in batch_results:
+                    processed_count += 1
+                    if result.get('status') == 'success':
+                        success_count += 1
                     else:
-                        # Single address processing for small batches
-                        batch_results = []
-                        for i, address in enumerate(batch_addresses):
-                            result = self.standardize_single_address(
-                                address, 
-                                batch_start + i, 
-                                target_country=batch_countries[i],
-                                use_free_apis=use_free_apis
-                            )
-                            batch_results.append(result)
-                    
-                    batch_api_time = time.time() - batch_api_start
-                    print(f"   ⏱️  API processing time: {batch_api_time:.2f}s")
-                    
-                    # Update DataFrame with batch results
-                    df_update_start = time.time()
-                    
-                    for i, result in enumerate(batch_results):
-                        df_index = batch_start + i
-                        df.at[df_index, f"{base_col_name}_formatted"] = result.get('formatted_address', '')
-                        df.at[df_index, f"{base_col_name}_street_number"] = result.get('street_number', '')
-                        df.at[df_index, f"{base_col_name}_street_name"] = result.get('street_name', '')
-                        df.at[df_index, f"{base_col_name}_street_type"] = result.get('street_type', '')
-                        df.at[df_index, f"{base_col_name}_unit_type"] = result.get('unit_type', '')
-                        df.at[df_index, f"{base_col_name}_unit_number"] = result.get('unit_number', '')
-                        df.at[df_index, f"{base_col_name}_city"] = result.get('city', '')
-                        df.at[df_index, f"{base_col_name}_state"] = result.get('state', '')
-                        df.at[df_index, f"{base_col_name}_postal_code"] = result.get('postal_code', '')
-                        df.at[df_index, f"{base_col_name}_country"] = result.get('country', '')
-                        df.at[df_index, f"{base_col_name}_country_code"] = result.get('country_code', '')
-                        df.at[df_index, f"{base_col_name}_district"] = result.get('district', '')
-                        df.at[df_index, f"{base_col_name}_region"] = result.get('region', '')
-                        df.at[df_index, f"{base_col_name}_suburb"] = result.get('suburb', '')
-                        df.at[df_index, f"{base_col_name}_locality"] = result.get('locality', '')
-                        df.at[df_index, f"{base_col_name}_sublocality"] = result.get('sublocality', '')
-                        df.at[df_index, f"{base_col_name}_canton"] = result.get('canton', '')
-                        df.at[df_index, f"{base_col_name}_prefecture"] = result.get('prefecture', '')
-                        df.at[df_index, f"{base_col_name}_oblast"] = result.get('oblast', '')
-                        df.at[df_index, f"{base_col_name}_confidence"] = result.get('confidence', '')
-                        df.at[df_index, f"{base_col_name}_issues"] = result.get('issues', '')
-                        df.at[df_index, f"{base_col_name}_status"] = result.get('status', '')
-                        df.at[df_index, f"{base_col_name}_api_source"] = result.get('api_source', '')
-                        df.at[df_index, f"{base_col_name}_latitude"] = result.get('latitude', '')
-                        df.at[df_index, f"{base_col_name}_longitude"] = result.get('longitude', '')
-                        df.at[df_index, f"{base_col_name}_address_id"] = result.get('address_id', '')
-                        df.at[df_index, f"{base_col_name}_from_cache"] = 'Yes' if result.get('from_cache', False) else 'No'
-                        
-                        processed_count += 1
-                        if result.get('status') == 'success':
-                            success_count += 1
-                        else:
-                            error_count += 1
-                            
-                        if result.get('from_cache', False):
-                            cached_count += 1
-                    
-                    df_update_time = time.time() - df_update_start
-                    print(f"   ⏱️  DataFrame update time: {df_update_time:.2f}s ({len(batch_results)} addresses × 26 columns)")
-                
-                print(f"✅ Batch processing completed: {processed_count} addresses processed")
+                        error_count += 1
+                    if result.get('from_cache', False):
+                        cached_count += 1
             else:
                 # Use individual processing
                 print(f"🔄 Processing {total_rows} addresses individually...")
@@ -2944,7 +2949,7 @@ Examples:
     parser.add_argument('-c', '--column', help='Specific address column name (for CSV)')
     parser.add_argument('--address-columns', help='Comma-separated list of columns to combine into address (e.g., "address_line1,city,state,zip")')
     parser.add_argument('-b', '--batch-size', type=int, default=5, help='Batch size for processing (default: 5)')
-    parser.add_argument('--no-free-apis', action='store_true', help='Disable free API enhancement')
+    parser.add_argument('--enable-free-apis', action='store_true', help='Enable free API enhancement (slower, adds geocoding data)')
     parser.add_argument('--enable-split', action='store_true', help='Enable address splitting based on rules (creates additional rows for split addresses)')
     parser.add_argument('--use-gpt-split', action='store_true', help='Use GPT-based splitting instead of rule-based (requires --enable-split)')
     
@@ -3214,7 +3219,7 @@ Examples:
                 address_columns=address_columns,
                 limit=limit,  # Use validated limit
                 batch_size=args.batch_size,
-                use_free_apis=not args.no_free_apis
+                use_free_apis=args.enable_free_apis
             )
             
             if result['success']:
@@ -3237,7 +3242,7 @@ Examples:
         try:
             processor.process_all_inbound_files(
                 batch_size=args.batch_size,
-                use_free_apis=not args.no_free_apis,
+                use_free_apis=args.enable_free_apis,
                 enable_split=args.enable_split,
                 use_gpt_split=args.use_gpt_split
             )
@@ -3276,7 +3281,7 @@ Examples:
                     address_column=args.column,
                     address_columns=args.address_columns.split(',') if args.address_columns else None,
                     batch_size=args.batch_size,
-                    use_free_apis=not args.no_free_apis,
+                    use_free_apis=args.enable_free_apis,
                     enable_split=args.enable_split,
                     use_gpt_split=args.use_gpt_split
                 )

@@ -421,5 +421,12 @@ PROMPT_CONFIG = {
     "batch_size": 10,  # Stable batch size: 10 addresses per batch (each needs ~250 tokens = 2500 total + 500 buffer = 3000 tokens)
     "max_batch_size": 10,  # Maximum safe batch size before hitting token limits
     "enable_batch_processing": True,
-    "enable_batch_comparison": True  # Enable true batch comparison
+    "enable_batch_comparison": True,  # Enable true batch comparison
+    # Parallel processing settings
+    "enable_parallel_batching": True,  # Process multiple batches concurrently
+    "max_parallel_batches": 5,  # Maximum number of batches to process simultaneously (3-5 recommended)
+    "parallel_timeout": 300,  # Timeout in seconds for ALL parallel batches (5 minutes for large datasets)
+    # Debugging and logging
+    "debug_mode": False,  # Set to True for verbose logging (all API requests/responses)
+    "show_progress": True  # Show batch progress messages
 }
