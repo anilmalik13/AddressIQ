@@ -1266,15 +1266,61 @@ class CSVAddressProcessor:
             print(f"   Using GPT batch processing for {len(address_pairs)} addresses (batch size: {BATCH_SIZE})...")
             split_results = []
             
-            # Process in chunks of BATCH_SIZE
+            # Prepare all batches upfront
+            batches = []
             for i in range(0, len(address_pairs), BATCH_SIZE):
                 batch = address_pairs[i:i + BATCH_SIZE]
                 batch_num = (i // BATCH_SIZE) + 1
-                total_batches = (len(address_pairs) + BATCH_SIZE - 1) // BATCH_SIZE
+                batches.append((batch_num, batch))
+            
+            total_batches = len(batches)
+            
+            # Process batches in parallel
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            MAX_WORKERS = 5  # Same as address standardization
+            
+            print(f"   ⚡ Processing {total_batches} batches in parallel (max {MAX_WORKERS} concurrent workers)...")
+            
+            executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+            try:
+                # Submit all batch jobs
+                future_to_batch = {}
+                for batch_num, batch in batches:
+                    future = executor.submit(self.address_splitter.analyze_and_split_batch, batch)
+                    future_to_batch[future] = (batch_num, len(batch))
                 
-                print(f"   Processing batch {batch_num}/{total_batches} ({len(batch)} addresses)...")
-                batch_results = self.address_splitter.analyze_and_split_batch(batch)
-                split_results.extend(batch_results)
+                print(f"   📊 Submitted {total_batches} batches | Max concurrent: {min(MAX_WORKERS, total_batches)}")
+                
+                # Collect results as they complete
+                completed = 0
+                batch_results_map = {}
+                
+                for future in as_completed(future_to_batch):
+                    batch_num, batch_size = future_to_batch[future]
+                    
+                    try:
+                        batch_results = future.result(timeout=30)
+                        batch_results_map[batch_num] = batch_results
+                        completed += 1
+                        remaining = total_batches - completed
+                        print(f"   ✅ Batch {batch_num}/{total_batches}: {batch_size} addresses ({len(batch_results)} results) | Done: {completed}/{total_batches} | Remaining: {remaining}")
+                    
+                    except Exception as e:
+                        print(f"   ❌ Batch {batch_num}/{total_batches} failed: {str(e)}")
+                        # Fallback to empty results for failed batch
+                        batch_results_map[batch_num] = []
+                        completed += 1
+                
+                # Combine results in correct order
+                print(f"   🔀 Combining {completed} batch results in order...")
+                for batch_num in sorted(batch_results_map.keys()):
+                    split_results.extend(batch_results_map[batch_num])
+                
+            finally:
+                print(f"   🔒 Shutting down executor...")
+                executor.shutdown(wait=True)
+                print(f"   ✅ Executor shutdown complete")
+                del executor
         else:
             print(f"   Using individual processing for {len(address_pairs)} addresses...")
             split_results = []
