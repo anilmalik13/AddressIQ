@@ -129,6 +129,7 @@ def connect_wso2(access_token, user_content: str, system_prompt: str = None, pro
     # Get prompt configuration from config file
     config = get_prompt_config()
 
+    token_limit = max_tokens or config.get("max_tokens", 800)
     request_body = {
         "messages": [
             {
@@ -141,7 +142,7 @@ def connect_wso2(access_token, user_content: str, system_prompt: str = None, pro
             }
         ],
         "temperature": config.get("temperature", 0.7),
-        "max_tokens": max_tokens or config.get("max_tokens", 800),
+        "max_completion_tokens": token_limit,
         "frequency_penalty": config.get("frequency_penalty", 0),
         "presence_penalty": config.get("presence_penalty", 0)
     }
